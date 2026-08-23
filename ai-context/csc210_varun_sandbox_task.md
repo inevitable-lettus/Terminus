@@ -30,3 +30,18 @@ Varun (teammate, task prefix V-, see [[csc210_group8_workspace]]) owns the simul
 - **DSA-content risk: partially resolved, still worth watching.** The sandbox has its *own* C++ `Pathfinder::shortestPath` (Dijkstra, own implementation, not proxying SUMO's `duarouter`) — so the separation-of-concerns goal was honored. Open question: does the team's required Java/algorithm-module Dijkstra/A*/BTRNDP work duplicate this, or does the algo module treat the sandbox's own Dijkstra as sufficient and build only the route-network/A* layers on top? Needs explicit team decision — grading is on the team's own DSA implementation, and "the sandbox already has Dijkstra" is not the same as "we implemented Dijkstra."
 
 Task Sheet checkbox staleness (all FALSE as of 2026-08-09) may now be significantly wrong given actual repo maturity — worth Varun updating the sheet to match.
+
+**Sandbox confirmed live (2026-08-23), via Varun in team chat:**
+
+- **Docker build:** first `docker compose up` takes ~1 hour (image build); after that, seconds to start. The SUMO/TraCI engine itself then takes 2–3 minutes to come up on macOS.
+- **Health check:** `GET http://localhost:8080/healthz` → `{"ok":true,"status":"running"}` confirms the service is up. Terminal also logs `SUMO control API listening on 0.0.0.0:8080` once ready.
+- **Benign startup error, ignore it:** `Could not connect to TraCI server at localhost:40759 ... Connection refused` appears during startup — expected, self-resolves, no effect on operation. Do not treat as a bug.
+- **GUI (macOS only):** needs XQuartz 11, with "Allow connections from network clients" enabled in XQuartz's Security settings. Launch in a separate terminal:
+  ```
+  xhost +localhost
+  DISPLAY=host.docker.internal:0 docker compose --profile gui up gui
+  ```
+- **Open bug (Varun's side, 2026-08-23):** OSM map fails to load, so the GUI renders blank. The API itself is reported working despite this. **Not yet independently verified** whether `/nodes` and `/edges` return real data or come back empty — check this before building Phase 1 graph ingestion on top of it, since a blank map could mean an empty graph rather than just a rendering issue.
+- **Unblocks Garv:** per Varun, the API layer is usable now — Phase 0 (JDK 21 install, repo scaffold, [[csc210_algorithm_build_order]]) can start regardless of the map/GUI bug.
+
+See also [[csc210_sandbox_data_layer]] for the `/healthz` endpoint noted alongside the rest of the API surface.

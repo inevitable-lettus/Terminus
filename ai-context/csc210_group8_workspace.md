@@ -8,7 +8,7 @@ metadata:
   modified: 2026-08-09T04:23:59.297Z
 ---
 
-CSC210 Group 8 (Monsoon 2026) team members, per the shared Drive workspace: **Varun** (sandbox/simulation lead, task prefix V-), **Garv** (task prefix G-, tasks not yet created as of 2026-08-09), **Shambhavee** (prefix S-), **Mahima** (prefix M-). This is the team building [[csc210_dsa_project]].
+CSC210 Group 8 (Monsoon 2026) team members, per the shared Drive workspace: **Varun** (sandbox/simulation lead, task prefix V-), **Garv** (algorithm module, task prefix G-, tasks not yet created as of 2026-08-09), **Shambhavee** and **Mahima** (research and development of bus ticketing and management software, prefixes S-/M-; role confirmed in the repo README as of 2026-08-23). This is the team building [[csc210_dsa_project]].
 
 **Drive folder structure** ("CSC210 - Group 8"):
 - `Resources/URLs` — placeholder doc, empty as of 2026-08-09.

@@ -57,6 +57,7 @@ w = L / max(0.1, v_eff) * m
 
 ## Other live data surfaces
 
+- `GET /healthz` (not under `/api/v1`) — liveness check, returns `{"ok":true,"status":"running"}`. Confirmed working 2026-08-23 (see [[csc210_varun_sandbox_task]]); terminal also logs `SUMO control API listening on 0.0.0.0:8080` once ready.
 - `GET /api/v1/status` — clock, seed, SUMO version, graph summary.
 - `POST /api/v1/dws/events`, `GET /api/v1/dws/events` — schedule/list rain or earthquake hazard events (epicenter, radius, intensity, duration, falloff exponent).
 - `GET /api/v1/roe?...` — **Record of Events**: hash-chained, append-only JSONL log (`record-of-events.jsonl`) of every semantic transition (lifecycle/mutation/hazard/path/movement categories), each record with simulation timestamp, monotonic sequence, and hash-link to the prior record. `/roe/verify` checks chain integrity. Good candidate for feeding analytics/history features on the passenger-info side.
@@ -93,5 +94,9 @@ Algorithm 1 needs a per-node demand score (population/POI density) per [[csc210_
 **Filed as issue:** https://github.com/varunkarthic/csc210-sandbox/issues/1 (2026-08-21) — requests extending the Overpass query with `amenity`/`shop`/`landuse`, aggregating a per-node demand score into `node.metadata["demand_score"]`, and documenting the key in `docs/openapi.yaml`.
 
 **How to apply:** algorithm module's Algorithm 1 (route network builder) should wait on `metadata.demand_score` being populated before wiring up real demand-based hub selection — check the issue status before assuming this field exists. Everything else needed for the algorithm module (topology, cost model, bus_stop typing, REST API) is already sufficient; this was the one real sandbox gap found.
+
+## Known issue: OSM map fails to load (open, 2026-08-23)
+
+Per Varun (2026-08-23), the sandbox's OSM map load is currently broken, leaving the GUI blank. The API is reported to still work despite this, but whether `/nodes`/`/edges` return real data or come back empty has **not been independently verified yet** — confirm before relying on it for Phase 1 graph ingestion in [[csc210_algorithm_build_order]]. See [[csc210_varun_sandbox_task]] for full startup/verification notes (Docker build time, `/healthz`, benign TraCI startup error, macOS GUI setup via XQuartz).
 
 See also [[csc210_varun_sandbox_task]], [[csc210_algorithm_architecture]], [[csc210_algorithm_module_writeup]].

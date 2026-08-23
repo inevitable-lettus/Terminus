@@ -1,11 +1,11 @@
 - [CSC210 DSA project](csc210_dsa_project.md) — Project #3: Smart Bus Route Planning system, course spec/stack/workflow
 - [Algorithm architecture](csc210_algorithm_architecture.md) — Java+socket IPC (ONNX rejected), edge cost model, A*/Dijkstra split, heuristic design
 - [Algorithm module writeup](csc210_algorithm_module_writeup.md) — full writeup: route network builder + passenger pathfinder, cost model, weighted A* research component
-- [Varun's sandbox track](csc210_varun_sandbox_task.md) — settled on SUMO traffic simulator, weather layer still open, DSA-content risk to watch, procedural-vs-OSM conflict open
+- [Varun's sandbox track](csc210_varun_sandbox_task.md) — SUMO settled; API confirmed live 2026-08-23 (Docker/GUI setup, healthz), OSM map load bug open, unblocks Garv
 - [Route generation scope](csc210_route_generation_scope.md) — bus route design goal is NP-hard BTRNDP-shaped; must stay greedy+Dijkstra, not GA/SA/tabu search
-- [CSC210 Group 8 Drive workspace](csc210_group8_workspace.md) — team roles, folder structure, task-tracking process norms
+- [CSC210 Group 8 Drive workspace](csc210_group8_workspace.md) — team roles (incl. S-/M- confirmed: bus ticketing/mgmt software), folder structure, task-tracking norms
 - [CSC210 Drive folder access](csc210_drive_folder_inaccessible.md) — folder needs correct Google account on connector; resolved 2026-08-09
-- [Sandbox data layer](csc210_sandbox_data_layer.md) — csc210-sandbox repo: node/edge JSON schema, REST API, weight formula, ROE log, own Dijkstra endpoint
+- [Sandbox data layer](csc210_sandbox_data_layer.md) — node/edge JSON schema, REST API, weight formula, ROE log, own Dijkstra endpoint; OSM map load bug open (2026-08-23)
 - [Algorithm learning plan](csc210_algorithm_learning_plan.md) — teaching roadmap: sandbox mental model + concept build order (graph→heap→Dijkstra→A*→weighted-A*), current stage tracker
 - [Algorithm build protocol](csc210_algorithm_build_protocol.md) — BINDING: propose→review→approve→write pair-programming cycle, no file written before Garv reads it line by line
 - [Algorithm build order](csc210_algorithm_build_order.md) — executable 7-phase plan (JDK install → weighted-A* research), live current-stage tracker
