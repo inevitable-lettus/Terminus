@@ -4,9 +4,6 @@
 
 # Research – Smart Public Bus Route Planning and Passenger Information System
 
-## Prepared by
-
-Shambhavee Patel
 
 ## Research Area
 
