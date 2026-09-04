@@ -1,2 +1,12 @@
 # Private prep notes — not meant for the shared repo
 ai-context/csc210_java_decision.md
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/

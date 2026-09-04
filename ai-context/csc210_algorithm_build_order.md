@@ -28,11 +28,16 @@ line, explicit approval, then write, verify, record. No exceptions.
 
 ## Current stage
 
-> **Phase 0, step 0.0 — not started.** No code exists. Nothing installed.
+> **Phase 0, step 0.2 done — next up 0.3 (hello-world round trip).**
 >
-> **Blocker:** the only JDK on this machine is **Java 8** (`1.8.0_471`), and it
-> is the old x86_64 Applet-plugin JRE. That predates `java.net.http` (Java 11)
-> and records (Java 16). JDK 21 must be installed before step 0.1.
+> 0.0 done: JDK 21 (Homebrew, aarch64) installed.
+> 0.1 done: repo, `.gitignore`, `README.md`, `DESIGN.md` all present.
+> 0.2 done (2026-09-04): Gradle chosen over Maven — terser committed
+> `build.gradle`, wrapper means the team never installs Gradle themselves.
+> Wrapper bootstrapped via a one-time `brew install gradle`; `build.gradle`
+> (Java 21 toolchain, Jackson, JUnit 5) and `settings.gradle` written;
+> `./gradlew build` green on the empty project (`BUILD SUCCESSFUL`, no
+> sources yet). `.gitignore` extended for `.gradle/`, `build/`, IDE files.
 >
 > _Update this block at the end of every completed step — see
 > [[csc210_algorithm_build_protocol]] stage 6._
