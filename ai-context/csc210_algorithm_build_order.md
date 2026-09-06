@@ -21,8 +21,8 @@ line, explicit approval, then write, verify, record. No exceptions.
 |---|---|---|
 | Language | **Java** (JDK 21) | [[csc210_java_decision]] |
 | Repo | **New sibling repo** `CSC210/csc210-algorithm/` | this file, Phase 0 |
-| Edge cost | **Recomputed from raw fields**, sandbox number is a cross-check | [[csc210_sandbox_data_layer]] |
-| Sandbox Dijkstra | **Test oracle only**, never in the submitted pipeline | [[csc210_sandbox_data_layer]] |
+| Edge cost | **Recomputed from raw fields** — no server-side weight to cross-check any more (2026-09-06) | [[csc210_sandbox_data_layer]] |
+| Sandbox Dijkstra | **Test oracle only** — but it is no longer exposed over HTTP (2026-09-06) | [[csc210_sandbox_data_layer]] |
 | Heap | **Hand-written indexed binary heap** with `decreaseKey` | [[csc210_java_decision]] |
 | Route design method | **Greedy demand-covering**, not GA/SA/tabu | [[csc210_route_generation_scope]] |
 
@@ -41,6 +41,13 @@ line, explicit approval, then write, verify, record. No exceptions.
 >
 > _Update this block at the end of every completed step — see
 > [[csc210_algorithm_build_protocol]] stage 6._
+
+> **⚠ SANDBOX REWRITTEN — 2026-09-06.** Varun replaced `sumo_control` with **DSTNS**
+> (group repo, branch `dstns`, commit `257257a`). New port, new API paths, new cost
+> model, integer node ids, no path-compute oracle, no `/simulation/step`, no
+> `demand_score`, bus stops now placed by the sandbox. [[csc210_sandbox_data_layer]] is
+> rewritten for it. **Phase 0 is unaffected — 0.3 proceeds as planned.** Phases 1, 3, 4,
+> 5 and 6 have revisions marked inline below; read them before proposing those steps.
 
 ---
 
@@ -93,8 +100,9 @@ schema exactly rather than being "improved" at this layer.
 
 **1.2 — HTTP client.**
 `SandboxClient` over `java.net.http.HttpClient`, base URL
-`http://localhost:8080/api/v1`. Methods for `GET /status`, `GET /nodes`,
-`GET /edges`. Optional bearer token.
+**`http://127.0.0.1:8090/api/v1`** (revised 2026-09-06). Methods for
+`GET /health`, **`GET /view/topology`** (the whole graph in one call) and
+`GET /view/snapshot` (live edge state). No bearer token in DSTNS.
 *Concept:* what an HTTP GET is on the wire, status codes, why the client is
 one reusable object rather than one per call.
 *Proof:* run against the live sandbox (`docker compose up` in
@@ -109,43 +117,56 @@ for a contract someone else owns.
 `position`.
 
 **1.4 — Fixtures.**
-Save one real `/nodes` and one real `/edges` response into
-`src/test/resources/`. Every later test runs against these, so tests do not
+Save one real `/view/topology` and one real `/view/snapshot` response into
+`src/test/resources/` (or a copy of DSTNS's own `logs/global_view.json`, which
+already contains both). Every later test runs against these, so tests do not
 need the sandbox running.
 *Concept:* why tests that depend on a live external service are bad tests.
 *Proof:* `./gradlew test` passes with the sandbox stopped.
 
 **1.5 — The graph structure. (First real DSA content.)**
-Hand-written adjacency list. A `HashMap<String,Integer>` interns the sandbox's
-string node ids to dense `int` indices; edges stored in flat arrays indexed by
-those integers.
+Hand-written adjacency list, edges stored in flat arrays indexed by node id.
+
+*Revised 2026-09-06:* DSTNS node ids are **already dense 0-indexed integers**
+(system invariant), so there are no string ids left to intern. Decide at
+proposal time which way to take the hash table so it stays honest rather than
+decorative: (a) drop it here and introduce it where it genuinely earns its
+place later, or (b) keep a `HashMap<Long,Integer>` from `osm_node_id` (a sparse
+`int64`) to our dense index, which is a real sparse-to-dense mapping. Whichever
+is chosen, the *reason* must survive a TA asking "why is this here?"
 *Concept:* adjacency list vs adjacency matrix, and why a sparse road network
 (each junction has ~2–4 neighbours) makes the matrix wasteful — `O(V²)` memory
 for `O(E)` real edges. What "interning" means and why dense integer ids make
 every later array lookup `O(1)`. Hash table from the required toolkit enters
 here, legitimately.
 *Proof:* build the graph from fixtures; assert node/edge counts match the API;
-assert the sandbox's guaranteed bidirectionality invariant holds — for every
-`u→v` there is a `v→u`.
+assert DSTNS's **reverse-twin invariant** holds exactly — for every edge `i`,
+`edges[edges[i].reverse_twin].reverse_twin == i`. (Revised 2026-09-06: this is
+the DSTNS spelling of the old bidirectionality guarantee, and it is a sharper
+assertion than the old one.)
 
-**1.6 — Cost model, recomputed.**
-Implement the sandbox's physics in our own code:
+**1.6 — Cost model, recomputed.** *(Rewritten 2026-09-06 — the old formula is dead.)*
 ```
-v_eff = v_limit * max(0.05, (1 - 0.75t²)(1 - 0.85f²)(1 - 0.80d))
-w     = L / max(0.1, v_eff) * m
+cost_ms(e) = round( length_m(e) / max(0.1, effective_speed_mps(e)) * 1000 )
 ```
-`t` = `traffic_level`, `f` = `flood_depth_m / 0.50`, `d` = `seismic_damage`,
-`m` = `manual_weight_multiplier`. Weight is infinite when blocked (manual,
-node-derived, flood ≥ 0.50 m, or seismic ≥ 0.90).
+integer milliseconds, matching DSTNS's own `RoutePlanner`. An edge with
+`closed == true` is skipped entirely — infinite cost, not a large finite one.
+`effective_speed_mps` is read live from `/view/snapshot`; DSTNS derives it from
+free-flow speed times signal, rain, flood and manual multipliers, rate-limited
+so it eases toward its target rather than jumping.
 *Concept:* why the multipliers are multiplicative and not additive — congestion
 slows a road in proportion to its length, so a flat additive penalty would
 punish a 50 m street and a 5 km highway identically. Why the clamps exist
 (never divide by zero, never let a road become infinitely fast). Why costs live
-on edges, not nodes.
-*Proof — the good one:* for **every** edge in the fixture, assert our computed
-weight matches the sandbox's `effective_weight_s` to within floating-point
-epsilon. Hundreds of independent checks of the same formula. If one edge
-disagrees, we misread the spec.
+on edges, not nodes. New: why *skipping* a closed edge is not the same as giving
+it a huge weight, and why signal phase makes weights oscillate second to second.
+*Proof — weaker than it used to be, say so out loud:* DSTNS no longer publishes
+a precomputed `effective_weight_s`, so the old "match the server's number on
+every edge" check is impossible. Replacement: over every edge in the fixture
+assert `effective_speed_mps <= free_speed_mps`, assert closed edges are excluded
+from the adjacency used for search, and assert our arithmetic against a
+hand-computed value on a handful of edges. Honestly a regression in test
+strength — worth one sentence in the writeup.
 
 ---
 
@@ -186,29 +207,52 @@ Walk `prev[]` backward from target to source, reverse.
 path, and why we store the predecessor rather than the path itself.
 *Proof:* reconstructed path costs equal the reported `dist[]` values.
 
-**3.3 — Cross-check against the sandbox oracle.**
-`POST /paths/compute` runs the sandbox's own C++ Dijkstra over the same
-weights. Run both on the same node pairs, assert equal path **cost**.
-*Concept:* why we compare cost and not the node sequence — ties are broken
-differently by different implementations, so two equally-optimal paths can
-legitimately differ. This distinction is worth understanding; a TA may well ask.
-*Proof:* costs match across a sample of random node pairs.
+**3.3 — Cross-check against the sandbox oracle. ⚠ BLOCKED, 2026-09-06.**
+DSTNS has its own A* (`RoutePlanner::route`, `src/graph.cpp`) but **does not
+expose it over HTTP** — there is no `/paths/compute` and no path endpoint at all.
+*Action:* ask Varun to add a thin `POST /api/v1/paths/compute` wrapper over the
+existing `RoutePlanner`. The class already exists; this is a few lines and
+restores the strongest test in the plan. Highest-value ask we have of him.
+*If he declines or it slips:* drop this step. Step 3.1's brute-force all-pairs
+comparison on a small random graph plus step 5.1's Dijkstra-vs-A* cost agreement
+already cover correctness; 3.3 becomes redundant rather than missing. Do **not**
+port their A* to Java as a "reference" — that is our code checking our code.
+*Concept (keep it either way):* why we compare cost and not the node sequence —
+ties are broken differently by different implementations, so two equally-optimal
+paths can legitimately differ. A TA may well ask.
+*Proof (if unblocked):* costs match across a sample of random node pairs.
 
 ---
 
 ## Phase 4 — Algorithm 1: Route Network Builder
 
-Full specification in [[csc210_algorithm_module_writeup]] §3. Unblocked as of
-commit `8c50dff` — `node.metadata["demand_score"]` is now populated (issue #1,
-closed 2026-08-21).
+Full specification in [[csc210_algorithm_module_writeup]] §3.
+
+**⚠ Rebased 2026-09-06.** `demand_score` **does not exist in DSTNS** — the PR that
+added it was merged into the old `sumo_control` repo and did not survive the
+rewrite. Two decisions must be settled with Garv before proposing 4.1:
+
+- **Demand source.** Now `building_effect` per node (School/Office/Mall/Store with
+  time-of-day activity windows) and `demand_vph` per edge, both read from the API.
+  Both are **functions of virtual time** — the same node is high-demand at 08:30
+  and low at 14:00.
+- **Bus stops.** DSTNS now places its own stops (22 in the current run, 300 m min
+  spacing / 800 m max coverage) and flags them `roles.bus_stop`. Either consume
+  them — which narrows Algorithm 1 from "choose stops and routes" to "choose
+  routes over given stops" — or ignore them and select our own, using theirs as a
+  comparison baseline. Both are defensible; the choice must be **stated**, not silent.
 
 **4.1 — Read demand.**
-Parse `metadata["demand_score"]` — a string-encoded integer count of OSM POIs
-(amenity/shop/landuse) within 300 m of the node. Handle nodes without the key.
-*Concept:* why demand is a proxy, not ground truth — POI density stands in for
-population because no census data exists in the pipeline. Naming that
-limitation out loud is a strength in the writeup, not a weakness.
-*Proof:* demand distribution printed; highest-demand nodes are plausible.
+Parse per-node `building_effect` / per-edge `demand_vph` at a chosen virtual time.
+Handle nodes with no building.
+*Concept:* why demand is a proxy, not ground truth — here it is a *synthetic*
+proxy, generated by the sandbox from building types and hardcoded rush-hour
+windows, so it is one step further from reality than the old POI-density proxy
+was. Naming that limitation out loud is a strength in the writeup, not a weakness.
+Also: why a time-varying demand field forces us to pick and justify a time slice,
+and what that costs — a network optimised for the 08:30 peak is not optimal at 14:00.
+*Proof:* demand distribution printed at a fixed seed and virtual time; the
+highest-demand nodes coincide with schools/offices/malls at plausible hours.
 
 **4.2 — Hub selection and the greedy cover loop.**
 Pick the highest-demand uncovered node, Dijkstra from it, build a route along
@@ -257,8 +301,17 @@ same optimum, fewer nodes expanded.
 h(n) = m_min × distance(n, goal) / V_MAX
 ```
 `V_MAX` = highest free-flow speed on any edge; `m_min` = smallest currently
-observed combined multiplier. Distance computed in **SUMO metres** (`x`,`y`) —
-not lat/lon. Manhattan instead of Euclidean if the layout is grid-like.
+observed combined multiplier. Distance computed in **projected metres**
+(`position.x_m`, `position.y_m`) — not lat/lon.
+
+*Revised 2026-09-06:* DSTNS ships both lat/lon and equirectangular `x_m`/`y_m`,
+so the metre plan is intact. `V_MAX = 16.67 m/s` (primary roads, per
+`config/road_types.json`). Use **Euclidean** — the map is real OSM road layout
+(currently Berlin), not a grid, so Manhattan is not the right form here.
+**Worth knowing:** DSTNS's own A* hardcodes `33.33 m/s`, roughly 2× loose. Ours
+at the true 16.67 is strictly tighter and still admissible, so it expands fewer
+nodes than theirs on the same graph — a real, defensible result to report in
+Phase 6 and a clean answer to "what did you do that the sandbox didn't?"
 *Concept:* admissible ("never overestimates") and consistent ("triangle
 inequality holds edge by edge"), both in plain language before any notation.
 The critical invariant: **traffic and weather live only in `g`, never in `h`** —
@@ -281,15 +334,20 @@ writeup wants both.
 
 The required algorithm-comparison component ([[csc210_algorithm_module_writeup]] §5).
 
-**6.1 — Determinism harness.**
-Manual clock mode: `POST /simulation/pause`, then explicit
-`POST /simulation/step` calls instead of realtime. Same root seed + same step
-count ⇒ identical edge weights every run.
+**6.1 — Determinism harness.** *(Rewritten 2026-09-06 — `/simulation/step` no longer exists.)*
+DSTNS drives its clock from a background loop, but gives a cleaner equivalent:
+`POST /playback/prepare` at a fixed seed (compiles the scenario without starting
+the clock) → `POST /playback/seek {"target_time":"08:30:00","play":false}` →
+`GET /view/snapshot`. Same seed + same target time ⇒ identical edge speeds.
+Each envelope carries `global_seed`, `graph_hash` and `state_revision`, so a run
+can record exactly which state it measured.
 *Concept:* why a benchmark against a *live* simulation is meaningless — the
 weights move under you, so run-to-run differences measure the weather, not the
 algorithm.
-*Proof:* two runs at the same seed and step count produce byte-identical
-weights.
+*Proof:* two prepare+seek cycles at the same seed and target time produce
+byte-identical edge speeds and equal `graph_hash`. Verify this empirically before
+trusting any benchmark number — Varun's `dstns_replay_verify` asserts it on his
+side, but we have not run it.
 
 **6.2 — Instrumentation.**
 Nodes-expanded counter, wall-clock timing with JIT warmup runs discarded, peak
@@ -322,20 +380,39 @@ Nodes-expanded vs path-cost across `ε`; Dijkstra vs A* table. Fold results into
 
 **7.1 — Command-line entry point.** Build the network, answer a query, print
 the route.
-**7.2 — Publish routes back** via `POST /paths` so they render in the sandbox.
+**7.2 — Publish routes back** via `POST /api/v1/control/transit/route` so they
+render and animate in the DSTNS UI. *Revised 2026-09-06:* body is
+`{bus_id, label, nodes[]}`, and the server validates that **every consecutive
+pair of nodes is a single directed edge** — it does not path-fill between stops.
+So Algorithm 1 must emit the full node-by-node traversal, every intermediate
+junction included, or the request is rejected at the first gap. Worth designing
+Phase 4.4's output format around this from the start rather than retrofitting.
 **7.3 — README** — architecture, how to run, how to reproduce the benchmarks.
 
 ---
 
 ## Open items carried in
 
-- `trafficMult` / `weatherMult` value ranges: superseded — the sandbox's
-  formula in step 1.6 is now the definitive cost model.
-- Procedural city generation vs fixed OSM data: still unresolved with Varun.
-  Currently real OSM (AU Gate 10 roundabout). Affects only whether the
-  heuristic uses Euclidean or Manhattan distance (step 5.2) — not blocking.
-- Local commit `8c50dff` may be unpushed to Varun's remote — confirm before
-  assuming the team has `demand_score`.
+*(Refreshed 2026-09-06 for the DSTNS rewrite.)*
+
+- **Ask Varun to expose `RoutePlanner` over HTTP** as `POST /api/v1/paths/compute`.
+  Unblocks step 3.3; cheapest high-value ask we have. **Do this first.**
+- **Which sandbox copy is canonical?** Three divergent branches exist (group repo
+  `dstns` and `Sandbox`, plus `varunkarthic/csc210-sandbox` `Programs`). Confirm
+  with Varun that `dstns` is the one to build against and that the others are dead,
+  and ideally get it merged to the group repo's `main`.
+- **Bus stops:** consume DSTNS's 22 pre-placed stops, or select our own? Decide
+  before Phase 4.2 (see the Phase 4 preamble).
+- **Demand time slice:** which virtual time does Algorithm 1 optimise for, and
+  what is the stated justification? Decide before Phase 4.1.
+- **Nothing has been built or run locally.** Varun's docs claim all phases complete
+  and all suites green; we have not independently verified the API returns real
+  data. Do that at step 1.2 before trusting anything downstream.
+- Map is now Berlin (~617 nodes / 1294 edges), not the AU Gate 10 roundabout.
+  Euclidean distance is settled for step 5.2; the old Euclidean-vs-Manhattan
+  question is closed.
+- `trafficMult` / `weatherMult` value ranges: superseded twice over — step 1.6 as
+  rewritten is now the definitive cost model.
 
 See also [[csc210_algorithm_build_protocol]], [[csc210_java_decision]],
 [[csc210_algorithm_module_writeup]], [[csc210_algorithm_architecture]],

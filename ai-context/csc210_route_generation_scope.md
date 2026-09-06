@@ -18,4 +18,8 @@ Team's stated goal (2026-08-11): a sandbox randomly generates a city (a graph of
 
 **How to apply:** when helping design or review the route-generation algorithm, push back on any approach that reaches for GA/SA/tabu search/exhaustive combinatorial search as the primary method. Steer toward greedy heuristics + Dijkstra/BFS/A* that stay inside the course's required toolkit.
 
-See also [[csc210_dsa_project]], [[csc210_varun_sandbox_task]].
+**Scope narrowed by the sandbox rewrite (2026-09-06).** DSTNS now places bus stops itself — deterministic placement at 300 m minimum / 500 m target spacing with 800 m coverage, 22 stops in the current 617-node run, flagged as `roles.bus_stop`. If we consume them, Algorithm 1 drops from "choose stops **and** routes" to "choose routes over given stops," which is a materially smaller problem — still BTRNDP-shaped, still NP-hard, but with the stop-location half already fixed. That is a legitimate scope reduction and it makes the greedy framing even easier to defend. It must be **stated explicitly** in the writeup, not left implicit, or it reads as if we solved the harder problem. The alternative — ignore DSTNS's stops, select our own, and use theirs as a comparison baseline — keeps the full problem and gives a built-in benchmark. Open decision, flagged in [[csc210_algorithm_build_order]] Phase 4.
+
+Also note demand is now **time-varying** in DSTNS (synthetic buildings with rush-hour windows), so "identify high-demand nodes" is now "identify high-demand nodes *at a chosen virtual time*." Pick one, justify it, and name the limitation. See [[csc210_sandbox_data_layer]].
+
+See also [[csc210_dsa_project]], [[csc210_varun_sandbox_task]], [[csc210_sandbox_data_layer]].

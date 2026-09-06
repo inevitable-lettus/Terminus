@@ -21,6 +21,8 @@ Teaching roadmap given 2026-08-21, before starting algorithm-module implementati
 
 **Superseded as the working plan (2026-08-23).** The numbered concept list above is kept as background rationale, but the executable plan — phases, per-step proofs, and the live current-stage tracker — now lives in [[csc210_algorithm_build_order]], and the working method in [[csc210_algorithm_build_protocol]]. Track progress there, not here.
 
-**Still current in this file:** the sandbox mental model (SUMO → control layer → REST) in the paragraph above. That part has not changed.
+**⚠ The sandbox mental model above is now WRONG (2026-09-06).** It described `sumo_control`, which Varun has replaced with **DSTNS**. In DSTNS, SUMO is *not* in the request path — the sandbox compiles an OSM file into its own canonical graph and advances its **own analytical** traffic/weather model on a virtual 24-hour clock, exporting to SUMO only for offline validation. So "SUMO reports vehicle speed/count per edge → smoothed into traffic_level → ... → `effective_weight_s`" does not describe the running system: there is no `traffic_level` and no `effective_weight_s`. Correct model in [[csc210_sandbox_data_layer]], rewritten for DSTNS.
+
+**Nothing in this file is current.** Kept only as a record of the original teaching sequence.
 
 See also [[csc210_algorithm_module_writeup]], [[csc210_algorithm_architecture]], [[csc210_sandbox_data_layer]], [[csc210_route_generation_scope]].

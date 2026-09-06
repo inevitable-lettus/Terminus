@@ -45,3 +45,29 @@ Task Sheet checkbox staleness (all FALSE as of 2026-08-09) may now be significan
 - **Unblocks Garv:** per Varun, the API layer is usable now — Phase 0 (JDK 21 install, repo scaffold, [[csc210_algorithm_build_order]]) can start regardless of the map/GUI bug.
 
 See also [[csc210_sandbox_data_layer]] for the `/healthz` endpoint noted alongside the rest of the API surface.
+
+---
+
+## ⚠ Sandbox rewritten from scratch — DSTNS (discovered 2026-09-06)
+
+Everything above about `sumo_control` describes a codebase Varun has **replaced**. New system: **DSTNS — Deterministic Spatiotemporal Transport Network Simulator**, C++20, on the group repo's **`dstns`** branch (`257257a`, 2026-09-05; initial commit 2026-09-04). Full data-layer report rewritten in [[csc210_sandbox_data_layer]].
+
+**Three divergent copies now exist** — `dstns` (live), `Sandbox` (old `sumo_control`, 2026-08-22), and `varunkarthic/csc210-sandbox` `Programs` (old `sumo_control` + the merged `demand_score` PR). Confirm with Varun that `dstns` is canonical and the others are dead.
+
+What changed that affects Garv:
+
+- **Port 8080 → 8090.** Entire API surface renamed: `/api/v1/view/*` (read), `/api/v1/playback/*` (lifecycle), `/api/v1/control/*` (write), `/api/v1/news` (replaces the ROE ledger).
+- **`demand_score` is gone.** The work from issue #1 / PR #2 did not survive the rewrite — `demand_aggregator.{hpp,cpp}` do not exist in DSTNS. Demand is now synthetic buildings (School/Office/Mall/Store) with time-of-day activity windows, so it is **time-varying**.
+- **The Dijkstra oracle is gone from the API.** DSTNS has its own A* (`RoutePlanner`), benchmarked at ~5.7 µs/query, but no path endpoint is registered. **Ask Varun to expose it** — highest-value request we have.
+- **`/simulation/step` is gone.** Determinism now comes from `playback/prepare` + `playback/seek` at a fixed seed.
+- **Node/edge ids are dense integers**, not strings. **Cost model replaced** — no precomputed `effective_weight_s`; derive `length_m / effective_speed_mps`.
+- **Bus stops are now placed by the sandbox** (22 in the current run), which narrows Algorithm 1's scope unless we deliberately ignore them.
+- **Map is Berlin now**, not the AU Gate 10 roundabout. 617 nodes, 1294 edges.
+- **SUMO is out of the request path** — DSTNS exports to SUMO for offline validation, but live speeds come from its own analytical model. The "SUMO reports speeds → traffic_level" mental model in [[csc210_algorithm_learning_plan]] no longer describes the system.
+- New scope Varun added: React 19 + MapLibre GL operator UI, SSE streaming, Docker/TLS gateway, SQLite WAL logging, four CLI tools, five test suites, ~40 docs files.
+
+**Old OSM-map-load bug: moot.** It was a `sumo_control` bug; that code is gone. The DSTNS run log shows a real 617-node graph loading fine.
+
+**Not independently verified.** Varun's `context/01_CURRENT_STATE.md` claims all 12 phases complete and every suite passing. Nothing has been built or run on Garv's machine. Verify the API returns real data at build-order step 1.2 before trusting it.
+
+**How to apply:** treat DSTNS as the integration target, `sumo_control` as dead. Re-read [[csc210_sandbox_data_layer]] before any Phase 1 work.

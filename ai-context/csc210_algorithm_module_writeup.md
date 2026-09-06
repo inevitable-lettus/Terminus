@@ -26,6 +26,14 @@ cost(u, v) = (length(u,v) / freeFlowSpeed(u,v)) × trafficMult(u,v) × weatherMu
 - Multipliers are **multiplicative, not additive** — congestion slows a road in proportion to how long the road is; a flat additive penalty would unfairly punish short and long edges equally.
 - `trafficMult` and `weatherMult` are environment variables supplied by the simulation sandbox (SUMO/TraCI on the C++ side).
 - Exact multiplier value ranges are not yet finalized — open item, tracked separately.
+
+**Superseded 2026-09-06 — the sandbox was rewritten (DSTNS).** The shape above still holds (edge-attached, multiplicative, travel-time based), but the sandbox no longer publishes `trafficMult`/`weatherMult` or any precomputed weight. It publishes a per-edge `effective_speed_mps` that already folds in signal phase, rain, flood and manual overrides, so the operative cost is:
+
+```
+cost_ms(e) = round( length_m(e) / max(0.1, effective_speed_mps(e)) * 1000 )
+```
+
+with `closed == true` edges skipped entirely. Two new properties worth writing up: edge weights **oscillate with traffic-signal phase** (green ×1.0, yellow ×0.40, red ×0.08), and `effective_speed_mps` is **rate-limited** rather than instantaneous. Full derivation and the physics behind it in [[csc210_sandbox_data_layer]].
 - Graph is undirected: all roads are bidirectional.
 
 ## 3. Algorithm 1: Route Network Builder

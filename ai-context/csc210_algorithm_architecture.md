@@ -14,12 +14,15 @@ type: project
 
 **Superseded (corrected 2026-08-21):** Varun's actual sandbox (github.com/varunkarthic/csc210-sandbox) does not use a raw socket. It exposes a full **HTTP JSON REST API** (cpp-httplib, OpenAPI 3.1 spec at `docs/openapi.yaml`), already implemented and documented. This IS the wire contract — it's done, not an open item. See [[csc210_sandbox_data_layer]] for the full schema.
 
-**How to apply:** algorithm module should consume the sandbox's REST API directly (poll/query nodes+edges, POST path computes, GET ROE stream) instead of building a new socket protocol. Do not revisit ONNX or raw sockets.
+**How to apply:** algorithm module should consume the sandbox's REST API directly instead of building a new socket protocol. Do not revisit ONNX or raw sockets.
+
+**Endpoint names superseded 2026-09-06:** the DSTNS rewrite renamed everything and moved to port 8090. Read topology from `GET /api/v1/view/topology`, live state from `GET /api/v1/view/snapshot`, publish routes to `POST /api/v1/control/transit/route`. There is **no path-compute endpoint** and no ROE stream (news feed replaces it). See [[csc210_sandbox_data_layer]].
 
 **Environment/cost model:** two environment variables — traffic congestion and weather conditions — inflate edge cost.
 - Costs belong on **edges**, not nodes (a congested road is a property of the road, not the intersection). Garv's team initially planned to store cost in the node object; flagged as wrong.
 - Recommended form (multiplicative, time-based): `cost(u,v) = (length / freeFlowSpeed) × trafficMult(edge) × weatherMult(region)`. Multiplicative because congestion slows traversal proportionally to segment length; additive penalties would punish short and long edges equally.
 - Exact multiplier values still undecided by the team as of 2026-08-14.
+- **Superseded 2026-09-06:** the sandbox rewrite (DSTNS) removed `trafficMult`/`weatherMult` as published fields. Cost is now `length_m / effective_speed_mps`, with the multipliers already folded into `effective_speed_mps` server-side. Shape unchanged (edge-attached, multiplicative, travel-time based); source of the numbers changed. See [[csc210_sandbox_data_layer]].
 
 **Graph properties (confirmed 2026-08-14):** all roads are **bidirectional** (undirected graph).
 
