@@ -28,7 +28,7 @@ line, explicit approval, then write, verify, record. No exceptions.
 
 ## Current stage
 
-> **Phase 0, step 0.2 done — next up 0.3 (hello-world round trip).**
+> **Phase 0 done — next up Phase 1, step 1.1 (domain types).**
 >
 > 0.0 done: JDK 21 (Homebrew, aarch64) installed.
 > 0.1 done: repo, `.gitignore`, `README.md`, `DESIGN.md` all present.
@@ -38,6 +38,24 @@ line, explicit approval, then write, verify, record. No exceptions.
 > (Java 21 toolchain, Jackson, JUnit 5) and `settings.gradle` written;
 > `./gradlew build` green on the empty project (`BUILD SUCCESSFUL`, no
 > sources yet). `.gitignore` extended for `.gradle/`, `build/`, IDE files.
+> 0.3 done (2026-09-07): `csc210.algorithm.Hello` + `HelloTest`, one
+> assertion, proves the full source→compile→test loop. Hit a real build-tool
+> bug along the way: Gradle 9.7.1 no longer pulls the JUnit Platform Launcher
+> in transitively from `junit-jupiter`, so `./gradlew test` failed with
+> "Failed to load JUnit Platform" even though the test code was correct. Fix:
+> added `testRuntimeOnly 'org.junit.platform:junit-platform-launcher'` to
+> `build.gradle`. `./gradlew test` now green —
+> `csc210.algorithm.HelloTest > greetReturnsExpectedMessage() PASSED`,
+> `BUILD SUCCESSFUL`.
+>
+> **How to explain this step to the prof:** "Before writing any graph code I
+> proved the toolchain end to end with a throwaway class and one test — if
+> something's wrong with compilation or test wiring, I want to find that with
+> a one-line method, not while debugging Dijkstra. It actually caught a real
+> issue: Gradle 9 stopped auto-including the JUnit test launcher, so the
+> build failed for a tooling reason, not a code reason, and I had to add one
+> explicit runtime dependency to fix it." Honest limitation: this step proves
+> nothing about the algorithm — it's pure infrastructure, and it's meant to.
 >
 > _Update this block at the end of every completed step — see
 > [[csc210_algorithm_build_protocol]] stage 6._
