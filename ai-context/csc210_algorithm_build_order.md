@@ -28,7 +28,7 @@ line, explicit approval, then write, verify, record. No exceptions.
 
 ## Current stage
 
-> **Phase 0 done — next up Phase 1, step 1.1 (domain types).**
+> **Phase 1, step 1.1 done — next up 1.2 (HTTP client).**
 >
 > 0.0 done: JDK 21 (Homebrew, aarch64) installed.
 > 0.1 done: repo, `.gitignore`, `README.md`, `DESIGN.md` all present.
@@ -56,6 +56,35 @@ line, explicit approval, then write, verify, record. No exceptions.
 > build failed for a tooling reason, not a code reason, and I had to add one
 > explicit runtime dependency to fix it." Honest limitation: this step proves
 > nothing about the algorithm — it's pure infrastructure, and it's meant to.
+>
+> 1.1 done (2026-09-08): `Position`, `Node`, `Edge`, `EdgeConfiguration` as
+> Java records in `csc210.algorithm.model`. `Node` mirrors the *flat*
+> `/view/topology` node shape (not the nested `/view/nodes` shape — a real
+> schema drift in DSTNS), so it carries `busStop`/`signal` as bare booleans
+> and `buildingType` as a nullable String, no building-impact detail (that's
+> dynamic, belongs to Phase 4's demand read from `/view/snapshot`). `Edge` is
+> deliberately structural only — no `traffic`/`weather` fields — since those
+> are live per-tick state Phase 1.6 will source separately, not something to
+> freeze into a one-time topology fetch. `EdgeConfiguration` was split out as
+> its own record (not inlined into `Edge`) because it doubles as the request
+> body shape for `PUT /control/edges/{id}` — one type serving both read and
+> write. `roadClass` stayed a plain `String`, not an enum, to stay resilient
+> if DSTNS adds a road class we haven't enumerated — consistent with the
+> "tolerate unknown fields" stance planned for step 1.3. `DomainTypesTest`
+> constructs one of each and asserts every field; `./gradlew test` green,
+> 5/5 tests (`DomainTypesTest` ×4 + `HelloTest` ×1), 0 failures.
+>
+> **How to explain this step to the prof:** "These are pure data records
+> mirroring exactly what DSTNS's `/view/topology` endpoint returns — no
+> logic, nothing invented. The one interesting call is that DSTNS actually
+> serialises the same node information two different ways on two different
+> endpoints, and I modelled against the one I'm actually going to fetch from,
+> not the one that happened to be documented with a nicer example. I also
+> kept `EdgeConfiguration` separate because it's literally reusable as the
+> request body when I later *write* an edge override, not just when I read
+> one." Honest limitation: none of this has been checked against a real
+> topology response yet — that happens at step 1.4 (fixtures) — so there's a
+> real chance the flat node shape needs a field added once I see it live.
 >
 > _Update this block at the end of every completed step — see
 > [[csc210_algorithm_build_protocol]] stage 6._
