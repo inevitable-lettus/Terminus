@@ -71,3 +71,47 @@ What changed that affects Garv:
 **Not independently verified.** Varun's `context/01_CURRENT_STATE.md` claims all 12 phases complete and every suite passing. Nothing has been built or run on Garv's machine. Verify the API returns real data at build-order step 1.2 before trusting it.
 
 **How to apply:** treat DSTNS as the integration target, `sumo_control` as dead. Re-read [[csc210_sandbox_data_layer]] before any Phase 1 work.
+
+---
+
+## ⚠ Third rewrite in progress — SUSE, unmerged branch (found 2026-09-08)
+
+Varun pushed `suse-experimental` to the group repo (2 commits: `9bc1b46` Initial Commit,
+`177a703` Bug Fixes, both 2026-09-08). **Not merged, not `dstns`, not confirmed
+canonical.** Third full engine rewrite in ~4 weeks: `sumo_control` → `DSTNS` → **SUSE
+(Stochastic Urban Simulation Engine)**.
+
+What it is: C++20 core (`suse_core`) with real `libsumo` link, Node.js gateway
+(`api/server.mjs`) as a stateless REST/SSE proxy over Unix-socket JSON-RPC, port 8080.
+Claims 38 "modules" — weather, Joyner-Boore seismic PGA + structural fragility, flood
+hydrology, power grid with cascading blackouts, VIP motorcades, civic-event crowd
+curves, emergency dispatch, transit, land-use, mode choice, etc. Old React/MapLibre UI
+(`ui-engine/`) deleted; replaced with a plain `web/` (vanilla JS + Leaflet).
+
+**Assessment (spot-checked source, not just docs):** not vaporware — real formulas exist
+in `src/models/models.cpp` (e.g. `power_substation_overload_risk`) backing the test names
+listed in `context/test-results.md`. But total C++ is only ~5.9K lines across src+include
+for 38 claimed modules, and the self-reported `context/handoff.md` /
+`context/known-bugs.md` / `context/test-results.md` claim "38 modules fully implemented,
+mathematically verified" and "59/59 100% PASS" — **same inflation pattern as DSTNS**
+(see the "How much to trust DSTNS" section above: engine real, docs inflated, tests
+thin). Treat these claims as unverified until independently built and run.
+
+**Concrete problems found:**
+1. **103MB of generated SUMO/OSM XML committed directly to git** under `worlds/cache/`
+   (one file, `network.net.xml`, is 817K lines) — not covered by `.gitignore`. This will
+   bloat the repo badly on every clone/fetch going forward. Flag to Varun to purge and
+   gitignore.
+2. `SUMO_HOME` defaults hardcoded to `/Users/varun/sumo` in the README/build scripts —
+   not portable to any other machine or CI without an explicit env override.
+3. Scope keeps expanding beyond the course's bus-route-planner target (power grid,
+   seismic fragility, VIP motorcades are well outside a DSA route-planning project) —
+   worth a direct conversation with Varun about scope control given three rewrites
+   already.
+
+**Decision (Garv, 2026-09-08): staying on DSTNS.** SUSE is experimental, unmerged, and
+not the integration target for now. Do not build Phase 1 ingestion against
+`suse-experimental`. Treat `dstns` (`257257a`) as canonical until/unless Garv says
+otherwise. Ignore SUSE's port-8080 API, `worlds/cache` bloat, and 38-module claims for
+algorithm-module purposes — [[csc210_sandbox_data_layer]]'s DSTNS port-8090 contract
+remains the one to build against.

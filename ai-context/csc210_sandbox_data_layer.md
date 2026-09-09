@@ -7,6 +7,11 @@ metadata:
 
 # Sandbox Data Layer — DSTNS
 
+**Pinned (2026-09-08): DSTNS stays the integration target.** Varun has a third,
+experimental, unmerged rewrite (`suse-experimental`, "SUSE") — see
+[[csc210_varun_sandbox_task]]. Garv decided to ignore it for now; everything below still
+applies. Re-open only if Garv says DSTNS is being dropped.
+
 **Rewritten 2026-09-06 after reading `origin/dstns` (commit `257257a`, 2026-09-05) on the
 group repo.** The sandbox was **completely rewritten**. Everything in the previous
 version of this file described `sumo_control` v1.1 and is now dead: different

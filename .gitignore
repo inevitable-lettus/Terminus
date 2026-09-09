@@ -6,6 +6,9 @@ ai-context/csc210_java_decision.md
 build/
 !gradle/wrapper/gradle-wrapper.jar
 
+# IDE Java build output (VSCode Java ext, etc.)
+bin/
+
 # IDE
 .idea/
 *.iml

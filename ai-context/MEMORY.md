@@ -1,7 +1,7 @@
 - [CSC210 DSA project](csc210_dsa_project.md) — Project #3: Smart Bus Route Planning system, course spec/stack/workflow
 - [Algorithm architecture](csc210_algorithm_architecture.md) — Java+socket IPC (ONNX rejected), edge cost model, A*/Dijkstra split, heuristic design
 - [Algorithm module writeup](csc210_algorithm_module_writeup.md) — full writeup: route network builder + passenger pathfinder, cost model, weighted A* research component
-- [Varun's sandbox track](csc210_varun_sandbox_task.md) — ⚠ sandbox REWRITTEN as DSTNS (2026-09-06); old sumo_control contract dead, three divergent branches, oracle+demand_score gone
+- [Varun's sandbox track](csc210_varun_sandbox_task.md) — ⚠ SUSE (2026-09-08) is Varun's experimental unmerged branch — decision: ignore it, stay on DSTNS as integration target
 - [Route generation scope](csc210_route_generation_scope.md) — bus route design goal is NP-hard BTRNDP-shaped; must stay greedy+Dijkstra, not GA/SA/tabu search
 - [CSC210 Group 8 Drive workspace](csc210_group8_workspace.md) — team roles (incl. S-/M- confirmed: bus ticketing/mgmt software), folder structure, task-tracking norms
 - [CSC210 Drive folder access](csc210_drive_folder_inaccessible.md) — folder needs correct Google account on connector; resolved 2026-08-09
