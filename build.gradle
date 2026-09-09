@@ -9,6 +9,10 @@ java {
     }
 }
 
+application {
+    mainClass = findProperty('mainClass') ?: 'csc210.algorithm.Hello'
+}
+
 repositories {
     mavenCentral()
 }

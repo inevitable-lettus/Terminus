@@ -48,9 +48,16 @@ model in `SimulationEngine::physics_step`, not from SUMO vehicles. This matters 
 writeup: the old "SUMO reports vehicle speeds → smoothed into traffic_level" mental model
 in [[csc210_algorithm_learning_plan]] is **wrong** for DSTNS.
 
-**Current map is Berlin, not Ahmedabad.** The logged run (`logs/global_view.json`) has
-bounds ~52.52 N, 13.40 E. Scale: **617 nodes, 1294 edges, 22 bus stops, 18 buildings,
-6 signals**. Fixtures shipped: `data/fixtures/downtown_osm.xml` (1 MB, the default) and
+**Current map is not Berlin, and not Ahmedabad — corrected 2026-09-09.** The
+"Berlin, 617 nodes/1294 edges" figure below was read from a log file, never
+confirmed against a live call, and turned out wrong. A real running container
+(branch `dstns`, HEAD `0fb6307` — later than the `257257a` this section was
+originally audited against) returns a **Paris-coordinate** OSM extract at
+default startup, with no `playback/start` called yet: bounds ~48.87 N, 2.36–2.38 E,
+**120 nodes, 436 edges**. Treat node/edge count as provisional, possibly a
+function of `playback/start`'s `map`/`max_nodes` params rather than a fixed
+constant — re-check at whatever scale Phase 4 onward actually runs at.
+Fixtures shipped: `data/fixtures/downtown_osm.xml` (1 MB, the default) and
 `data/fixtures/real_network.osm.xml` (8.6 MB). `max_nodes` default 50000.
 
 ## Identifiers — this changes Phase 1
@@ -59,16 +66,77 @@ bounds ~52.52 N, 13.40 E. Scale: **617 nodes, 1294 edges, 22 bus stops, 18 build
 sort, and stated as a system invariant (`context/06_INVARIANTS.md` #3). They are already
 dense integers in the JSON.
 
-**Consequence for [[csc210_algorithm_build_order]] step 1.5:** the planned
-`HashMap<String,Integer>` interning step has no input to intern — there are no string
-node ids any more. Options: (a) index arrays directly by id and drop the hash table,
-(b) keep a hash table for a genuinely useful lookup (`osm_node_id` → dense id, since
-`osm_node_id` is an `int64` OSM identifier and *is* sparse). (b) keeps the required
-hash-table DSA element honest rather than decorative. **Decide before writing 1.5.**
+**Resolved 2026-09-09 (was: decide before writing 1.5).** Went with option (a):
+index arrays directly by id, drop the hash table here. Full reasoning and the
+built `Graph` (CSR flat-array adjacency) are in
+[[csc210_algorithm_build_order]]'s step 1.5 entry — `osmNodeId` stays on `Node`
+as a sparse key for whenever a genuine sparse→dense lookup is needed later
+(option (b) revisited then, not decorated in now).
 
 ## Graph model
 
-Static node (`GET /api/v1/view/nodes`, paged; also in `/view/topology`):
+**Superseded by live verification, 2026-09-09 — read this part first.** Everything
+in this section was written from a static read of `257257a`'s source. Built and
+ran `0fb6307` (later HEAD of the same `dstns` branch) and the *actual*
+`/view/topology` response matches neither example below — no `roles` wrapper, no
+nested `source`/`road`/`traffic`/`weather`/`control` objects on edges. Whether the
+branch changed shape between those two commits, or the static read never matched
+the built binary even at `257257a`, is unresolved — but it's the second time
+"verified in code" turned out to mean "verified in one version of the code."
+**Practical rule going forward: trust nothing here over a fresh live call.**
+
+Real `/view/topology` node (captured live, `0fb6307`):
+
+```json
+{
+  "id": 4, "osm_node_id": 9000000004,
+  "position": {"lat": 48.8666, "lon": 2.3668, "x_m": 720.0, "y_m": 0.0},
+  "degree": 3,
+  "bus_stop": false, "bus_stop_radius_m": 0.0,
+  "signal": false, "signal_cycle_s": 0, "signal_green_s": 0, "signal_offset_s": 0,
+  "building": "store", "building_impact": 0.76, "building_radius_m": 234.8
+}
+```
+
+Real `/view/topology` edge (captured live, `0fb6307`):
+
+```json
+{
+  "id": 0, "from": 1, "to": 0, "reverse_twin": 1,
+  "road_class": "primary", "lanes": 2, "length_m": 180.0, "free_speed_mps": 16.67,
+  "geometry": [{"lat": 48.8666, "lon": 2.3594, "x_m": 180.0, "y_m": 0.0},
+               {"lat": 48.8666, "lon": 2.3569, "x_m": 0.0, "y_m": 0.0}]
+}
+```
+
+Everything **flat**, no nesting. `osm_way_id`, `synthetic_reverse`,
+`base_capacity_vph`, and any `control`/`traffic`/`weather` block **do not exist on
+this endpoint at all** — confirmed by hitting it live, not inferred. `geometry`
+(the road's polyline) is real and wasn't in the old example. The domain types in
+`Node.java`/`Edge.java` were fixed to match this on 2026-09-09 — see
+[[csc210_algorithm_build_order]] step 1.1's correction note.
+
+Real `/view/snapshot` node/edge (live, `0fb6307`) — this is where the
+`traffic`/`weather`-shaped live state actually lives, flat here too:
+
+```json
+{"id": 0, "building_effect": 0.0, "flood": 0.0, "rainfall": 0.0}
+{"id": 0, "closed": false, "congestion": 0.0, "effective_speed_mps": 16.67,
+ "flood": 0.0, "halting_count": 0, "rainfall": 0.0, "vehicle_count": 0}
+```
+
+`building_effect` and `effective_speed_mps`/`closed` are exactly what Phase 4's
+demand read and step 1.6's cost model need — those two names held up. Nothing in
+either snapshot shape carries `manual_speed_multiplier`/`manual_capacity_multiplier`
+— `EdgeConfiguration` (the `PUT /control/edges/{id}` body shape) remains an
+educated guess from the old doc, **unverified against any live response**, since
+nothing has written to that endpoint yet.
+
+<details>
+<summary>Original examples from the <code>257257a</code> static code read (kept for
+history — do not code against these)</summary>
+
+Static node (`GET /api/v1/view/nodes`, paged; also claimed for `/view/topology`):
 
 ```json
 {
@@ -81,11 +149,6 @@ Static node (`GET /api/v1/view/nodes`, paged; also in `/view/topology`):
   "weather": {"rainfall": 0.0, "flood": 0.0, "flood_susceptibility": 0.4, "drainage": 0.6}
 }
 ```
-
-**Schema drift, verified in code:** `/view/topology` serialises nodes *flat*
-(`bus_stop`, `signal`, `building` as a bare string) while `/view/nodes` nests them under
-`roles` / `building` objects (`src/engine.cpp:1050` vs `:1239`). `docs/api/view-api.md`
-documents the nested shape for both — the doc is wrong for `/view/topology`. Code wins.
 
 Static edge (`GET /api/v1/view/edges`, paged):
 
@@ -103,6 +166,8 @@ Static edge (`GET /api/v1/view/edges`, paged):
               "manual_capacity_multiplier": 1.0}
 }
 ```
+
+</details>
 
 **Reverse-twin invariant** (`context/06_INVARIANTS.md` #4):
 `edges[edges[i].reverse_twin].reverse_twin == i`. Every physical segment is a pair of
@@ -338,8 +403,13 @@ gateway on 8443 with a self-signed cert (browser warning is expected).
 
 Varun's own status (`context/01_CURRENT_STATE.md`, 2026-09-04) claims all 12 build phases
 complete and all test suites passing: 4 C++ CTest targets, a 15-assertion Python API
-smoke test, a SUMO `netconvert` integration test, and a Vitest UI suite. **None of this
-has been independently verified by us** — nothing has been built or run locally yet.
+smoke test, a SUMO `netconvert` integration test, and a Vitest UI suite. **Partially
+independently verified 2026-09-09** — built and ran the container locally
+(`docker compose up -d --build`, HEAD `0fb6307`), confirmed `/health`,
+`/view/topology`, `/view/snapshot` all serve real, consistent data end to end
+(120 nodes, 436 edges, reverse-twin invariant holds for all of them). Have **not**
+verified the CTest/pytest/Vitest suites themselves, nor the other 11 claimed build
+phases beyond what the API surface above actually exercises.
 
 ## Known bugs in DSTNS (found 2026-09-06, filed on the group repo)
 
@@ -402,9 +472,12 @@ When doc and code disagree, code wins — that happened three times in one after
 1. **The Phase 1 ingestion target is `GET /api/v1/view/topology`**, one call, port 8090,
    not `/nodes` + `/edges` on 8080. Fixtures for step 1.4 can come from a saved
    `logs/global_view.json` or a captured topology response.
-2. **Node ids are already dense integers** — rework step 1.5's interning story (above).
+2. **Node ids are already dense integers** — step 1.5's interning story resolved,
+   hash table dropped (above), `Graph` built and tested 2026-09-09.
 3. **Recompute weight as `length_m / effective_speed_mps`**; there is no server-side
    weight to compare against, so step 1.6's strong per-edge proof is weakened (above).
+   Confirmed live: `/view/snapshot` really does carry `effective_speed_mps` and
+   `closed` per edge, flat, exactly as this formula needs.
 4. **Heuristic still works in `x_m`/`y_m` metres**, Euclidean, with `V_MAX = 16.67`.
    Our heuristic will be tighter than the sandbox's own — a publishable comparison.
 5. **Algorithm 1's output must be an edge-adjacent node sequence** to be publishable via

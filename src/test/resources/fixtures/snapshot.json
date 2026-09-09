@@ -1,0 +1,5111 @@
+{
+  "api_version": "1.0",
+  "clock": {
+    "base_rate": 1440.0,
+    "playback_duration_seconds": 60,
+    "playback_state": "IDLE",
+    "simulated_current_time": "00:00:00",
+    "simulation_percentage": 0.0,
+    "target_virtual_rate": 1440.0,
+    "tick_rate": 1.0,
+    "virtual_day_seconds": 0
+  },
+  "config_revision": 0,
+  "data": {
+    "active_incidents": [],
+    "active_surges": [],
+    "active_transit_buses": [],
+    "active_weather": [],
+    "active_weather_events": 0,
+    "edges": [
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 0,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 1,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 2,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 3,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 4,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 5,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 6,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 7,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 8,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 9,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 10,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 11,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 12,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 13,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 14,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 15,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 16,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 17,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 18,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 19,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 20,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 21,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 22,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 23,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 24,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 25,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 26,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 27,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 28,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 29,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 30,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 31,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 32,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 33,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 34,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 35,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 36,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 37,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 38,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 39,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 40,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 41,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 42,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 43,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 44,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 45,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 46,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 47,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 48,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 49,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 50,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 51,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 52,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 53,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 54,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 55,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 56,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 57,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 58,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 59,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 60,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 61,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 62,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 63,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 64,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 65,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 66,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 67,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 68,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 69,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 70,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 71,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 72,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 73,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 74,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 75,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 76,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 77,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 78,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 79,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 80,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 81,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 82,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 83,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 84,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 85,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 86,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 87,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 88,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 89,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 90,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 91,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 92,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 93,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 94,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 95,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 96,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 97,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 98,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 99,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 100,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 101,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 102,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 103,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 104,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 105,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 106,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 107,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 108,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 109,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 110,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 111,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 112,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 113,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 114,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 115,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 116,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 117,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 118,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 119,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 120,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 121,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 122,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 123,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 124,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 125,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 126,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 127,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 128,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 129,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 130,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 131,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 132,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 133,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 134,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 135,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 136,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 137,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 138,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 139,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 140,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 141,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 142,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 143,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 144,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 145,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 146,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 147,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 148,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 149,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 150,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 151,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 152,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 153,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 154,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 155,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 156,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 157,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 158,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 159,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 160,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 161,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 162,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 163,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 164,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 165,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 166,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 167,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 168,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 169,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 170,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 171,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 172,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 173,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 174,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 175,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 176,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 177,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 178,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 179,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 180,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 181,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 182,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 183,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 184,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 185,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 186,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 187,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 188,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 189,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 190,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 191,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 192,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 193,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 194,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 195,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 196,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 197,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 198,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 199,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 200,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 201,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 202,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 203,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 204,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 205,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 206,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 207,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 208,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 209,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 210,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 211,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 212,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 213,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 214,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 215,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 216,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 217,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 218,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 219,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 220,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 221,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 222,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 223,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 224,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 225,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 226,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 227,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 228,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 229,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 230,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 231,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 232,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 233,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 234,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 235,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 236,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 237,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 238,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 239,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 240,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 241,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 242,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 243,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 244,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 245,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 246,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 247,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 248,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 249,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 250,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 251,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 252,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 253,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 254,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 255,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 256,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 257,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 258,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 259,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 260,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 261,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 262,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 263,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 264,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 265,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 266,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 267,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 268,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 269,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 270,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 271,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 272,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 273,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 274,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 275,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 276,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 277,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 278,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 279,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 280,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 281,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 282,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 283,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 284,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 285,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 286,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 287,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 288,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 289,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 290,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 291,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 292,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 293,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 294,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 295,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 296,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 297,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 298,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 299,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 300,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 301,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 302,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 303,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 304,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 305,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 306,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 307,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 308,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 309,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 310,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 311,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 312,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 313,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 314,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 315,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 316,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 317,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 318,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 319,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 320,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 321,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 322,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 323,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 324,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 325,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 326,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 327,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 328,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 329,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 330,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 331,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 332,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 333,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 334,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 335,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 336,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 337,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 338,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 339,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 340,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 341,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 342,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 343,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 344,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 345,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 346,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 347,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 348,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 349,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 350,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 351,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 352,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 353,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 354,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 355,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 356,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 357,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 358,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 359,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 360,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 361,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 362,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 363,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 364,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 365,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 366,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 367,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 368,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 369,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 370,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 371,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 372,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 373,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 374,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 375,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 376,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 377,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 378,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 379,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 380,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 381,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 382,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 383,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 384,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 385,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 386,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 387,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 388,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 389,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 390,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 391,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 392,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 393,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 394,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 395,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 396,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 397,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 398,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 399,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 400,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 401,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 402,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 403,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 404,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 405,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 406,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 407,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 408,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 409,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 410,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 411,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 412,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 13.89,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 413,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 414,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 415,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 416,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 417,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 418,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 419,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 420,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 421,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 422,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 423,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 424,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 425,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 426,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 427,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 428,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 429,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 430,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 8.33,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 431,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 432,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 11.11,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 433,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 434,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      },
+      {
+        "closed": false,
+        "congestion": 0.0,
+        "effective_speed_mps": 16.67,
+        "flood": 0.0,
+        "halting_count": 0,
+        "id": 435,
+        "rainfall": 0.0,
+        "vehicle_count": 0
+      }
+    ],
+    "event_stack": [],
+    "nodes": [
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 0,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 1,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 2,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 3,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 4,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 5,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 6,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 7,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 8,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 9,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 10,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 11,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 12,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 13,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 14,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 15,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 16,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 17,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 18,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 19,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 20,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 21,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 22,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 23,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 24,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 25,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 26,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 27,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 28,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 29,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 30,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 31,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 32,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 33,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 34,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 35,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 36,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 37,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 38,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 39,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 40,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 41,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 42,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 43,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 44,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 45,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 46,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 47,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 48,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 49,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 50,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 51,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 52,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 53,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 54,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 55,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 56,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 57,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 58,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 59,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 60,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 61,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 62,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 63,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 64,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 65,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 66,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 67,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 68,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 69,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 70,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 71,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 72,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 73,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 74,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 75,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 76,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 77,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 78,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 79,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 80,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 81,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 82,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 83,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 84,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 85,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 86,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 87,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 88,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 89,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 90,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 91,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 92,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 93,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 94,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 95,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 96,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 97,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 98,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 99,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 100,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 101,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 102,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 103,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 104,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 105,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 106,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 107,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 108,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 109,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 110,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 111,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 112,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 113,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 114,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 115,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 116,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 117,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 118,
+        "rainfall": 0.0
+      },
+      {
+        "building_effect": 0.0,
+        "flood": 0.0,
+        "id": 119,
+        "rainfall": 0.0
+      }
+    ],
+    "topology_revision": 1
+  },
+  "global_seed": "0x508905019bc2221d083c848bf3e12e22",
+  "ok": true,
+  "run_id": "run_5b722139ca1b",
+  "state_revision": 0
+}

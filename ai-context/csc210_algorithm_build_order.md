@@ -86,6 +86,66 @@ line, explicit approval, then write, verify, record. No exceptions.
 > topology response yet — that happens at step 1.4 (fixtures) — so there's a
 > real chance the flat node shape needs a field added once I see it live.
 >
+> **1.1 corrected (2026-09-09):** first live hit against the real sandbox
+> (finally unblocked — Docker Desktop wasn't running before) showed `Node`
+> and `Edge` had drifted from the real `/view/topology` shape, since 1.1 was
+> written from the doc/OpenAPI spec, never checked live. Fixed: `Node` was
+> missing `busStopRadiusM`, `signalCycleS`, `signalGreenS`, `signalOffsetS`,
+> `buildingImpact`, `buildingRadiusM`, and had `buildingType` where the real
+> key is `building` (silently deserialized to `null` before the fix — no
+> error, just wrong data, exactly what "tolerate unknown fields" doesn't
+> protect against). `Edge` had four fields that don't exist on this endpoint
+> at all — `osmWayId`, `syntheticReverse`, `baseCapacityVph`, `control` —
+> all silently defaulting instead of erroring. Both fixed against the real
+> payload, `EdgeConfiguration` flagged as unverified (write-only shape, no
+> live GET checked it). `DomainTypesTest` updated to match, still 4/4 green.
+>
+> 1.2 done (2026-09-09): `SandboxClient` (`client/` package) over
+> `java.net.http.HttpClient`. `health()` hits root `/health` (unwrapped);
+> `topology()` hits `/api/v1/view/topology`, parses the `Envelope` and
+> returns typed `TopologyData`; `snapshot()` returns the raw `Envelope` —
+> left untyped since nothing needs its shape until step 1.6. Proven against
+> the live sandbox (`docker compose up -d --build` in the group repo's
+> `dstns` branch, worktree at `/tmp/dstns-worktree`): 120 nodes, 436 edges,
+> Paris coordinates (not the Berlin figure this file used to cite — stale,
+> now corrected below), `graph_hash` present.
+>
+> 1.3 done (2026-09-09): `SandboxJson` centralizes the snake_case +
+> tolerate-unknown-fields `ObjectMapper` config, shared by `SandboxClient`
+> and tests so there is exactly one mapping policy. `TopologyData` and
+> `Bounds` added as the typed shape of `/view/topology`'s `data` payload.
+>
+> 1.4 done (2026-09-09): real `topology.json` / `snapshot.json` responses
+> saved to `src/test/resources/fixtures/` (captured live, not hand-written).
+> `TopologyDataTest` deserializes the fixture with no sandbox running,
+> asserts exact counts (120/436) and known node/edge field values.
+> `./gradlew test` green — 8/8 — with the container stopped, confirmed by
+> actually stopping it and rerunning, not just by reasoning about it.
+>
+> **Open item resolved:** "nothing has been built or run locally" is no
+> longer true as of this step — and it caught a real bug in already-approved
+> 1.1 work, which is the whole reason that check existed.
+>
+> 1.5 done (2026-09-09): `Graph` (new `graph/` package) — CSR-style
+> (compressed sparse row) flat-array adjacency, proposed and approved before
+> writing per Garv's split (scaffolding moves fast, algorithm logic goes
+> through full propose→review→approve→write). One `int[]` of edge ids
+> grouped by source node via counting sort — O(V+E), no comparison sort,
+> since `from` is already bounded `[0, V)`. Hash table dropped for now
+> (decision from the 1.5 doc): node ids are already dense, nothing sparse
+> to map yet; `osmNodeId` stays on `Node` for whenever that changes.
+> `Graph.of` validates dense 0-indexed ids at construction and throws
+> rather than silently building a corrupted graph — a real defensive check,
+> not decorative, since nothing upstream had verified that assumption
+> before this step. `GraphTest` builds from the 1.4 fixture: counts match
+> (120/436), every node/edge sits at its own array index, reverse-twin
+> invariant holds for all 436 edges, `outgoingEdges` matches the fixture
+> exactly for every node, and a non-dense input is rejected. 14/14 tests
+> green project-wide.
+>
+> **Next up: 1.6 — cost model.** Still algorithm logic — full
+> propose→review→approve→write cycle applies.
+>
 > _Update this block at the end of every completed step — see
 > [[csc210_algorithm_build_protocol]] stage 6._
 
@@ -354,7 +414,8 @@ observed combined multiplier. Distance computed in **projected metres**
 *Revised 2026-09-06:* DSTNS ships both lat/lon and equirectangular `x_m`/`y_m`,
 so the metre plan is intact. `V_MAX = 16.67 m/s` (primary roads, per
 `config/road_types.json`). Use **Euclidean** — the map is real OSM road layout
-(currently Berlin), not a grid, so Manhattan is not the right form here.
+(Paris, confirmed live 2026-09-09, not Berlin as earlier notes said), not a
+grid, so Manhattan is not the right form here.
 **Worth knowing:** DSTNS's own A* hardcodes `33.33 m/s`, roughly 2× loose. Ours
 at the true 16.67 is strictly tighter and still admissible, so it expands fewer
 nodes than theirs on the same graph — a real, defensible result to report in
@@ -455,9 +516,13 @@ Phase 4.4's output format around this from the start rather than retrofitting.
 - **Nothing has been built or run locally.** Varun's docs claim all phases complete
   and all suites green; we have not independently verified the API returns real
   data. Do that at step 1.2 before trusting anything downstream.
-- Map is now Berlin (~617 nodes / 1294 edges), not the AU Gate 10 roundabout.
-  Euclidean distance is settled for step 5.2; the old Euclidean-vs-Manhattan
-  question is closed.
+- Map is **not** Berlin — corrected 2026-09-09, confirmed live: the current
+  run is Paris-coordinate OSM data, ~120 nodes / 436 edges (small dev-sized
+  extract, not the AU Gate 10 roundabout). The "Berlin 617/1294" figure in
+  earlier notes was never checked against a live run; treat any node/edge
+  count as provisional until re-confirmed at whatever scale Phase 4 onward
+  actually runs at. Euclidean distance is still settled for step 5.2 either
+  way — real OSM layout, not a grid.
 - `trafficMult` / `weatherMult` value ranges: superseded twice over — step 1.6 as
   rewritten is now the definitive cost model.
 

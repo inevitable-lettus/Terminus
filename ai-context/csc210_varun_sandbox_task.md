@@ -62,13 +62,17 @@ What changed that affects Garv:
 - **`/simulation/step` is gone.** Determinism now comes from `playback/prepare` + `playback/seek` at a fixed seed.
 - **Node/edge ids are dense integers**, not strings. **Cost model replaced** — no precomputed `effective_weight_s`; derive `length_m / effective_speed_mps`.
 - **Bus stops are now placed by the sandbox** (22 in the current run), which narrows Algorithm 1's scope unless we deliberately ignore them.
-- **Map is Berlin now**, not the AU Gate 10 roundabout. 617 nodes, 1294 edges.
+- **Map is not the AU Gate 10 roundabout.** "Berlin, 617/1294" was never checked
+  live and turned out wrong — confirmed 2026-09-09 against a real running
+  container: Paris-coordinate OSM extract, 120 nodes, 436 edges. Node/edge count
+  may depend on scenario/seed params passed to `playback/start`; treat any figure
+  as provisional until re-checked at whatever scale later phases actually run at.
 - **SUMO is out of the request path** — DSTNS exports to SUMO for offline validation, but live speeds come from its own analytical model. The "SUMO reports speeds → traffic_level" mental model in [[csc210_algorithm_learning_plan]] no longer describes the system.
 - New scope Varun added: React 19 + MapLibre GL operator UI, SSE streaming, Docker/TLS gateway, SQLite WAL logging, four CLI tools, five test suites, ~40 docs files.
 
-**Old OSM-map-load bug: moot.** It was a `sumo_control` bug; that code is gone. The DSTNS run log shows a real 617-node graph loading fine.
+**Old OSM-map-load bug: moot.** It was a `sumo_control` bug; that code is gone. DSTNS loads a real graph fine — confirmed independently, see below.
 
-**Not independently verified.** Varun's `context/01_CURRENT_STATE.md` claims all 12 phases complete and every suite passing. Nothing has been built or run on Garv's machine. Verify the API returns real data at build-order step 1.2 before trusting it.
+**Independently verified 2026-09-09.** Built and ran DSTNS locally (`docker compose up -d --build` on the group repo's `dstns` branch, HEAD `0fb6307` — note: *later* than the `257257a` this file and [[csc210_sandbox_data_layer]] were originally audited against). `/health`, `/view/topology`, `/view/snapshot` all return real data. But the actual JSON shapes returned differ from what the `257257a` code-read documented — see [[csc210_sandbox_data_layer]]'s "Live-verified schema, 2026-09-09" section. Either the branch moved between audits, or the original static code-read didn't match the built binary; either way, "code wins" now means *this* commit's live response, not last week's source read.
 
 **How to apply:** treat DSTNS as the integration target, `sumo_control` as dead. Re-read [[csc210_sandbox_data_layer]] before any Phase 1 work.
 

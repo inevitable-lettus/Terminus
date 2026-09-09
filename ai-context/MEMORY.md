@@ -8,5 +8,6 @@
 - [Sandbox data layer](csc210_sandbox_data_layer.md) — **DSTNS contract** (port 8090, view/playback/control API, cost = length/effective_speed, integer node ids, no oracle); rewritten 2026-09-06, read before any Phase 1 work
 - [Algorithm learning plan](csc210_algorithm_learning_plan.md) — historical only; its SUMO mental model is wrong for DSTNS (2026-09-06)
 - [Algorithm build protocol](csc210_algorithm_build_protocol.md) — BINDING: propose→review→approve→write pair-programming cycle, no file written before Garv reads it line by line
-- [Algorithm build order](csc210_algorithm_build_order.md) — executable 7-phase plan (JDK install → weighted-A* research), live current-stage tracker
+- [Algorithm build order](csc210_algorithm_build_order.md) — executable 7-phase plan (JDK install → weighted-A* research), live current-stage tracker; through 1.5 done as of 2026-09-09
 - [Java language decision](csc210_java_decision.md) — why Java not C++, prepared defence for the C++-leaning TA incl. honest concessions
+- [Algorithm concepts used](csc210_algorithm_concepts_used.md) — gitignored, local only; running list of every DSA/coding concept by build-order step, for exam/TA prep

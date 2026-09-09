@@ -21,15 +21,21 @@ class DomainTypesTest {
     @Test
     void nodeHoldsAllFields() {
         Position position = new Position(23.0185, 72.5682, 0.0, 0.0);
-        Node node = new Node(0, 9000000000L, position, 3, false, true, "school");
+        Node node = new Node(0, 9000000000L, position, 3, false, 0.0, true, 90, 45, 10, "school", 0.8, 150.0);
 
         assertEquals(0, node.id());
         assertEquals(9000000000L, node.osmNodeId());
         assertEquals(position, node.position());
         assertEquals(3, node.degree());
         assertFalse(node.busStop());
+        assertEquals(0.0, node.busStopRadiusM());
         assertTrue(node.signal());
-        assertEquals("school", node.buildingType());
+        assertEquals(90, node.signalCycleS());
+        assertEquals(45, node.signalGreenS());
+        assertEquals(10, node.signalOffsetS());
+        assertEquals("school", node.building());
+        assertEquals(0.8, node.buildingImpact());
+        assertEquals(150.0, node.buildingRadiusM());
     }
 
     @Test
@@ -43,20 +49,15 @@ class DomainTypesTest {
 
     @Test
     void edgeHoldsAllFields() {
-        EdgeConfiguration control = new EdgeConfiguration(false, 1.0, 1.0);
-        Edge edge = new Edge(0, 0, 1, 1, 8000000000L, false, "primary", 2, 142.8, 16.67, 3200.0, control);
+        Edge edge = new Edge(0, 0, 1, 1, "primary", 2, 142.8, 16.67);
 
         assertEquals(0, edge.id());
         assertEquals(0, edge.from());
         assertEquals(1, edge.to());
         assertEquals(1, edge.reverseTwin());
-        assertEquals(8000000000L, edge.osmWayId());
-        assertFalse(edge.syntheticReverse());
         assertEquals("primary", edge.roadClass());
         assertEquals(2, edge.lanes());
         assertEquals(142.8, edge.lengthM());
         assertEquals(16.67, edge.freeSpeedMps());
-        assertEquals(3200.0, edge.baseCapacityVph());
-        assertEquals(control, edge.control());
     }
 }
