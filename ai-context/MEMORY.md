@@ -11,3 +11,4 @@
 - [Algorithm build order](csc210_algorithm_build_order.md) — executable 7-phase plan (JDK install → weighted-A* research), live current-stage tracker; through 1.5 done as of 2026-09-09
 - [Java language decision](csc210_java_decision.md) — why Java not C++, prepared defence for the C++-leaning TA incl. honest concessions
 - [Algorithm concepts used](csc210_algorithm_concepts_used.md) — gitignored, local only; running list of every DSA/coding concept by build-order step, for exam/TA prep
+- [Algorithm execution plan](csc210_algorithm_execution_plan.md) — gitignored; **read first on 2026-09-10** — sequencing for Phase 1.6→5 + the midsem report, incl. live-verified ground truth and 5 pre-decisions
