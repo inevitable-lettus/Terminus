@@ -363,7 +363,83 @@ line, explicit approval, then write, verify, record. No exceptions.
 > point-of-interest count would be — and a network designed for 18:00 is not
 > optimal at 08:30.
 >
-> **Next up: 4.2 — hub selection and the greedy cover loop.**
+> 4.2 + 4.3 done (2026-09-10): `RouteNetworkBuilder`, `RouteBudget`,
+> `BusRoute`, `RouteNetwork` (new `routing/` package) — **Algorithm 1**.
+> Greedy loop: take the highest-demand uncovered stop as a hub, Dijkstra from
+> the current end of the line, extend to whichever reachable stop maximises
+> (demand newly covered) / (extra driving time), repeat until the time budget
+> is spent or nothing new would be reached; then mark every stop the finished
+> route serves, plus every stop within walking distance, as covered. That
+> ratio *is* the classic greedy set-cover rule, applied per extension.
+> Ties break on the lower stop id, so the same snapshot always yields the same
+> network — asserted, not assumed.
+>
+> Every route carries the **full node-by-node traversal**, not just its stops,
+> because `POST /control/transit/route` validates that consecutive nodes are
+> joined by a single directed edge and does not path-fill. Designed in now
+> rather than retrofitted at 7.2.
+>
+> **The walking radius had to be argued, not defaulted.** The planning rule of
+> thumb is 400 m. This map is 1980 × 1620 m with the nearest two stops 255 m
+> apart (180 m grid, 180·√2 diagonally), so at 400 m every stop covers its
+> diagonal neighbours, **one route covers 100% of demand**, and the algorithm
+> has nothing to show — the whole "city" is a twenty-minute walk end to end
+> and would not need buses. Default set to 250 m, just under the nearest-stop
+> spacing, so a stop counts as covered only if a bus actually serves it. That
+> is a concession to the sandbox's map being small and is stated in the
+> `RouteBudget` javadoc, not buried: at 400 m the coverage numbers look better
+> and mean less.
+>
+> At the defaults (8 min per route, 250 m walk, 90% target) the 18:00 network
+> is **4 routes covering 94.8% of demand**: R0 17 stops / 7.9 min / demand
+> 54.18, R1 16 stops / 7.5 min / 32.10, R2 17 stops / 7.4 min / 30.37, R3 11
+> stops / 7.1 min / 12.48.
+>
+> 4.3's proof, the budget sweep at 18:00 — route count moves monotonically as
+> the budget tightens, which is the whole point of having a budget:
+>
+> | minutes per route | routes | coverage |
+> |---|---|---|
+> | 25 | 2 | 100.0% |
+> | 15 | 2 | 90.7% |
+> | 10 | 3 | 92.1% |
+> | 8 | 4 | 94.8% |
+> | 6 | 5 | 91.4% |
+> | 5 | 6 | 96.9% |
+> | 4 | 7 | 92.4% |
+>
+> **One test was wrong and the correction matters.** The build order says "no
+> node covered twice", and the first version of the test read that as "no two
+> routes may share a stop". That is the opposite of what is wanted: a shared
+> stop is exactly where a passenger changes buses, and forbidding it would
+> leave step 4.4's transfer edges nowhere to attach. Rewritten to assert what
+> the rule actually protects — no stop's demand is counted twice toward
+> coverage — while shared stops stay legal.
+>
+> `RouteNetworkBuilderTest` (8 tests): routes produced and coverage reported;
+> demand never double-counted; every route a continuous traversal of real,
+> open edges with `edge.from`/`edge.to` matching consecutive nodes; stops
+> appearing in traversal order; no route over budget; the monotone sweep
+> above; the route ceiling respected; and byte-identical networks across two
+> runs on the same snapshot. 55/55 green project-wide.
+>
+> **How to explain this step to the prof:** "Designing bus routes to cover
+> demand is the Bus Transit Route Network Design Problem, and it's NP-hard —
+> there's no known way to find the provably best network without effectively
+> trying all of them. The research literature uses genetic algorithms,
+> simulated annealing and tabu search, none of which are in this course, and
+> I'd rather submit something I can derive than a black box. So I use a greedy
+> heuristic built out of exactly the pieces I already have: pick the busiest
+> stop nobody serves yet, run Dijkstra from it, and keep extending toward
+> whichever stop gives the most new demand per extra minute of driving. That
+> ratio is the standard greedy rule for set cover. It comes with no optimality
+> guarantee and I don't claim one." Honest limitations: greedy never
+> reconsiders an earlier choice; there is no approximation bound; the network
+> is designed for a single time slice; and the walking radius had to be pulled
+> below the planning standard because the sandbox's map is barely two
+> kilometres across.
+>
+> **Next up: 4.4 — emit the transit graph.**
 >
 > _Update this block at the end of every completed step — see
 > [[csc210_algorithm_build_protocol]] stage 6._
