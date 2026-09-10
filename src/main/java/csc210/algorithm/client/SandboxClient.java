@@ -41,13 +41,10 @@ public final class SandboxClient {
         return objectMapper.treeToValue(envelope.data(), TopologyData.class);
     }
 
-    /**
-     * Live edge/node state — traffic, weather, signals. Left untyped for now:
-     * step 1.6 (cost model) is what actually needs this data, and typing it
-     * before then would mean building ahead of the current step.
-     */
-    public Envelope snapshot() throws IOException, InterruptedException {
-        return get("/api/v1/view/snapshot", Envelope.class);
+    /** Live edge/node state at the current instant of virtual time. */
+    public SnapshotData snapshot() throws IOException, InterruptedException {
+        Envelope envelope = get("/api/v1/view/snapshot", Envelope.class);
+        return objectMapper.treeToValue(envelope.data(), SnapshotData.class);
     }
 
     private <T> T get(String path, Class<T> responseType) throws IOException, InterruptedException {

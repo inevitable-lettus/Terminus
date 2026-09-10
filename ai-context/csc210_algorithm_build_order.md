@@ -143,8 +143,57 @@ line, explicit approval, then write, verify, record. No exceptions.
 > exactly for every node, and a non-dense input is rejected. 14/14 tests
 > green project-wide.
 >
-> **Next up: 1.6 — cost model.** Still algorithm logic — full
-> propose→review→approve→write cycle applies.
+> 1.6 done (2026-09-10): `CostModel` (new `cost/` package) —
+> `cost_ms(e) = round(length_m / max(0.1, effective_speed_mps) * 1000)`,
+> integer milliseconds, computed once per snapshot in O(E) and frozen.
+> Needed three new types first: `EdgeState` / `NodeState` (the live per-tick
+> shape from `/view/snapshot`, deliberately separate from the structural
+> `Edge`/`Node`, which are fixed for the whole run) and `SnapshotData`;
+> `SandboxClient.snapshot()` went from returning a raw `Envelope` to the
+> typed `SnapshotData`. A closed edge is *absent*, not expensive —
+> `isTraversable(id)` returns false and `costMillis(id)` throws, so a closed
+> road can never silently contribute a number to a path cost.
+>
+> New fixture `snapshot_0830.json` captured live at seed `0x2026`, virtual
+> time 08:30:00, clock PAUSED — the old `snapshot.json` was captured IDLE
+> with every edge at free-flow, which would have made the cost model look
+> trivially correct. `edges_0830.json` (the nested `/view/edges` shape, with
+> `demand_vph`) captured at the same instant for Phase 4. A `Fixtures` test
+> helper now loads all of them in one place.
+>
+> Verified live, not just in tests: `PUT /control/edges/42 {"closed":true}`
+> returned `{"ok":true,"state_revision":1}` and the next snapshot showed
+> `"closed": true` on edge 42 — **while still reporting
+> `effective_speed_mps: 16.67`**. That is the whole argument for exclusion
+> over weighting in one line: DSTNS keeps publishing a perfectly healthy
+> speed for a road nobody may drive on, so anything that priced closure from
+> speed alone would route straight through it. Edge reverted afterward.
+>
+> `CostModelTest`: `effective_speed_mps <= free_speed_mps` on all 436 edges,
+> three hand-computed costs matched exactly (edge 239 at 0.666 m/s →
+> 270116 ms, edge 110 at 11.11 m/s → 16202 ms, edge 425 at 16.67 m/s →
+> 10798 ms), the 0.1 m/s floor turns a zero speed into 1800000 ms rather
+> than infinity, closing one edge reprices nothing else, and a snapshot that
+> does not match the topology is rejected. 20/20 tests green project-wide.
+>
+> **How to explain this step to the prof:** "The cost of an edge is just
+> distance over speed, in milliseconds, using the live speed the simulator
+> reports rather than the speed limit — so traffic, rain and signal phase all
+> show up in the number. Two deliberate choices. First, cost lives on edges,
+> not junctions, because that's where the physical quantity is: a road has a
+> length and a speed, a crossroads doesn't. Second, a closed road is removed
+> from the search rather than given a huge weight — I checked live that the
+> sandbox still reports a normal 16.67 m/s speed on an edge it has marked
+> closed, so if I'd priced closure by speed I'd have routed traffic straight
+> through a shut road. And the model is a snapshot, frozen at one instant,
+> because the weights genuinely oscillate second by second as signals cycle —
+> searching against a moving weight measures the weather, not the algorithm."
+> Honest limitation: DSTNS used to publish its own computed edge weight and
+> we could check ours against it edge for edge. It doesn't any more, so this
+> proof is weaker — an invariant, three hand-checks and a closure test rather
+> than 436 exact matches.
+>
+> **Next up: 2.1 — indexed binary min-heap.**
 >
 > _Update this block at the end of every completed step — see
 > [[csc210_algorithm_build_protocol]] stage 6._
