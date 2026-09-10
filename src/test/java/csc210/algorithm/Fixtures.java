@@ -35,9 +35,28 @@ public final class Fixtures {
         return read("/fixtures/snapshot_0830.json", SnapshotData.class);
     }
 
+    /**
+     * Live edge state at 18:00, the busiest hour in the simulated day —
+     * measured, not assumed: see the half-hourly sweep recorded against step
+     * 4.1 in the build order. This is the slice the route builder designs for.
+     */
+    public static SnapshotData snapshotAt1800() {
+        return read("/fixtures/snapshot_1800.json", SnapshotData.class);
+    }
+
     /** Live edge state with the clock IDLE — every edge at free-flow speed. */
     public static SnapshotData snapshotIdle() {
         return read("/fixtures/snapshot.json", SnapshotData.class);
+    }
+
+    /** The nested {@code /view/edges} page captured at 08:30 — the only source of {@code demand_vph}. */
+    public static java.util.List<csc210.algorithm.client.EdgeDetail> edgeDetailsAt0830() {
+        return read("/fixtures/edges_0830.json", csc210.algorithm.client.EdgePage.class).items();
+    }
+
+    /** The same nested edge page captured at 18:00. */
+    public static java.util.List<csc210.algorithm.client.EdgeDetail> edgeDetailsAt1800() {
+        return read("/fixtures/edges_1800.json", csc210.algorithm.client.EdgePage.class).items();
     }
 
     private static <T> T read(String resource, Class<T> payloadType) {

@@ -47,6 +47,25 @@ public final class SandboxClient {
         return objectMapper.treeToValue(envelope.data(), SnapshotData.class);
     }
 
+    /**
+     * Every edge in the nested {@code /view/edges} shape, paged until the
+     * server says it has sent them all. This is the only endpoint carrying
+     * {@code demand_vph}, which step 4.1 needs.
+     */
+    public java.util.List<EdgeDetail> edges() throws IOException, InterruptedException {
+        java.util.List<EdgeDetail> all = new java.util.ArrayList<>();
+        int offset = 0;
+        while (true) {
+            Envelope envelope = get("/api/v1/view/edges?offset=" + offset + "&limit=1000", Envelope.class);
+            EdgePage page = objectMapper.treeToValue(envelope.data(), EdgePage.class);
+            all.addAll(page.items());
+            offset += page.items().size();
+            if (page.items().isEmpty() || offset >= page.total()) {
+                return all;
+            }
+        }
+    }
+
     private <T> T get(String path, Class<T> responseType) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder(baseUri.resolve(path))
                 .GET()
