@@ -193,7 +193,55 @@ line, explicit approval, then write, verify, record. No exceptions.
 > proof is weaker — an invariant, three hand-checks and a closure test rather
 > than 436 exact matches.
 >
-> **Next up: 2.1 — indexed binary min-heap.**
+> 2.1 done (2026-09-10): `IndexedMinHeap` (new `ds/` package) — array-backed
+> binary min-heap over dense int elements with `long` priorities, and
+> `insert` / `extractMin` / `decreaseKey` / `insertOrDecrease`, all O(log n).
+> Three parallel arrays: `heap[]` (position → element), `position[]`
+> (element → position, `-1` when absent) and `priority[]` (element →
+> priority). `position[]` is the whole point — it is what makes
+> `decreaseKey` an O(1) lookup followed by a sift, instead of the O(n) scan
+> `java.util.PriorityQueue.remove(Object)` would force.
+>
+> Priorities are `long` milliseconds, not doubles, so two equal-cost paths
+> really do compare equal rather than differing in the last bit.
+> `decreaseKey` rejects a *raise* rather than accepting it, because a raise
+> needs a sift-down and quietly sifting the wrong way would corrupt the heap
+> without any error.
+>
+> `IndexedMinHeapTest`: 2000 randomised trials pushing identical operation
+> sequences through our heap and `java.util.PriorityQueue`, asserting
+> identical pop order; a 500-element drain asserting strictly increasing
+> pops; 500 trials of `decreaseKey` mirrored in the oracle by
+> remove-and-reinsert; a direct root-reaching `decreaseKey`; and misuse
+> (double insert, raise, out-of-range element, pop from empty) rejected
+> rather than silently corrupting state. 26/26 green project-wide.
+>
+> **The oracle test failed on its first run, and the reason is worth
+> keeping.** Lowered priorities were allowed to collide with priorities
+> already in the heap, so "which element is the minimum" became ambiguous
+> and the two structures disagreed — not a heap bug, a test that demanded
+> agreement on tie-breaking, which neither structure promises. Fixed by
+> keeping every priority in play unique. This is exactly the point step 3.3
+> makes about comparing costs rather than node sequences, arrived at the
+> hard way one phase early.
+>
+> **How to explain this step to the prof:** "A priority queue is a bag you
+> can throw things into in any order and always pull the smallest out of. I
+> wrote my own as a binary heap in a flat array — the tree is implicit, the
+> children of slot i are at 2i+1 and 2i+2, so there are no pointers and no
+> objects per node. The reason I didn't just use Java's built-in one is
+> `decreaseKey`. Dijkstra keeps finding better routes to a node that's
+> already sitting in the queue, and the standard library has no way to say
+> 'that thing in there just got cheaper'. The usual workaround is to push a
+> duplicate and ignore the stale copy later, which grows the queue from one
+> entry per node to one per edge. I keep an extra array saying where each
+> node currently sits, so I can find it instantly and just bubble it up." 
+> Honest limitation: the heap is fixed-capacity and its elements have to be
+> dense integers from 0 upward. That's fine because DSTNS hands out node ids
+> exactly that way, but it is not a general-purpose priority queue and I
+> wouldn't hand it to someone else as one.
+>
+> **Next up: 3.1 — Dijkstra.**
 >
 > _Update this block at the end of every completed step — see
 > [[csc210_algorithm_build_protocol]] stage 6._
