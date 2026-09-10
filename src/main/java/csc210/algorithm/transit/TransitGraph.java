@@ -1,0 +1,267 @@
+package csc210.algorithm.transit;
+
+import csc210.algorithm.graph.Graph;
+import csc210.algorithm.model.Position;
+import csc210.algorithm.routing.BusRoute;
+import csc210.algorithm.routing.RouteNetwork;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * The network a <em>passenger</em> moves through, built from the bus lines
+ * Algorithm 1 produced. Algorithm 2 searches this, not the road graph.
+ *
+ * <p><strong>Why it cannot just be the road graph.</strong> A shortest path
+ * over roads answers "how do I drive there". A passenger cannot drive; they can
+ * only ride a line that happens to run, and get off where it stops. More
+ * importantly, changing buses is expensive — you wait for the next one — and a
+ * road graph has nowhere to put that cost. A search over roads would happily
+ * "transfer" ten times for free and report a journey nobody could make.
+ *
+ * <p><strong>The trick that makes transfers cost something.</strong> A vertex
+ * here is not a stop, it is a <em>(stop, route)</em> pair: "standing at stop 27
+ * on line R2". Riding one stop further along the same line is one edge. Getting
+ * off R2 at stop 27 and onto R0 at stop 27 is a <em>different</em> edge, priced
+ * at the wait, and it is the only way to move between lines. Because the cost
+ * sits on a real edge, the search cannot avoid paying it, and a two-transfer
+ * journey is automatically compared against a slower one-seat ride on its
+ * merits rather than being ruled in or out by hand.
+ *
+ * <p>Walk edges join (stop, route) pairs at <em>different</em> stops close
+ * enough to walk between, so a passenger can cross the street to a better line.
+ *
+ * <p><strong>Honest simplifications.</strong> Every line is treated as running
+ * in both directions at the same cost, which is only defensible because this
+ * map has a reverse twin for all 436 edges and no one-way streets; on a real
+ * map the return leg would have to be priced separately. The transfer wait is a
+ * flat five minutes rather than derived from a timetable, because DSTNS does
+ * not publish headways. And boarding the first bus is free — the initial wait
+ * is not modelled — so a journey's cost is the in-vehicle and transfer time,
+ * not door-to-door time.
+ */
+public final class TransitGraph {
+
+    /** How long a passenger waits, on average, to change onto another line. */
+    public static final long TRANSFER_WAIT_MILLIS = 5 * 60 * 1000L;
+
+    /** Walking speed used to price a walk between nearby stops: 1.4 m/s, about 5 km/h. */
+    public static final double WALK_SPEED_MPS = 1.4;
+
+    /**
+     * How far a passenger will walk between stops <em>mid-journey</em>, in metres.
+     *
+     * <p>This is deliberately not the same number as
+     * {@link csc210.algorithm.routing.RouteBudget#walkingRadiusM()}, and the two
+     * answer different questions. The route builder's radius asks "is this stop
+     * close enough to count as served?", and was pulled down to 250 m so that
+     * coverage on this small map is not trivially satisfied. This one asks "will
+     * a passenger already out of the house walk to a different stop to change
+     * line?", and 400 m — about five minutes — is the standard planning figure.
+     *
+     * <p>The distinction is load-bearing, not cosmetic. At 250 m the transit
+     * graph built from the default 18:00 network splits into two components:
+     * line R1 shares no stop with R0, R2 or R3, so 16 of 61 vertices are
+     * unreachable from the rest and a passenger on R1 can never leave it. At
+     * 300 m and above it is fully connected.
+     */
+    public static final double DEFAULT_INTERCHANGE_WALK_M = 400.0;
+
+    /** How far a passenger will walk between stops mid-journey. */
+    private final double walkingRadiusM;
+
+    private final TransitStop[] vertices;
+    private final int[] adjacencyStart;
+    private final TransitLink[] links;
+
+    /** vertexOf[roadNode] = (stop, route) vertices at that road node. */
+    private final Map<Integer, int[]> verticesAtStop;
+
+    private TransitGraph(TransitStop[] vertices, int[] adjacencyStart, TransitLink[] links,
+                         Map<Integer, int[]> verticesAtStop, double walkingRadiusM) {
+        this.vertices = vertices;
+        this.adjacencyStart = adjacencyStart;
+        this.links = links;
+        this.verticesAtStop = verticesAtStop;
+        this.walkingRadiusM = walkingRadiusM;
+    }
+
+    /**
+     * Builds the passenger network.
+     *
+     * @param roadGraph the road network the routes were built on, for stop positions
+     * @param network the lines Algorithm 1 produced
+     * @param rideMillis cost of riding each edge of the road network, so a bus
+     *        segment costs what driving it actually costs at this time of day
+     * @param walkingRadiusM how far a passenger will walk between stops
+     */
+    public static TransitGraph of(Graph roadGraph, RouteNetwork network,
+                                  csc210.algorithm.cost.CostModel rideMillis) {
+        return of(roadGraph, network, rideMillis, DEFAULT_INTERCHANGE_WALK_M);
+    }
+
+    /** As {@link #of(Graph, RouteNetwork, csc210.algorithm.cost.CostModel)}, with the walk radius given. */
+    public static TransitGraph of(Graph roadGraph, RouteNetwork network,
+                                  csc210.algorithm.cost.CostModel rideMillis, double walkingRadiusM) {
+        List<TransitStop> vertices = new ArrayList<>();
+        Map<Long, Integer> vertexIndex = new HashMap<>();
+        Map<Integer, List<Integer>> atStop = new HashMap<>();
+
+        for (BusRoute route : network.routes()) {
+            for (int stop : route.stops()) {
+                long key = key(stop, route.id());
+                if (vertexIndex.containsKey(key)) {
+                    continue;
+                }
+                int index = vertices.size();
+                vertices.add(new TransitStop(index, stop, route.id(), roadGraph.node(stop).position()));
+                vertexIndex.put(key, index);
+                atStop.computeIfAbsent(stop, ignored -> new ArrayList<>()).add(index);
+            }
+        }
+
+        List<List<TransitLink>> outgoing = new ArrayList<>(vertices.size());
+        for (int i = 0; i < vertices.size(); i++) {
+            outgoing.add(new ArrayList<>());
+        }
+
+        // Ride edges: consecutive stops along one line, priced at what the bus
+        // actually spends driving the road between them.
+        for (BusRoute route : network.routes()) {
+            for (int i = 0; i + 1 < route.stops().length; i++) {
+                int fromStop = route.stops()[i];
+                int toStop = route.stops()[i + 1];
+                long millis = segmentMillis(route, fromStop, toStop, rideMillis);
+                int from = vertexIndex.get(key(fromStop, route.id()));
+                int to = vertexIndex.get(key(toStop, route.id()));
+                // Lines here are bidirectional: a bus route is driven both ways.
+                outgoing.get(from).add(new TransitLink(from, to, millis, TransitLink.Kind.RIDE, route.id()));
+                outgoing.get(to).add(new TransitLink(to, from, millis, TransitLink.Kind.RIDE, route.id()));
+            }
+        }
+
+        // Transfer edges: same stop, different line, priced at the wait.
+        for (Map.Entry<Integer, List<Integer>> entry : atStop.entrySet()) {
+            List<Integer> here = entry.getValue();
+            for (int from : here) {
+                for (int to : here) {
+                    if (from != to) {
+                        outgoing.get(from).add(
+                                new TransitLink(from, to, TRANSFER_WAIT_MILLIS, TransitLink.Kind.TRANSFER, -1));
+                    }
+                }
+            }
+        }
+
+        // Walk edges: different stops close enough to walk, then wait for the line there.
+        for (int from = 0; from < vertices.size(); from++) {
+            for (int to = 0; to < vertices.size(); to++) {
+                if (from == to || vertices.get(from).roadNode() == vertices.get(to).roadNode()) {
+                    continue;
+                }
+                double metres = straightLineMetres(vertices.get(from).position(), vertices.get(to).position());
+                if (metres > walkingRadiusM) {
+                    continue;
+                }
+                long millis = Math.round(metres / WALK_SPEED_MPS * 1000.0) + TRANSFER_WAIT_MILLIS;
+                outgoing.get(from).add(new TransitLink(from, to, millis, TransitLink.Kind.WALK, -1));
+            }
+        }
+
+        // Flatten to CSR, the same layout the road graph uses.
+        int[] adjacencyStart = new int[vertices.size() + 1];
+        for (int i = 0; i < vertices.size(); i++) {
+            adjacencyStart[i + 1] = adjacencyStart[i] + outgoing.get(i).size();
+        }
+        TransitLink[] links = new TransitLink[adjacencyStart[vertices.size()]];
+        int cursor = 0;
+        for (List<TransitLink> fromOne : outgoing) {
+            for (TransitLink link : fromOne) {
+                links[cursor++] = link;
+            }
+        }
+
+        Map<Integer, int[]> verticesAtStop = new HashMap<>();
+        for (Map.Entry<Integer, List<Integer>> entry : atStop.entrySet()) {
+            int[] indices = new int[entry.getValue().size()];
+            for (int i = 0; i < indices.length; i++) {
+                indices[i] = entry.getValue().get(i);
+            }
+            verticesAtStop.put(entry.getKey(), indices);
+        }
+
+        return new TransitGraph(vertices.toArray(new TransitStop[0]), adjacencyStart, links,
+                verticesAtStop, walkingRadiusM);
+    }
+
+    /** Driving time along one line between two of its consecutive stops. */
+    private static long segmentMillis(BusRoute route, int fromStop, int toStop,
+                                      csc210.algorithm.cost.CostModel rideMillis) {
+        int start = indexOf(route.nodes(), fromStop, 0);
+        int end = indexOf(route.nodes(), toStop, start + 1);
+        if (start < 0 || end < 0) {
+            throw new IllegalStateException(
+                    "route " + route.label() + " lists stops " + fromStop + " and " + toStop
+                            + " that are not consecutive on its traversal");
+        }
+        long millis = 0L;
+        for (int i = start; i < end; i++) {
+            millis += rideMillis.costMillis(route.edges()[i]);
+        }
+        return millis;
+    }
+
+    public int vertexCount() {
+        return vertices.length;
+    }
+
+    public int linkCount() {
+        return links.length;
+    }
+
+    public TransitStop vertex(int index) {
+        return vertices[index];
+    }
+
+    public double walkingRadiusM() {
+        return walkingRadiusM;
+    }
+
+    /** Every link leaving {@code vertex}. */
+    public TransitLink[] outgoing(int vertex) {
+        return Arrays.copyOfRange(links, adjacencyStart[vertex], adjacencyStart[vertex + 1]);
+    }
+
+    /** Every (stop, route) vertex sitting at road node {@code roadNode}. */
+    public int[] verticesAt(int roadNode) {
+        int[] found = verticesAtStop.get(roadNode);
+        return found == null ? new int[0] : found.clone();
+    }
+
+    /** Road nodes that carry at least one vertex, ascending. */
+    public int[] servedStops() {
+        int[] stops = verticesAtStop.keySet().stream().mapToInt(Integer::intValue).toArray();
+        Arrays.sort(stops);
+        return stops;
+    }
+
+    public static double straightLineMetres(Position from, Position to) {
+        return Math.hypot(from.xM() - to.xM(), from.yM() - to.yM());
+    }
+
+    private static long key(int stop, int routeId) {
+        return ((long) stop << 32) | (routeId & 0xffffffffL);
+    }
+
+    private static int indexOf(int[] values, int wanted, int from) {
+        for (int i = Math.max(0, from); i < values.length; i++) {
+            if (values[i] == wanted) {
+                return i;
+            }
+        }
+        return -1;
+    }
+}

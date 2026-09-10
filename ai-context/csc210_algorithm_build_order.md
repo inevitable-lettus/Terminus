@@ -421,7 +421,7 @@ line, explicit approval, then write, verify, record. No exceptions.
 > open edges with `edge.from`/`edge.to` matching consecutive nodes; stops
 > appearing in traversal order; no route over budget; the monotone sweep
 > above; the route ceiling respected; and byte-identical networks across two
-> runs on the same snapshot. 55/55 green project-wide.
+> runs on the same snapshot. 47/47 green project-wide.
 >
 > **How to explain this step to the prof:** "Designing bus routes to cover
 > demand is the Bus Transit Route Network Design Problem, and it's NP-hard —
@@ -439,7 +439,55 @@ line, explicit approval, then write, verify, record. No exceptions.
 > below the planning standard because the sandbox's map is barely two
 > kilometres across.
 >
-> **Next up: 4.4 — emit the transit graph.**
+> 4.4 done (2026-09-10): `TransitGraph`, `TransitStop`, `TransitLink` (new
+> `transit/` package). **A vertex is a (stop, route) pair**, not a stop —
+> "standing at stop 27 on line R2". That is the whole trick: riding one stop
+> further on the same line is one edge, changing lines at the same stop is a
+> *different* edge priced at the wait, so the transfer cost sits on a real
+> edge the search cannot dodge. Three link kinds: RIDE (priced at what
+> driving that stretch actually costs at 18:00, summed from the road edges),
+> TRANSFER (flat 5 min wait, same stop, different line) and WALK (straight-line
+> distance at 1.4 m/s plus the wait, to a nearby stop). Stored CSR-style, the
+> same flat-array layout as the road graph.
+>
+> **The interchange walk radius had to be split from the coverage one.** Built
+> with the route builder's 250 m, the transit graph is **disconnected**: line
+> R1 shares no stop with R0, R2 or R3, so 16 of 61 vertices are unreachable
+> and a passenger boarding R1 could never leave it. The two radii answer
+> different questions — the route builder's asks "is this stop close enough to
+> count as served?" (250 m, chosen so coverage is not trivial on a 2 km map),
+> the transit graph's asks "will a passenger already out of the house walk to
+> another stop to change line?" (400 m, the standard five-minute figure). At
+> 300 m and above it is fully connected. Both the split and the fix are
+> asserted in tests, so the reason two numbers exist stays visible.
+>
+> Resulting graph at 18:00: **61 vertices, 560 links, over 54 road stops**,
+> 7 stops served by more than one line, 432 walk links, fully connected.
+>
+> `TransitGraphTest` (6 tests): one vertex per stop per line, all at real bus
+> stops; every shared stop carrying a transfer edge to each other line there;
+> ride links staying on one line and costing something; walk links priced at
+> distance-over-speed plus the wait and never exceeding the radius; the 250 m
+> graph proven split; the 400 m graph proven connected by breadth-first
+> search. 53/53 green project-wide.
+>
+> **How to explain this step to the prof:** "Algorithm 2 can't run on the road
+> network, because a shortest path over roads tells you how to *drive*, and a
+> passenger can't drive — they can only ride a line that happens to run.
+> Worse, changing buses costs you a wait, and a road graph has nowhere to put
+> that cost, so a search over roads would transfer ten times for free and
+> report a journey nobody could make. So each vertex here is a stop *plus*
+> which line you're on. Staying on the bus is one edge; getting off and onto
+> another line at the same stop is a different edge that costs five minutes.
+> Because the wait is a real edge, the search has to pay it, and it weighs a
+> two-change journey against a slower direct one on the numbers instead of me
+> deciding by hand." Honest limitations: lines are treated as running both
+> ways at the same cost, which only holds because this map has a reverse twin
+> for every edge; the transfer wait is a flat five minutes because DSTNS
+> publishes no timetable or headway; and the first boarding is free, so the
+> cost is in-vehicle plus transfer time, not door-to-door time.
+>
+> **Next up: 5.1 — A* over the transit graph.**
 >
 > _Update this block at the end of every completed step — see
 > [[csc210_algorithm_build_protocol]] stage 6._
