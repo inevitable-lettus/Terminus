@@ -487,7 +487,84 @@ line, explicit approval, then write, verify, record. No exceptions.
 > publishes no timetable or headway; and the first boarding is free, so the
 > cost is in-vehicle plus transfer time, not door-to-door time.
 >
-> **Next up: 5.1 — A* over the transit graph.**
+> 5.1 + 5.2 + 5.3 done (2026-09-10): `AStar`, `TransitHeuristic`,
+> `TransitPath` — **Algorithm 2**. Ordered by `f = g + h` on the same 2.1
+> heap; the guess steers the queue and never enters the reported cost, which
+> stays `g`. `AStar.zeroHeuristic()` makes it *exactly* Dijkstra, asserted
+> rather than claimed. `h(v) = distance(v, goal) / 16.67 m/s` in projected
+> metres, Manhattan by default, Euclidean available.
+>
+> **Results at 18:00, over every ordered pair of the 61 transit vertices:**
+>
+> | measure | value |
+> |---|---|
+> | journeys compared | 3660 |
+> | cost disagreements with Dijkstra | **0** |
+> | Dijkstra vertex expansions | 115290 |
+> | A* (Manhattan) expansions | 97199 |
+> | reduction | **15.7% fewer** |
+> | Euclidean vs Manhattan (sampled grid) | 11742 vs 11298 expansions |
+>
+> **D3 resolved by measurement, not argument.** The build order had settled on
+> Euclidean, justified by "the map is real OSM road layout, not a grid." That
+> premise was false — it is a 180 m axis-aligned lattice — so both were
+> implemented and Manhattan wins, as predicted: tighter admissible bound,
+> fewer expansions. The precondition is enforced, not assumed:
+> `isManhattanAdmissibleOn` walks all 436 edges checking each is due
+> north-south or east-west, and `TransitHeuristic.towards` throws if Manhattan
+> is asked for on a map with a diagonal edge. Tested against a deliberately
+> skewed three-node graph.
+>
+> One subtlety worth having ready: a **walk link cuts diagonally** between two
+> stops, so Manhattan overestimates the *distance* there. It still cannot
+> overestimate the *time*, which is what `h` returns — Manhattan is at most
+> √2× the straight line, so the guess is at most `d/11.8` seconds while
+> walking `d` at 1.4 m/s takes `d/1.4` seconds plus a wait.
+>
+> 5.3, the hand checks, on real vertices at 18:00:
+>
+> | journey | dx, dy | Manhattan h | Euclidean h | true cost |
+> |---|---|---|---|---|
+> | v0 (stop 77, R0) → v30 (stop 36, R1) | 900, 540 m | 86382 ms | 62961 ms | 673767 ms |
+> | v5 (stop 60, R0) → v44 (stop 70, R2) | 1800, 0 m | 107978 ms | 107978 ms | 615763 ms |
+> | v12 (stop 53, R0) → v58 (stop 116, R3) | 540, 900 m | 86382 ms | 62961 ms | 725909 ms |
+>
+> Both forms sit far under the truth on these, and Manhattan is the larger of
+> the two whenever the journey is not purely axis-parallel — which is exactly
+> "tighter, still admissible" in numbers. Note the second row: with `dy = 0`
+> the two distances coincide, as they must.
+>
+> `AStarTest` (7 tests): identical costs to Dijkstra on all 3660 pairs with
+> strictly fewer expansions; Manhattan never expanding more than Euclidean;
+> `h ≤ true remaining cost` at every vertex of every pair for both forms
+> (closest approach 1 ms — the bound is tight, not slack); consistency
+> `h(u) ≤ cost(u,v) + h(v)` across every link toward every goal; journeys
+> re-summed link by link against the reported cost; the zero heuristic proven
+> identical to Dijkstra; and Manhattan refused on a skewed map. 60/60 green
+> project-wide.
+>
+> **How to explain this step to the prof:** "A* is Dijkstra plus one idea.
+> Dijkstra explores whatever's cheapest so far, which means it spreads
+> outward in every direction including straight away from the destination.
+> A* orders the queue by what you've already spent plus an optimistic guess
+> of what's left, so things pointing at the destination get looked at first.
+> The guess has to be admissible — never an overestimate — because if it were
+> ever too high A* could throw away the route that was actually best. Mine is
+> straight-line distance divided by the fastest speed anything moves on this
+> map, which can't overestimate by construction. The critical thing is that
+> traffic and weather stay out of the guess entirely: they only ever make the
+> real journey longer, so folding them in would push the estimate above the
+> truth and break the guarantee. And because the map turned out to be a
+> perfect grid, I use Manhattan distance instead of straight-line — it's a
+> bigger number that's still never an overestimate, which means a tighter
+> guess and 15.7% fewer vertices examined for exactly the same answers."
+> Honest limitations: 15.7% is a modest win because the graph is small — 61
+> vertices, where even a bad search finishes instantly — and the transfer and
+> walk edges are large flat costs that geometry cannot predict, so the guess
+> is weak relative to the true costs. On a bigger network the gap would widen.
+>
+> **Phases 1–5 complete. Next up: Phase 6 — the research deliverable
+> (determinism harness, instrumentation, weighted-A* ε-sweep, plots).**
 >
 > _Update this block at the end of every completed step — see
 > [[csc210_algorithm_build_protocol]] stage 6._

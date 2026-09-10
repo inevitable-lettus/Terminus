@@ -19,6 +19,26 @@ public final class TestGraphs {
 
     private TestGraphs() {}
 
+    /**
+     * A three-node graph with a genuinely diagonal edge, for checking that the
+     * Manhattan heuristic refuses a map it would overestimate on.
+     */
+    public static Graph buildSkewed() {
+        List<Node> nodes = List.of(
+                node(0, 0.0, 0.0),
+                node(1, 100.0, 100.0),
+                node(2, 200.0, 100.0));
+        List<Edge> edges = List.of(
+                new Edge(0, 0, 1, 0, "synthetic", 1, 141.4, 10.0),
+                new Edge(1, 1, 2, 1, "synthetic", 1, 100.0, 10.0));
+        return Graph.of(nodes, edges);
+    }
+
+    private static Node node(int id, double xM, double yM) {
+        return new Node(id, 1_000_000L + id, new Position(0.0, 0.0, xM, yM),
+                0, false, 0.0, false, 0, 0, 0, null, 0.0, 0.0);
+    }
+
     public record Fixture(Graph graph, CostModel costModel) {}
 
     public static Fixture build(int nodeCount, int[][] edgeSpecs) {
