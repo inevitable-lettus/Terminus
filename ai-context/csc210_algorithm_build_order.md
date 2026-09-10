@@ -241,7 +241,64 @@ line, explicit approval, then write, verify, record. No exceptions.
 > exactly that way, but it is not a general-purpose priority queue and I
 > wouldn't hand it to someone else as one.
 >
-> **Next up: 3.1 — Dijkstra.**
+> 3.1 + 3.2 done (2026-09-10): `Dijkstra` and `ShortestPathTree` (new
+> `search/` package), driven by the 2.1 heap. `costMillis[]` starts at
+> `Long.MAX_VALUE` as "unreachable", `predecessorEdge[]` and
+> `predecessorNode[]` record how each node was best reached, a `settled[]`
+> flag enforces the greedy invariant, and `insertOrDecrease` keeps exactly
+> one queue entry per node for the whole run — O(V) entries, not the O(E)
+> a lazy-deletion queue would hold. Closed edges are skipped in the
+> relaxation loop, so no path can be built through one. `from(source,
+> target)` stops the moment the target settles, which is correct for the
+> same reason the invariant is.
+>
+> 3.2 is `pathTo` / `edgePathTo`: walk predecessors backward from the
+> target, then reverse. Two passes rather than a list — one to measure the
+> path, one to fill the array — since the length is not known until the
+> walk is done.
+>
+> `DijkstraTest` (7 tests): a five-node graph whose answers were computed
+> on paper, including the case where the direct edge 0→1 (cost 4) loses to
+> the two-hop 0→2→1 (cost 3); path *and* edge-path reconstruction on that
+> same graph; agreement with a Floyd–Warshall brute force over 200 random
+> graphs, all sources, all targets — chosen as the oracle precisely because
+> it shares no structure with Dijkstra, so agreement is real evidence;
+> every reconstructed path on the real 120-node network re-summed edge by
+> edge and matched against the reported cost; the whole road network
+> reachable from node 0 in exactly 120 expansions; early stopping giving an
+> identical path for no more work; and a closed middle edge stranding the
+> node behind it. 33/33 green project-wide.
+>
+> **How to explain this step to the prof:** "Dijkstra is one idea done over
+> and over — relaxation. For each road out of the node I'm standing on, I
+> ask 'is going this way cheaper than the best I'd previously found to the
+> far end?', and if so I write down the cheaper number and remember which
+> road I came in on. The queue always hands me the cheapest node I haven't
+> finished yet, and the moment I pop a node its answer is final, because
+> any other route to it would have to go through something that already
+> costs at least as much and then pay for more roads on top. That last part
+> is exactly where non-negative weights matter — if a road could have a
+> negative cost, a longer detour could come back cheaper and the whole
+> argument falls apart. Mine are travel times, so that can't happen. For
+> the path itself I only store one predecessor per node, because a
+> shortest-path tree gives every node exactly one parent, and I rebuild the
+> route by walking backwards from the destination and reversing."
+> Complexity: each node enters and leaves the queue once at O(log V), each
+> edge is examined once and may trigger one decrease-key at O(log V), so
+> O((V + E) log V). Honest limitation: the search runs against a frozen
+> snapshot, so it answers "what was the best route at 08:30", not "what is
+> the best route right now."
+>
+> **3.3 dropped (2026-09-10), per decision D4.** Re-probed the live sandbox
+> at this HEAD: `POST /api/v1/paths/compute`, `/routes/compute` and
+> `/view/path` all return HTTP 404, so `RoutePlanner::route` is still
+> C++-internal with no HTTP surface. Per the fallback already written into
+> this step, it is dropped rather than left open: 3.1's brute-force
+> all-pairs comparison and 5.1's Dijkstra-vs-A* cost agreement cover
+> correctness between them. Not porting their A* to Java as a "reference",
+> which would only be our code checking our code. To state in the writeup.
+>
+> **Next up: 4.1 — read demand.**
 >
 > _Update this block at the end of every completed step — see
 > [[csc210_algorithm_build_protocol]] stage 6._
