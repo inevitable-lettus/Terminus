@@ -1,3 +1,7 @@
 # Context
 
-Human-readable project context — team decisions, meeting notes, anything the whole group needs, not just Claude. Kept separate from [`ai-context/`](../ai-context/), which is Claude's own working memory for the project.
+Team-facing project context — meeting notes, team decisions, and anything the
+whole group needs rather than just the algorithm track.
+
+Technical documentation for the algorithm module lives in [`../docs/`](../docs/),
+with the design itself in [`../DESIGN.md`](../DESIGN.md).
