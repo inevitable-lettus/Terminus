@@ -152,6 +152,33 @@ public final class SandboxClient {
         return send("PUT", "/api/v1/control/edges/" + edgeId, body);
     }
 
+    /**
+     * Publishes one bus line back to the simulator so it renders in the UI.
+     *
+     * <p>The server validates that <em>every consecutive pair of nodes is joined
+     * by a single directed edge</em> and does not path-fill between stops, so
+     * {@code nodes} must be the full junction-by-junction traversal. A route
+     * listing only the stops it serves is rejected at the first gap — which is
+     * why {@link csc210.algorithm.routing.BusRoute#nodes()} has carried the whole
+     * traversal since it was first built rather than having it retrofitted here.
+     *
+     * @param busId the line's id on the server
+     * @param label what to call it in the UI, e.g. {@code "R2"}
+     * @param nodes the full traversal, in travel order
+     * @throws IOException if the server rejects the route, carrying its reason
+     */
+    public JsonNode publishRoute(int busId, String label, int[] nodes)
+            throws IOException, InterruptedException {
+        if (nodes.length < 2) {
+            throw new IllegalArgumentException("a route needs at least two nodes, got " + nodes.length);
+        }
+        String body = objectMapper.writeValueAsString(java.util.Map.of(
+                "bus_id", busId,
+                "label", label,
+                "nodes", nodes));
+        return send("POST", "/api/v1/control/transit/route", body);
+    }
+
     private JsonNode send(String method, String path, String body)
             throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder(baseUri.resolve(path))
