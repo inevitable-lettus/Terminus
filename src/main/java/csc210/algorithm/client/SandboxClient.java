@@ -162,12 +162,18 @@ public final class SandboxClient {
      * why {@link csc210.algorithm.routing.BusRoute#nodes()} has carried the whole
      * traversal since it was first built rather than having it retrofitted here.
      *
-     * @param busId the line's id on the server
+     * <p>{@code bus_id} is a <strong>string</strong> on this endpoint, not a
+     * number. Sending an integer is answered with
+     * {@code 400 INVALID_FIELD_TYPE}; the field names were recorded when the
+     * API was first surveyed but their types were not, and a live run is what
+     * caught it.
+     *
+     * @param busId the line's id on the server, e.g. {@code "R2"}
      * @param label what to call it in the UI, e.g. {@code "R2"}
      * @param nodes the full traversal, in travel order
      * @throws IOException if the server rejects the route, carrying its reason
      */
-    public JsonNode publishRoute(int busId, String label, int[] nodes)
+    public JsonNode publishRoute(String busId, String label, int[] nodes)
             throws IOException, InterruptedException {
         if (nodes.length < 2) {
             throw new IllegalArgumentException("a route needs at least two nodes, got " + nodes.length);
@@ -176,7 +182,16 @@ public final class SandboxClient {
                 "bus_id", busId,
                 "label", label,
                 "nodes", nodes));
-        return send("POST", "/api/v1/control/transit/route", body);
+        JsonNode response = send("POST", "/api/v1/control/transit/route", body);
+        // A discontinuous route is normally a 400, which send() has already
+        // turned into an exception. The endpoint's contract also allows it to
+        // answer 200 carrying valid:false, and a route the server considers
+        // invalid must not be reported as published either way.
+        if (response.hasNonNull("valid") && !response.get("valid").asBoolean()) {
+            throw new IOException("the simulator rejected route " + busId + ": "
+                    + response.path("message").asText("no reason given"));
+        }
+        return response;
     }
 
     private JsonNode send(String method, String path, String body)

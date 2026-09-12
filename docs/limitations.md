@@ -43,9 +43,10 @@ cost is in-vehicle plus transfer time, not door-to-door time.
 **Searches run against a frozen snapshot.** They answer "what was best at 18:00",
 not "what is best right now".
 
-**A passenger starts at a stop, not an address.** There is no access or egress
-leg: the query takes a transit vertex, so walking from an arbitrary point to the
-nearest useful stop is not yet modelled.
+**A passenger starts at a junction, not an address.** Access and egress legs
+are modelled — a query takes two road junctions and the walks at either end are
+priced as real edges — but a junction is still not a doorway. Sub-junction
+precision would need a map with addresses on it, which this one does not have.
 
 ## About the testing
 
@@ -66,13 +67,11 @@ exact numbers: the simulator's rate-limited speeds settle differently depending 
 how the clock reached 18:00, so live results differ slightly from the fixtures and
 the tests check properties instead. See [testing.md](testing.md).
 
-**Ten of those live tests have never been run.** The door-to-door journey,
-publishing, and failure-case tests in `LiveJourneyTest` were written with no
-sandbox available, so they compile and skip. Until somebody runs
-`./gradlew liveTest` with the container up, publishing to a real server is
-unproven — in particular the test asserting the server rejects a gapped route,
-which is the only thing standing behind the claim that carrying the full
-junction-by-junction traversal is *necessary* rather than merely tidy.
+**All 21 live tests now pass** against DSTNS at `origin/dstns` (`0fb6307`),
+run 2026-09-12. That includes publishing every line in both directions and the
+test asserting the server rejects a gapped route — so the claim that carrying
+the full junction-by-junction traversal is *necessary* rather than merely tidy
+is now evidence rather than assertion.
 
 **The wait for the first bus is not modelled, and it now shows.** Boarding is
 free, so a one-block bus ride can beat a one-block walk. That was always a
@@ -125,7 +124,6 @@ so Manhattan will refuse itself on real road geometry and Euclidean will take
 over without an edit. That path has only been exercised on a hand-built skewed
 graph, never on a real map.
 
-**Integration is done.** A command-line entry point covers all three modes and
-routes are published back in both directions; see the "Using it" section of the
-[README](../README.md). What has not happened is a run of any of it against a
-live simulator.
+**Integration is done and verified.** A command-line entry point covers all
+three modes, and routes are published back in both directions and accepted by
+the simulator; see the "Using it" section of the [README](../README.md).

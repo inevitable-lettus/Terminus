@@ -114,3 +114,17 @@ validates that **every consecutive pair of nodes is joined by a single directed
 edge**. The server does not fill in the path between stops, so a route listing
 only its stops is rejected at the first gap. Algorithm 1 therefore emits the full
 junction-by-junction traversal, designed in from the start rather than retrofitted.
+
+**`bus_id` and `label` are strings; `nodes` is an array of node ids.** Sending
+`bus_id` as a number is answered with `400 INVALID_FIELD_TYPE`. The field
+*names* were recorded when this API was first surveyed but their *types* were
+not, and the mistake survived until the first live publish — a fixture cannot
+catch it, because a saved response carries no record of what was sent.
+
+The server keys buses by `bus_id`, so the two directions of one line need
+distinct ids or the second overwrites the first. This module publishes `R0`
+outbound and `R0-R` back.
+
+A discontinuous route is answered `400` with `ok: false, valid: false` and a
+message naming the two nodes that are not adjacent. The endpoint's contract
+also allows `valid: false` alongside a `200`, so both are treated as rejection.

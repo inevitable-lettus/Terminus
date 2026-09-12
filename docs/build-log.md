@@ -389,8 +389,19 @@ two directions do not overwrite each other.
 return legs; removing a single intermediate junction from a real route makes it
 fail, so the check is not vacuous; all 436 edges have a reverse twin.
 
-*Not yet proved:* that the server accepts them. The live test exists and has
-never been run.
+*Proved live* (09-12): all four lines accepted in both directions, and a
+stops-only route rejected with "not directly adjacent".
+
+**The live run found a real bug immediately.** `bus_id` is a **string** on this
+endpoint, not a number; sending an integer is answered
+`400 INVALID_FIELD_TYPE`. The field *names* had been recorded when the API was
+surveyed, but not their *types*, and no fixture can catch that — a saved
+response carries no record of what was sent.
+
+Worse, it made the gapped-route test **green for the wrong reason**: the server
+rejected the request over field types before it ever looked at the nodes, so the
+assertion that a gap is rejected was passing without testing a gap. The test now
+also asserts the complaint mentions adjacency, not field types.
 
 ---
 
@@ -411,11 +422,8 @@ ConnectException" and exits 1, and an unknown mode prints usage and exits 2.
 
 ## Where it stands
 
-124 tests pass with the sandbox container stopped, and 21 more are written
-against a live simulator. Ten of those live tests have never been run — there
-was no sandbox available when they were written, so they compile and skip, and
-publishing to a real server is unproven until somebody runs
-`./gradlew liveTest`.
+124 tests pass with the sandbox container stopped, and all 21 live tests pass
+against DSTNS at `origin/dstns` (`0fb6307`), verified 2026-09-12.
 
 The integration work is done: a passenger can ask for a journey between any two
 junctions, get instructions back, and the network can be published to the

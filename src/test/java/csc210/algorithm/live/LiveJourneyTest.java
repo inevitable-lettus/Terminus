@@ -142,10 +142,20 @@ class LiveJourneyTest {
         // rather than merely defensible. If the server accepted a stops-only
         // route, carrying every intermediate junction would be dead weight.
         assertTrue(stopsOnly.length >= 2);
-        assertThrows(IOException.class,
-                () -> live.world().client().publishRoute(900, "GAPPED", stopsOnly),
+        IOException rejected = assertThrows(IOException.class,
+                () -> live.world().client().publishRoute("GAPPED", "gapped", stopsOnly),
                 "a route listing only its stops must be rejected; if this passes, the "
                         + "server fills gaps after all and BusRoute.nodes() could be simplified");
+
+        // It must be rejected for being discontinuous, not for some unrelated
+        // reason. The first version of this test passed because bus_id was
+        // being sent as a number, so the server never got as far as looking at
+        // the nodes — green for the wrong reason is worse than red.
+        assertFalse(rejected.getMessage().contains("INVALID_FIELD_TYPE"),
+                "rejected on field types, so the gap was never actually tested: " + rejected.getMessage());
+        assertTrue(rejected.getMessage().contains("adjacent")
+                        || rejected.getMessage().contains("Discontinuous"),
+                "expected a discontinuity complaint, got: " + rejected.getMessage());
     }
 
     @Test

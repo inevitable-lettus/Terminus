@@ -38,9 +38,9 @@ public final class RoutePublisher {
     /**
      * Publishes every line, in both directions.
      *
-     * <p>Bus ids are assigned as {@code 2 * routeId} outbound and
-     * {@code 2 * routeId + 1} back, so the two directions of one line are
-     * distinct vehicles on the server and neither overwrites the other.
+     * <p>Each direction is its own vehicle on the server: {@code "R0"} outbound
+     * and {@code "R0-R"} back. The server keys buses by {@code bus_id}, so
+     * publishing both directions under one id would leave only the second.
      *
      * @return how many directed routes the server accepted
      * @throws IOException if the server rejects any of them, naming which
@@ -51,12 +51,12 @@ public final class RoutePublisher {
         for (BusRoute route : network.routes()) {
             int[] outbound = route.nodes();
             requireContinuous(outbound, route.label() + " outbound");
-            client.publishRoute(2 * route.id(), route.label(), outbound);
+            client.publishRoute(route.label(), route.label(), outbound);
             published++;
 
             int[] back = returnNodes(route);
             requireContinuous(back, route.label() + " return");
-            client.publishRoute(2 * route.id() + 1, route.label() + "R", back);
+            client.publishRoute(route.label() + "-R", route.label() + " return", back);
             published++;
         }
         return published;
