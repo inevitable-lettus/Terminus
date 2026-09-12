@@ -242,6 +242,113 @@ public final class TransitGraph {
         return millis;
     }
 
+    /**
+     * The {@code routeId} carried by the two temporary endpoint vertices: the
+     * passenger is on foot there, not on any line.
+     */
+    public static final int ON_FOOT = -1;
+
+    /**
+     * A graph with endpoint vertices spliced in, and where they ended up.
+     *
+     * @param graph the extended graph, two vertices larger than the original
+     * @param sourceVertex where the journey starts, on foot
+     * @param targetVertex where it ends, on foot
+     */
+    public record Extended(TransitGraph graph, int sourceVertex, int targetVertex) {}
+
+    /**
+     * This graph plus a temporary <em>source</em> and <em>target</em> vertex, so
+     * that a query posed between two arbitrary road junctions can be answered by
+     * an ordinary single-source, single-target search.
+     *
+     * <p><strong>Why two extra vertices rather than a cleverer search.</strong>
+     * A passenger standing at a junction can board at any of several nearby
+     * stops, on any line serving them, each at its own walking cost. That is a
+     * <em>many-source</em> problem. The obvious way to handle it is to seed A*'s
+     * queue with all those vertices at once, each pre-loaded with its walk cost.
+     * That works, but it changes the search itself, and every property already
+     * proved about A* — admissibility, settling each vertex once, the first pop
+     * of the goal being final — would have to be re-proved against the modified
+     * version. Adding a source vertex joined to each candidate by a real edge
+     * reduces the same problem to the plain single-source case A* already
+     * handles, and the walk gets <em>paid</em> rather than assumed away, exactly
+     * as the transfer wait does.
+     *
+     * <p>The target vertex sits at the destination's own coordinates, which is
+     * what keeps {@link csc210.algorithm.search.TransitHeuristic} admissible:
+     * a straight line to the destination is still a lower bound on the distance
+     * any journey must cover, and the egress walk is far slower than the speed
+     * the heuristic divides by.
+     *
+     * <p>Both are temporary by construction — this returns a new graph and
+     * leaves the original untouched, so one query cannot leak into the next.
+     *
+     * @param originNode road node the passenger starts at
+     * @param originPosition its coordinates
+     * @param boardMillis per existing vertex, the cost of walking from the
+     *        origin and boarding there, or a negative value for "not reachable";
+     *        must be one entry per vertex of this graph
+     * @param destinationNode road node the passenger is heading for
+     * @param destinationPosition its coordinates
+     * @param alightMillis per existing vertex, the cost of alighting there and
+     *        walking to the destination, or a negative value for "no use"
+     */
+    public Extended withEndpoints(int originNode, Position originPosition, long[] boardMillis,
+                                  int destinationNode, Position destinationPosition, long[] alightMillis) {
+        int existing = vertices.length;
+        if (boardMillis.length != existing || alightMillis.length != existing) {
+            throw new IllegalArgumentException("boardMillis and alightMillis must have one entry per vertex ("
+                    + existing + "), got " + boardMillis.length + " and " + alightMillis.length);
+        }
+        int source = existing;
+        int target = existing + 1;
+        int total = existing + 2;
+
+        TransitStop[] extendedVertices = Arrays.copyOf(vertices, total);
+        extendedVertices[source] = new TransitStop(source, originNode, ON_FOOT, originPosition);
+        extendedVertices[target] = new TransitStop(target, destinationNode, ON_FOOT, destinationPosition);
+
+        int boardable = 0;
+        for (long millis : boardMillis) {
+            if (millis >= 0) {
+                boardable++;
+            }
+        }
+
+        // Each real vertex keeps its own links and gains at most one egress link;
+        // the source owns every access link; the target is a sink and has none.
+        int[] extendedStart = new int[total + 1];
+        for (int i = 0; i < existing; i++) {
+            int degree = adjacencyStart[i + 1] - adjacencyStart[i] + (alightMillis[i] >= 0 ? 1 : 0);
+            extendedStart[i + 1] = extendedStart[i] + degree;
+        }
+        extendedStart[source + 1] = extendedStart[source] + boardable;
+        extendedStart[target + 1] = extendedStart[target];
+
+        TransitLink[] extendedLinks = new TransitLink[extendedStart[total]];
+        int cursor = 0;
+        for (int i = 0; i < existing; i++) {
+            for (int j = adjacencyStart[i]; j < adjacencyStart[i + 1]; j++) {
+                extendedLinks[cursor++] = links[j];
+            }
+            if (alightMillis[i] >= 0) {
+                extendedLinks[cursor++] =
+                        new TransitLink(i, target, alightMillis[i], TransitLink.Kind.EGRESS, ON_FOOT);
+            }
+        }
+        for (int i = 0; i < existing; i++) {
+            if (boardMillis[i] >= 0) {
+                extendedLinks[cursor++] =
+                        new TransitLink(source, i, boardMillis[i], TransitLink.Kind.ACCESS, ON_FOOT);
+            }
+        }
+
+        TransitGraph extended = new TransitGraph(extendedVertices, extendedStart, extendedLinks,
+                verticesAtStop, walkingRadiusM);
+        return new Extended(extended, source, target);
+    }
+
     public int vertexCount() {
         return vertices.length;
     }

@@ -24,11 +24,15 @@ public record TransitPath(
         boolean found
 ) {
 
-    /** How many times the passenger changes line, whether by transfer or by walking. */
+    /**
+     * How many times the passenger changes line, whether by transfer or by
+     * walking between stops. The access and egress walks at the two ends of a
+     * door-to-door journey are not changes of bus and are not counted.
+     */
     public int transfers() {
         int count = 0;
         for (TransitLink link : links) {
-            if (link.kind() != TransitLink.Kind.RIDE) {
+            if (link.isLineChange()) {
                 count++;
             }
         }
