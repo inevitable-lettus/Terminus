@@ -250,7 +250,7 @@ passenger boarding R1 could never leave it. At 300 m and above it is connected.
 The two radii answer different questions, so they are two numbers, and both the
 split and the fix are asserted in tests so the reason stays visible.
 
-Result at 18:00: **61 vertices, 560 links over 54 stops**, 7 stops served by more
+Result at 18:00: **61 vertices, 568 links over 54 stops**, 7 stops served by more
 than one line, fully connected.
 
 ---
@@ -270,9 +270,9 @@ Results at 18:00, over every ordered pair of the 61 vertices:
 | Journeys compared | 3660 |
 | Cost disagreements with Dijkstra | **0** |
 | Dijkstra vertex expansions | 115290 |
-| A* (Manhattan) expansions | 97199 |
-| Reduction | **15.7% fewer** |
-| Euclidean vs Manhattan, sampled | 11742 vs 11298 expansions |
+| A* (Manhattan) expansions | 96956 |
+| Reduction | **15.9% fewer** |
+| Euclidean vs Manhattan, sampled | 11752 vs 11334 expansions |
 
 **The distance form was resolved by measurement, not argument.** Euclidean had
 been settled on the premise that the map is real road layout. It is an
@@ -306,15 +306,120 @@ cost` at every vertex of every pair for both forms, with the closest approach
 journeys re-summed link by link; the zero heuristic proven identical to Dijkstra;
 Manhattan refused on a skewed map.
 
-*Honest limitation:* 15.7% is a modest win because the graph is small — 61
+*Honest limitation:* 15.9% is a modest win because the graph is small — 61
 vertices, where any search finishes instantly — and the transfer and walk costs
 are large flat numbers that geometry cannot predict, so the guess is weak relative
 to the true costs. On a larger network the gap would widen.
 
 ---
 
+## Phase A — Passenger queries from anywhere
+
+**A.1** (09-12). `StopAccessIndex` and `StopAccess`. Given any junction, the
+stops a passenger could walk to and how long each walk takes, by linear scan
+over the served stops in projected metres. `O(S)` per query, sixty stops, so
+sixty distance computations. A k-d tree is the right answer at thousands of
+stops and a structure with no defensible reason to exist at sixty — the same
+call made against a hash table in step 1.5, and the reason is written into the
+class so nobody re-opens it.
+
+*Proof:* every one of the 120 junctions has a served stop within 400 m; a stop
+sitting on the junction comes back as a zero-length walk rather than being
+skipped; results come back nearest-first; 180 m — this map's grid pitch —
+converts to 128571 ms at 1.4 m/s, computed by hand and asserted.
+
+**A.2** (09-12). `TransitGraph.withEndpoints`. A source and a target vertex
+spliced into the graph for the duration of one query, joined by real walk edges
+to every (stop, line) vertex in reach.
+
+The alternative was seeding A*'s open set with many sources at once. It works,
+but it changes the search, and every property already proved — admissibility,
+settling each vertex once, the first pop of the goal being final — would have
+needed re-proving against the modified version. Adding two vertices reduces the
+same problem to the plain single-source case A* already handles, and the walk
+gets *paid* on a real edge rather than assumed away, which is the same argument
+that made transfers work in step 4.4.
+
+The heuristic needed checking, not assuming: the target sits at the
+destination's own coordinates, so a straight line to it is still a lower bound,
+and the egress walk at 1.4 m/s is far slower than the 16.67 m/s the guess
+divides by.
+
+*Proof:* `h ≤ true remaining cost` at every vertex of the extended graph,
+including both new ones, against costs Dijkstra computed exactly; the original
+graph is unchanged after a query, so one query cannot leak into the next; the
+target has no outgoing links; a journey between two junctions that are both
+stops costs exactly what the old stop-to-stop query costs.
+
+**A.3** (09-12). `Itinerary`. The vertex path collapsed into instructions —
+walk, ride *n* stops, change, ride, walk — with consecutive rides on one line
+merged into a single leg. Presentation, deliberately kept out of the search.
+
+This also corrected `TransitPath.transfers()`, which counted every non-ride
+move. Walking from your front door to the first stop is not a change of bus.
+
+*Proof:* leg durations sum to the journey's total; a journey with no change
+produces exactly one ride leg; the number of change-of-line legs equals the
+reported transfer count.
+
+**A test that was wrong, and what it taught.** The first version asserted that
+walking 180 m beats the bus. It does not: boarding the first bus is free in this
+model, so a one-block ride wins. That is a stated simplification of the transit
+graph surfacing in a new place, not a bug, and the test was rewritten to assert
+what is actually guaranteed — that an answer is never *worse* than walking when
+walking is possible.
+
+---
+
+## Phase B — Live integration
+
+**B.1 and B.3** (09-12). `SandboxClient.publishRoute` and `RoutePublisher`.
+`POST /control/transit/route` validates that every consecutive pair of nodes is
+joined by a single directed edge and does not fill gaps, which is why routes
+have carried their full junction-by-junction traversal since step 4.2. The same
+check runs locally first: being told which pair of nodes has no edge between
+them beats being told "invalid route" after a round trip.
+
+The return leg is the outbound path read backwards, valid only because every
+road here has a reverse twin — a property of this map, so it is verified rather
+than assumed. Each line is published twice, at bus ids `2n` and `2n+1`, so the
+two directions do not overwrite each other.
+
+*Proof, offline:* all four generated routes are continuous, and so are their
+return legs; removing a single intermediate junction from a real route makes it
+fail, so the check is not vacuous; all 436 edges have a reverse twin.
+
+*Not yet proved:* that the server accepts them. The live test exists and has
+never been run.
+
+---
+
+## Phase C — Command line
+
+**C** (09-12). `Main`. Three modes — `network`, `journey FROM TO`, `publish` —
+with `--time`, `--seed` and `--sandbox`, defaulting to the values every figure
+in these docs was measured at. Argument parsing and rendering are kept apart
+from the fetching so they stay testable with the simulator stopped.
+
+*Proof:* defaults and overrides parse; six malformed command lines are rejected
+with a usage message; a junction id off the map is refused before any search
+runs; the network and a journey render against fixtures. Verified by running the
+installed binary: a refused connection prints "Could not reach the sandbox:
+ConnectException" and exits 1, and an unknown mode prints usage and exits 2.
+
+---
+
 ## Where it stands
 
-60 tests pass with the sandbox container stopped. Phases 6 and 7 — the research
-deliverable and the integration work — are outstanding. See
-[limitations.md](limitations.md) for what is not done and why it matters.
+124 tests pass with the sandbox container stopped, and 21 more are written
+against a live simulator. Ten of those live tests have never been run — there
+was no sandbox available when they were written, so they compile and skip, and
+publishing to a real server is unproven until somebody runs
+`./gradlew liveTest`.
+
+The integration work is done: a passenger can ask for a journey between any two
+junctions, get instructions back, and the network can be published to the
+simulator from the command line. The research deliverable — the weighted-A*
+sweep across network sizes — is outstanding, and so is finding out whether the
+larger map can be loaded at all. See [limitations.md](limitations.md) for what
+is not done and why it matters.

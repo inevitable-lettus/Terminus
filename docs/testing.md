@@ -7,11 +7,11 @@ Two suites, and they answer different questions.
 | Default | `./gradlew test` | No | Is the algorithm correct? |
 | Live | `./gradlew liveTest` | Yes | Does it actually work against the real thing? |
 
-`./gradlew test` runs 60 tests against saved copies of real sandbox responses and
-passes on a laptop with Docker switched off. `./gradlew liveTest` runs 11 tests
-against a running simulator. The live tests are tagged, and the default suite
-excludes that tag, so nobody is ever blocked by a container they do not have
-running.
+`./gradlew test` runs 124 tests against saved copies of real sandbox responses
+and passes on a laptop with Docker switched off. `./gradlew liveTest` runs 21
+tests against a running simulator. The live tests are tagged, and the default
+suite excludes that tag, so nobody is ever blocked by a container they do not
+have running.
 
 If no simulator is reachable, the live tests **skip** rather than fail. A test
 that could not run has not found a defect, and reporting it as one trains people
@@ -42,20 +42,26 @@ moves.
 
 ## The default suite — is the algorithm correct?
 
-Sixty tests across ten classes.
+124 tests across sixteen classes.
 
 | Class | Tests | What it establishes |
 |---|---|---|
-| `DomainTypesTest` | 4 | The data records hold what the sandbox sends |
+| `DomainTypesTest` | 13 | The data records hold what the sandbox sends |
 | `TopologyDataTest` | 3 | A saved response deserializes into those records correctly |
+| `SandboxClientTest` | 5 | The HTTP layer parses envelopes and surfaces failures |
 | `GraphTest` | 6 | The graph builds, ids are dense, the reverse-twin invariant holds on all 436 edges |
 | `CostModelTest` | 6 | Costs are right, the clamp works, closed roads are excluded |
 | `IndexedMinHeapTest` | 6 | The heap behaves exactly like a known-good priority queue |
-| `DijkstraTest` | 7 | Shortest paths agree with a brute force, and rebuild correctly |
-| `DemandModelTest` | 6 | Demand is scored from the right signal at the right time |
-| `RouteNetworkBuilderTest` | 8 | Routes are continuous, budgeted, and reproducible |
-| `TransitGraphTest` | 6 | The passenger network is connected and transfers cost something |
+| `DijkstraTest` | 9 | Shortest paths agree with a brute force, and rebuild correctly |
+| `DemandModelTest` | 9 | Demand is scored from the right signal at the right time |
+| `RouteBudgetTest` | 10 | The stopping conditions reject nonsense and hold their defaults |
+| `RouteNetworkBuilderTest` | 12 | Routes are continuous, budgeted, and reproducible |
+| `TransitGraphTest` | 7 | The passenger network is connected and transfers cost something |
 | `AStarTest` | 7 | A* finds the same answers as Dijkstra for less work, and its guess is sound |
+| `JourneyPlannerTest` | 16 | A query between two junctions is answered, and the spliced endpoints keep the guess admissible |
+| `RoutePublisherTest` | 6 | Routes satisfy the server's continuity rule, and the return leg is real |
+| `MainTest` | 8 | The command line parses its arguments and renders what it found |
+| `HelloTest` | 1 | The toolchain compiles and runs a test at all |
 
 ### The three kinds of proof used, and why each was chosen
 
@@ -110,7 +116,7 @@ stay legal.
 
 ## The live suite — does it work against the real thing?
 
-Eleven tests in two classes. Run them with the simulator up:
+Twenty-one tests in three classes. Run them with the simulator up:
 
 ```bash
 docker start dstns_simulation_engine
@@ -184,6 +190,32 @@ network, answer journeys.
 - **The same seed and time twice give the same network,** road for road. Without
   this, no measurement taken from the system means anything.
 
+### `LiveJourneyTest` — can a passenger actually use it?
+
+Ten tests covering the door-to-door layer, publishing, and the ways a query is
+allowed to fail.
+
+- **A journey between two junctions is answered on live data**, and its legs are
+  printed, so a live run leaves evidence a person can read rather than only a
+  green tick.
+- **Every junction on the live map can reach a stop on foot.** If this fails, some
+  part of the map has quietly become unservable.
+- **Walking is a floor.** Whenever the destination is within walking distance, the
+  answer never costs more than simply walking there. It is often *less*, because
+  the wait for the first bus is not modelled — a stated simplification, and this
+  is where it shows.
+- **The server really does reject a route with a gap.** The route's stops are
+  published without the junctions between them, and an error is demanded. This is
+  the test that makes carrying the full traversal *necessary* rather than merely
+  tidy: if it ever starts passing, `BusRoute` could be simplified.
+- **Every line is accepted, in both directions** — eight directed routes from four
+  lines.
+- **A closed road stays out of journeys planned after it closes**, and the road is
+  reopened in a `finally` block either way.
+- **A query with no answer says so.** A passenger who will not walk, starting at a
+  junction with no stop on it, is told there is no journey rather than being given
+  a wrong one or an exception.
+
 ### What these tests deliberately do not assert
 
 **Exact numbers.** The live results do not match the fixture results, and that is
@@ -194,8 +226,8 @@ expected rather than a bug:
 | Total demand | 136.21 | 143.97 |
 | Routes | 4 | 4 |
 | Coverage | 94.8% | 96.9% |
-| Passenger network | 61 vertices, 560 links | 63 vertices, 570 links |
-| A* saving over Dijkstra | 15.7% | 16.9% |
+| Passenger network | 61 vertices, 568 links | 63 vertices, 570 links |
+| A* saving over Dijkstra | 15.9% | 16.9% |
 
 The reason is that the simulator's road speeds are **rate-limited** — they ease
 toward their target rather than jumping to it — so the state at 18:00 depends
@@ -233,9 +265,9 @@ comment saying why these are not all 200.
 ## Running everything
 
 ```bash
-./gradlew test                  # 60 tests, no simulator needed
+./gradlew test                  # 124 tests, no simulator needed
 docker start dstns_simulation_engine
-./gradlew liveTest              # 11 tests against the live simulator
+./gradlew liveTest              # 21 tests against the live simulator
 ```
 
 The live suite changes simulator state — it moves the clock and closes a road —

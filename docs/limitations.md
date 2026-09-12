@@ -60,13 +60,41 @@ brute-force comparison and the Dijkstra-versus-A* agreement.
 
 **The default suite runs against saved fixtures.** That is the right default — a
 test that needs another service running is a bad test. A separate live suite
-(`./gradlew liveTest`, 11 tests) now covers the end-to-end path against a running
+(`./gradlew liveTest`, 21 tests) now covers the end-to-end path against a running
 simulator, including a real road closure. What it deliberately does not assert is
 exact numbers: the simulator's rate-limited speeds settle differently depending on
 how the clock reached 18:00, so live results differ slightly from the fixtures and
 the tests check properties instead. See [testing.md](testing.md).
 
-**A\*'s 15.7% saving is modest because the graph is small.** 61 vertices is a size
+**Ten of those live tests have never been run.** The door-to-door journey,
+publishing, and failure-case tests in `LiveJourneyTest` were written with no
+sandbox available, so they compile and skip. Until somebody runs
+`./gradlew liveTest` with the container up, publishing to a real server is
+unproven — in particular the test asserting the server rejects a gapped route,
+which is the only thing standing behind the claim that carrying the full
+junction-by-junction traversal is *necessary* rather than merely tidy.
+
+**The wait for the first bus is not modelled, and it now shows.** Boarding is
+free, so a one-block bus ride can beat a one-block walk. That was always a
+stated simplification of the transit graph; door-to-door queries are where it
+becomes visible, because a passenger asking for a short hop may be told to take
+a bus that in reality they would wait five minutes for. The planner does
+guarantee an answer is never *worse* than walking when walking is possible.
+
+**A passenger is assumed to walk at most 400 m in one go.** That bounds the
+access walk, the egress walk, and the whole-way walk alike. Beyond it a
+destination with no stop nearby is reported unreachable, which is a modelling
+choice rather than a fact about the world — a real person would walk further
+rather than not travel. It is what keeps "unreachable" a meaningful answer
+instead of every query returning a two-hour trudge.
+
+**Walking distances are straight lines, not road distances.** A passenger
+walking 200 m does not follow the carriageway. At this radius the error is small
+and computing a walking path to every candidate stop would cost far more than
+the answer is worth, but it does mean a stop across an unbridged barrier would
+be treated as reachable.
+
+**A\*'s 15.9% saving is modest because the graph is small.** 61 vertices is a size
 where any search finishes instantly, and the transfer and walk costs are large flat
 numbers geometry cannot predict, so the guess is weak relative to the true costs.
 The gap would widen on a larger network, which is exactly what the research
@@ -84,10 +112,20 @@ shortest-path algorithms **across different network sizes**. Outstanding pieces:
 - The weighted A* sweep, `f = g + ε·h`, with its bounded-suboptimality guarantee
   that the returned path is never worse than ε times optimal.
 - A second, larger network. The repository ships `real_network.osm.xml`
-  (8.6 MB, real road topology), loadable through the playback API, which would
-  give grid-versus-real and small-versus-large in one sweep. It has not been
-  tested for load time or whether it loads at all.
+  (8.6 MB, real road topology), which would give grid-versus-real and
+  small-versus-large in one sweep. It has not been tested for load time or
+  whether it loads at all, and **no endpoint for loading it has been found** —
+  the claim that it is "loadable through the playback API" is an assumption
+  nobody has checked against a running server. That has to be established before
+  the larger-map comparison can be planned, not assumed while planning it.
 
-**Integration.** A command-line entry point that builds the network and answers a
-query, and publishing routes back to the sandbox so they render in its UI. The
-ordered plan for both is in [plan.md](plan.md).
+The module is at least ready for that map in one respect: `JourneyPlanner` picks
+its heuristic by asking whether the map is axis-aligned rather than assuming it,
+so Manhattan will refuse itself on real road geometry and Euclidean will take
+over without an edit. That path has only been exercised on a hand-built skewed
+graph, never on a real map.
+
+**Integration is done.** A command-line entry point covers all three modes and
+routes are published back in both directions; see the "Using it" section of the
+[README](../README.md). What has not happened is a run of any of it against a
+live simulator.

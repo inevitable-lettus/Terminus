@@ -77,27 +77,57 @@ A closed road is excluded from the search entirely rather than given a large wei
 |---|---|
 | Explore & plan | Done |
 | Simulation sandbox (Varun) | Working. DSTNS serving a 120-node / 436-edge map over HTTP, deterministic seeded playback |
-| Algorithm module (Garv) | **Both algorithms built and tested.** 60 tests green. Integration and the research component outstanding |
+| Algorithm module (Garv) | **Both algorithms built, integrated, and tested.** 124 tests green. The research component is outstanding |
 | Passenger-facing app | Research phase |
 
 Algorithm module detail, with numbers:
 
 - Graph ingestion, cost model, indexed binary heap, Dijkstra, Algorithm 1, transit graph, Algorithm 2 — all built and under test.
+- A passenger can ask for a journey between **any two junctions**, not just bus stops: the walk to a stop and the walk from one are priced as real edges, and the answer comes back as readable legs.
 - At the 18:00 demand peak the route builder produces **4 routes covering 94.8% of demand**.
-- A* agrees with Dijkstra on **all 3660 journey costs** while expanding **15.7% fewer** vertices.
-- Outstanding: command-line integration, publishing routes back to the sandbox, and the research deliverable.
+- A* agrees with Dijkstra on **all 3660 journey costs** while expanding **15.9% fewer** vertices.
+- Routes are published back to the sandbox in both directions, so they render in its own view.
+- Outstanding: the weighted-A* research deliverable, and a run of the module against a larger map.
 
 ### Running it
 
 The algorithm module needs JDK 21. The Gradle wrapper is committed, so Gradle itself does not need installing.
 
 ```bash
-./gradlew test       # 60 tests against saved sandbox responses; needs nothing running
-./gradlew liveTest   # 11 integration tests against a running sandbox
+./gradlew test       # 124 tests against saved sandbox responses; needs nothing running
+./gradlew liveTest   # 21 integration tests against a running sandbox
 ./gradlew build      # compile and test
 ```
 
 The default suite reads saved sandbox responses from `src/test/resources/fixtures/`, so it passes with the simulator stopped. The live suite talks to a real sandbox on `127.0.0.1:8090` (override with `-Psandbox=http://host:port`) and skips rather than fails when none is reachable. See [docs/testing.md](docs/testing.md).
+
+### Using it
+
+Three modes, each one command. All of them need the sandbox running.
+
+```bash
+docker start dstns_simulation_engine
+
+./gradlew run --args="network"          # build the bus network and print it
+./gradlew run --args="journey 0 119"    # plan one journey between two junction ids
+./gradlew run --args="publish"          # send the network to the simulator
+```
+
+Options: `--time HH:MM:SS` (default `18:00:00`, the demand peak the network is designed for), `--seed 0xNNNN` (default `0x2026`), `--sandbox URL`.
+
+A journey prints as instructions rather than as vertex indices — one line per leg, then a total. The shape is:
+
+```text
+Junction FROM to junction TO at HH:MM:SS
+Walk from junction FROM to stop S (M min)
+Ride Rn from stop S to stop T, k stops (M min)
+Change line at stop T (5.0 min wait)
+Ride Rm from stop T to stop U, k stops (M min)
+Walk from stop U to junction TO (M min)
+Total M min, n transfers
+```
+
+The actual durations depend on the road speeds at the virtual time asked for, so they are not reproduced here — run it and see.
 
 ### Repository structure
 

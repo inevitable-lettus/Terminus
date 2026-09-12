@@ -172,6 +172,53 @@ expands strictly fewer vertices.
 journey longer, so folding them in risks pushing the estimate above the truth and
 losing the optimality guarantee.
 
+## Door-to-door queries
+
+**Two temporary vertices, not a many-source search.** A passenger at a junction
+can board at several nearby stops, each at its own walking cost — a many-source
+problem. Seeding A*'s queue with all of them at once works, but it modifies the
+search, and every property already proved about A* would have to be re-proved
+against the modified version. Splicing in a source vertex joined to each
+candidate by a real walk edge reduces the same problem to the plain
+single-source case, so the search runs exactly as proved and the walk is paid
+rather than assumed away. The target vertex sits at the destination's own
+coordinates, which is what keeps the heuristic admissible.
+
+**The spliced graph is a copy, not a mutation.** One query cannot leak into the
+next, and the shared transit graph stays immutable and safe to reuse.
+
+**A linear scan for stop lookup, not a k-d tree.** Sixty stops means sixty
+distance computations per query. A spatial index is the right answer at
+thousands of stops and a structure with no defensible reason to exist at sixty
+— the same judgement that dropped the hash table in step 1.5.
+
+**Walking the whole way is a candidate answer, not a graph edge.** It needs no
+search — it is one number — and adding an origin-to-destination edge would let
+the search "discover" it as though it were a transit option. It is bounded by
+the same 400 m radius as every other walk, which is also what keeps
+"unreachable" a meaningful answer instead of every query returning a very long
+walk.
+
+**The heuristic is chosen by asking the map.** `JourneyPlanner.of` checks
+axis-alignment and picks Manhattan or Euclidean accordingly, rather than
+hardcoding the grid assumption. The same code then runs on a real road network
+without an edit, and the optimality guarantee survives the move.
+
+**Access and egress walks are not transfers.** `TransitPath.transfers()`
+previously counted every non-ride move, which would have reported walking from
+your front door to the first stop as a change of bus.
+
+## Publishing
+
+**Continuity is checked locally before anything is sent.** The server rejects a
+route whose consecutive nodes are not joined by a single directed edge, but it
+does not say which pair. Checking first costs no round trip and names the gap.
+
+**The return leg is verified, not assumed.** It is the outbound path read
+backwards, which is only valid because every road on this map has a reverse
+twin. That is a property of this map rather than a law, so it fails loudly on a
+map with one-way streets instead of publishing a route no bus could drive.
+
 ## Testing
 
 **Oracles that share no structure with the code under test.**

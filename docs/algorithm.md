@@ -62,7 +62,7 @@ smeared through the code.
 **Fixtures.** A **fixture** is a saved real response, committed to the repository
 and used by tests instead of the live service. Tests that depend on a running
 external service fail when it is down, fail differently on another machine, and
-cannot run offline. All 60 tests pass with the simulator stopped, verified by
+cannot run offline. All 124 tests pass with the simulator stopped, verified by
 stopping it.
 
 **A real bug this caught.** The first domain types were written from the
@@ -397,7 +397,7 @@ numbers rather than by a hand-written rule.
 | Transfer | Changing line at the same stop | A flat 5-minute wait |
 | Walk | Walking to a nearby stop, then waiting there | Distance ÷ 1.4 m/s, plus the wait |
 
-At 18:00 the passenger network is **61 vertices, 560 links over 54 stops**, with 7
+At 18:00 the passenger network is **61 vertices, 568 links over 54 stops**, with 7
 stops served by more than one line.
 
 **Two walking radii, and why they are different numbers.** The route builder's
@@ -485,9 +485,9 @@ is at most `d / 11.8` seconds, while walking that same `d` at 1.4 m/s takes
 | Journeys compared | 3660 |
 | Cost disagreements with Dijkstra | **0** |
 | Dijkstra vertex expansions | 115290 |
-| A* (Manhattan) expansions | 97199 |
-| Reduction | **15.7% fewer** |
-| Euclidean vs Manhattan, sampled | 11742 vs 11298 expansions |
+| A* (Manhattan) expansions | 96956 |
+| Reduction | **15.9% fewer** |
+| Euclidean vs Manhattan, sampled | 11752 vs 11334 expansions |
 
 **Worth reporting.** The sandbox's own A* hardcodes 33.33 m/s, roughly twice too
 loose. This one at the true 16.67 is strictly tighter and still admissible, so it
@@ -495,7 +495,115 @@ expands fewer vertices than theirs would on the same graph.
 
 ---
 
-## 9. Where everything lives
+## 9. Door to door — asking the question a passenger would ask
+
+Everything above answers queries between **transit vertices**: internal indices
+meaning "stop 27, on line R2". That is the right currency for the search and
+useless as an interface. A real query is "from this junction to that junction",
+and the walks at either end are part of the journey, not preamble.
+
+### Finding the stops you could walk to
+
+`StopAccessIndex` answers one question: standing at junction X, which served
+stops are within walking distance, and how long is each walk? Straight-line
+distance in projected metres, divided by 1.4 m/s.
+
+It is a **linear scan** over the roughly sixty served stops — `O(S)` per query.
+That is a decision, not an oversight. A k-d tree or a grid index would make this
+`O(log S)` or better and is the right answer at thousands of stops; at sixty it
+would be a data structure with no defensible reason to exist. If the map grows,
+this is the one class that has to change.
+
+Walking distance is straight-line rather than along roads. A passenger walking
+200 m does not follow the carriageway, and computing a road path to every
+candidate stop would cost far more than the answer is worth at this radius.
+
+### Access and egress, without touching the search
+
+A passenger at a junction can board at any of several nearby stops, on any line
+serving them, each at its own walking cost. That is a **many-source** problem,
+and there were two ways to handle it.
+
+**Rejected:** seed A*'s open set with all those vertices at once, each
+pre-loaded with its walk cost. It works. But it changes the search itself, and
+every property already proved about A* — admissibility, settling each vertex
+once, the first pop of the goal being final — would have to be re-proved against
+the modified version.
+
+**Chosen:** add a temporary **source vertex** and **target vertex** to the
+transit graph for the duration of one query. The source connects by walk links
+to every (stop, line) vertex reachable from the origin; every vertex near the
+destination connects to the target the same way. A* then runs unmodified,
+single-source to single-target, exactly as proved. The walk is a real edge, so
+it is paid rather than ignored — the same argument that made transfers work.
+
+The graph is **copied**, not mutated, so one query cannot leak into the next.
+
+**Admissibility had to be re-checked, not assumed.** The target sits at the
+destination's own coordinates, so `h` measured toward it is still a
+straight-line lower bound; and the walk links are slow enough — 1.4 m/s against
+the 16.67 m/s the guess divides by — that the estimate stays well under the
+truth. This is asserted at every vertex of the extended graph, both new ones
+included, against costs Dijkstra computed exactly.
+
+### Choosing the heuristic by asking the map
+
+`JourneyPlanner.of` checks whether every road is axis-aligned and picks
+Manhattan if so, Euclidean if not. The grid assumption is therefore never
+hardcoded: the same code runs on the sandbox's lattice and on real road geometry
+without an edit, and the optimality guarantee survives the move. On a real map
+Manhattan refuses itself, which is the step 5.2 guard doing its job.
+
+### The answer, in a form somebody can follow
+
+`Itinerary` collapses the vertex path into legs: walk to the stop, board a line,
+ride *n* stops, change, ride, walk to the destination. Consecutive rides on one
+line become a single leg, because staying on one bus for six stops is six edges
+to the algorithm and **one instruction** to a rider. Each leg carries its own
+duration, so the parts sum to the total.
+
+| Leg | Meaning |
+|---|---|
+| `ACCESS` | Walk from where you are to the first stop |
+| `RIDE` | Stay on one line for *n* stops |
+| `TRANSFER` | Change line at the same stop, paying the wait |
+| `WALK` | Walk to a nearby stop and wait for a line there |
+| `EGRESS` | Walk from the last stop to where you are going |
+| `WALK_DIRECT` | Walk the whole way, because no bus beats it |
+
+Walking the whole way is compared as a **candidate answer** rather than wired in
+as a graph edge: it needs no search, it is one number, and an
+origin-to-destination edge would let the search treat it as a transit option. It
+is bounded by the same 400 m radius as every other walk, which is also what
+keeps "there is no journey" a meaningful answer instead of every query returning
+a very long walk.
+
+**A limitation this exposed.** Boarding the first bus is free in this model — no
+initial wait — so a one-block ride can beat a one-block walk. What the planner
+does guarantee is that an answer is never *worse* than walking when walking is
+possible.
+
+---
+
+## 10. Publishing routes back
+
+`POST /control/transit/route` validates that every consecutive pair of nodes is
+joined by a single directed edge and does **not** fill gaps. A route listing only
+its stops is rejected at the first gap, which is why `BusRoute.nodes()` has
+carried the full junction-by-junction traversal since it was first built.
+
+The same check runs locally first, in `RoutePublisher`. Being told which pair of
+nodes has no edge between them is more useful than being told "invalid route"
+after a round trip.
+
+Each line is published **twice**, outbound and back, at bus ids `2n` and `2n+1`.
+The return leg is the outbound path read backwards, which is valid only because
+every road on this map has a reverse twin — a property of this map rather than a
+law, so it is checked and fails loudly on a map with one-way streets.
+
+---
+
+## 11. Where everything lives
 
 | Concept | Location |
 |---|---|
@@ -509,7 +617,11 @@ expands fewer vertices than theirs would on the same graph.
 | Demand model | `src/main/java/csc210/algorithm/demand/DemandModel.java` |
 | Algorithm 1 | `src/main/java/csc210/algorithm/routing/` |
 | Passenger network | `src/main/java/csc210/algorithm/transit/` |
+| Door-to-door queries, itineraries | `src/main/java/csc210/algorithm/journey/` |
+| Publishing routes back | `src/main/java/csc210/algorithm/publish/` |
+| Command line | `src/main/java/csc210/algorithm/Main.java` |
 | Saved sandbox responses | `src/test/resources/fixtures/` |
 
 Run everything with `./gradlew test`. What each suite checks, and why it is
-structured that way, is in [testing.md](testing.md).
+structured that way, is in [testing.md](testing.md). To run the module rather
+than its tests, see the "Using it" section of the [README](../README.md).
