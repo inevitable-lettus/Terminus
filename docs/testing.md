@@ -270,6 +270,11 @@ docker start dstns_simulation_engine
 ./gradlew liveTest              # 21 tests against the live simulator
 ```
 
-The live suite changes simulator state — it moves the clock and closes a road —
-and restores what it changes. It does not publish anything, so it leaves no
-routes behind.
+The live suite changes simulator state. It moves the clock, and it closes a road
+and reopens it in a `finally` block so that one is restored pass or fail.
+
+It also **publishes routes, and those stay**: eight buses, `R0`/`R0-R` through
+`R3`/`R3-R`, plus a rejected `GAPPED` attempt that never registers. They are
+overwritten by the next run rather than accumulating, since the server keys
+buses by `bus_id`, but a simulator that has had the live suite run against it is
+not in a pristine state. Restart the container if that matters.
