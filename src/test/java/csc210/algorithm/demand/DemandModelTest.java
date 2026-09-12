@@ -6,6 +6,8 @@ import csc210.algorithm.client.SnapshotData;
 import csc210.algorithm.client.TopologyData;
 import csc210.algorithm.graph.Graph;
 import csc210.algorithm.model.Node;
+import csc210.algorithm.model.NodeState;
+import csc210.algorithm.model.Position;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -142,6 +145,56 @@ class DemandModelTest {
         }
         assertTrue(highest > 2 * lowest, "demand should differentiate roads, not sit flat");
         System.out.printf("edge demand_vph at 08:30 spans %.1f to %.1f%n", lowest, highest);
+    }
+
+    /**
+     * Regression for the audit's duplicate-id defect: a snapshot with the
+     * right length but a repeated node id used to overwrite one building's
+     * demand while another silently kept its default zero, instead of being
+     * rejected. Mirrors {@code CostModel.of}'s existing dense-id checks.
+     */
+    @Test
+    void duplicateSnapshotNodeIdIsRejected() {
+        Graph twoStops = twoStopGraph();
+        SnapshotData duplicateFirst = new SnapshotData(
+                List.of(new NodeState(0, 1, 0, 0), new NodeState(0, 0, 0, 0)), List.of(), 1);
+
+        assertThrows(IllegalArgumentException.class, () -> DemandModel.of(twoStops, duplicateFirst));
+    }
+
+    @Test
+    void outOfRangeSnapshotNodeIdIsRejected() {
+        Graph twoStops = twoStopGraph();
+        SnapshotData negativeId = new SnapshotData(
+                List.of(new NodeState(-1, 1, 0, 0), new NodeState(1, 1, 0, 0)), List.of(), 1);
+        SnapshotData tooHighId = new SnapshotData(
+                List.of(new NodeState(0, 1, 0, 0), new NodeState(2, 1, 0, 0)), List.of(), 1);
+
+        assertThrows(IllegalArgumentException.class, () -> DemandModel.of(twoStops, negativeId));
+        assertThrows(IllegalArgumentException.class, () -> DemandModel.of(twoStops, tooHighId));
+    }
+
+    @Test
+    void shuffledButCompleteSnapshotOrderMatchesInOrder() {
+        Graph twoStops = twoStopGraph();
+        SnapshotData inOrder = new SnapshotData(
+                List.of(new NodeState(0, 1, 0, 0), new NodeState(1, 1, 0, 0)), List.of(), 1);
+        SnapshotData shuffled = new SnapshotData(
+                List.of(new NodeState(1, 1, 0, 0), new NodeState(0, 1, 0, 0)), List.of(), 1);
+
+        assertEquals(DemandModel.of(twoStops, inOrder).totalDemand(),
+                DemandModel.of(twoStops, shuffled).totalDemand());
+    }
+
+    /** Two bus-stop-and-building nodes, each only in range of its own building (radius 0). */
+    private static Graph twoStopGraph() {
+        List<Node> nodes = List.of(twoStopNode(0, 0.0, 3.0), twoStopNode(1, 100.0, 2.0));
+        return Graph.of(nodes, List.of());
+    }
+
+    private static Node twoStopNode(int id, double xM, double buildingImpact) {
+        return new Node(id, 1_000_000L + id, new Position(0.0, 0.0, xM, 0.0),
+                0, true, 0.0, false, 0, 0, 0, "store", buildingImpact, 0.0);
     }
 
     private static List<String> activeBuildingTypesNear(int stopNode) {

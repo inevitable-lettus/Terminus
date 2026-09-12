@@ -7,7 +7,9 @@ import csc210.algorithm.search.Dijkstra;
 import csc210.algorithm.search.ShortestPathTree;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * <strong>Algorithm 1.</strong> Builds a set of bus lines that between them
@@ -63,6 +65,9 @@ public final class RouteNetworkBuilder {
     private final boolean[] isStop;
     private final boolean[] covered;
 
+    /** Hubs a route could not be grown from — never retried, so the loop always terminates. */
+    private final boolean[] excludedHubs;
+
     public RouteNetworkBuilder(Graph graph, CostModel costModel, DemandModel demandModel, RouteBudget budget) {
         this.graph = graph;
         this.costModel = costModel;
@@ -71,6 +76,7 @@ public final class RouteNetworkBuilder {
         this.dijkstra = new Dijkstra(graph, costModel);
         this.isStop = new boolean[graph.nodeCount()];
         this.covered = new boolean[graph.nodeCount()];
+        this.excludedHubs = new boolean[graph.nodeCount()];
         for (int stop : demandModel.stopNodes()) {
             isStop[stop] = true;
         }
@@ -80,6 +86,7 @@ public final class RouteNetworkBuilder {
     /** Runs the greedy loop and returns the finished network. */
     public RouteNetwork build() {
         java.util.Arrays.fill(covered, false);
+        java.util.Arrays.fill(excludedHubs, false);
         List<BusRoute> routes = new ArrayList<>();
         double demandCovered = 0.0;
         double totalDemand = demandModel.totalDemand();
@@ -94,9 +101,9 @@ public final class RouteNetworkBuilder {
             BusRoute route = growRouteFrom(hub, routes.size());
             if (route == null) {
                 // A stop nothing can be built from — an isolated hub, or one
-                // whose neighbours all overrun the time budget. Cover it in
-                // place rather than looping on it forever.
-                demandCovered += coverStopAndNeighbours(hub);
+                // whose neighbours all overrun the time budget. Exclude it
+                // rather than looping on it forever; it stays uncovered.
+                excludedHubs[hub] = true;
                 continue;
             }
             routes.add(route);
@@ -120,15 +127,25 @@ public final class RouteNetworkBuilder {
      * Extends one line from {@code hub} until the time budget is spent or
      * nothing worth reaching is left. Returns {@code null} if the line would
      * have been a single stop, which is not a bus route.
+     *
+     * <p>Every stop this attempt claims (the hub and everything reached
+     * along the way, walk-radius included) is tracked locally in
+     * {@code claimed} rather than written straight into the shared
+     * {@link #covered} array. That keeps a failed attempt from leaving
+     * behind coverage nobody actually serves, and keeps the hub's own
+     * walk-neighbours eligible as real extension targets instead of looking
+     * pre-covered to this very attempt. The claim is only committed to
+     * {@link #covered} once the route is accepted.
      */
     private BusRoute growRouteFrom(int hub, int routeId) {
         List<Integer> nodes = new ArrayList<>();
         List<Integer> edges = new ArrayList<>();
         nodes.add(hub);
 
+        Set<Integer> claimed = new LinkedHashSet<>();
         int current = hub;
         long elapsedMillis = 0L;
-        double demandCovered = coverStopAndNeighbours(hub);
+        double demandCovered = claimDemand(hub, claimed);
 
         while (true) {
             ShortestPathTree tree = dijkstra.from(current);
@@ -137,7 +154,8 @@ public final class RouteNetworkBuilder {
             long bestCost = 0L;
 
             for (int candidate : demandModel.stopNodes()) {
-                if (covered[candidate] || !tree.isReachable(candidate) || candidate == current) {
+                if (covered[candidate] || claimed.contains(candidate)
+                        || !tree.isReachable(candidate) || candidate == current) {
                     continue;
                 }
                 long extraMillis = tree.costTo(candidate);
@@ -145,7 +163,7 @@ public final class RouteNetworkBuilder {
                     continue;
                 }
 
-                double gain = demandGainedAlong(tree.pathTo(candidate));
+                double gain = demandGainedAlong(tree.pathTo(candidate), claimed);
                 if (gain <= 0.0) {
                     continue;
                 }
@@ -172,7 +190,7 @@ public final class RouteNetworkBuilder {
             }
             for (int i = 1; i < pathNodes.length; i++) {
                 if (isStop[pathNodes[i]]) {
-                    demandCovered += coverStopAndNeighbours(pathNodes[i]);
+                    demandCovered += claimDemand(pathNodes[i], claimed);
                 }
             }
             elapsedMillis += bestCost;
@@ -180,8 +198,16 @@ public final class RouteNetworkBuilder {
         }
 
         List<Integer> servedStops = new ArrayList<>();
-        for (int node : nodes) {
-            if (isStop[node] && !servedStops.contains(node)) {
+        List<Integer> stopOccurrences = new ArrayList<>();
+        List<Integer> stopOccurrencePositions = new ArrayList<>();
+        for (int position = 0; position < nodes.size(); position++) {
+            int node = nodes.get(position);
+            if (!isStop[node]) {
+                continue;
+            }
+            stopOccurrences.add(node);
+            stopOccurrencePositions.add(position);
+            if (!servedStops.contains(node)) {
                 servedStops.add(node);
             }
         }
@@ -189,21 +215,25 @@ public final class RouteNetworkBuilder {
             return null;
         }
 
+        for (int node : claimed) {
+            covered[node] = true;
+        }
+
         return new BusRoute(routeId, toArray(servedStops), toArray(nodes), toArray(edges),
-                elapsedMillis, demandCovered);
+                elapsedMillis, demandCovered, toArray(stopOccurrences), toArray(stopOccurrencePositions));
     }
 
     /** Demand that would become newly covered by driving this path, walk-radius included. */
-    private double demandGainedAlong(int[] pathNodes) {
+    private double demandGainedAlong(int[] pathNodes, Set<Integer> claimed) {
         double gain = 0.0;
         List<Integer> newlyCovered = new ArrayList<>();
         for (int i = 1; i < pathNodes.length; i++) {
             int node = pathNodes[i];
-            if (!isStop[node] || covered[node]) {
+            if (!isStop[node] || covered[node] || claimed.contains(node)) {
                 continue;
             }
             for (int neighbour : walkNeighbours[node]) {
-                if (!covered[neighbour] && !newlyCovered.contains(neighbour)) {
+                if (!covered[neighbour] && !claimed.contains(neighbour) && !newlyCovered.contains(neighbour)) {
                     newlyCovered.add(neighbour);
                     gain += demandModel.demandAt(neighbour);
                 }
@@ -212,23 +242,26 @@ public final class RouteNetworkBuilder {
         return gain;
     }
 
-    /** Marks a served stop and everything within walking distance of it; returns the demand claimed. */
-    private double coverStopAndNeighbours(int stop) {
-        double claimed = 0.0;
+    /**
+     * Tentatively claims a served stop and everything within walking
+     * distance of it, into this attempt's local {@code claimed} set rather
+     * than the shared {@link #covered} array. Returns the demand claimed.
+     */
+    private double claimDemand(int stop, Set<Integer> claimed) {
+        double gained = 0.0;
         for (int neighbour : walkNeighbours[stop]) {
-            if (!covered[neighbour]) {
-                covered[neighbour] = true;
-                claimed += demandModel.demandAt(neighbour);
+            if (!covered[neighbour] && claimed.add(neighbour)) {
+                gained += demandModel.demandAt(neighbour);
             }
         }
-        return claimed;
+        return gained;
     }
 
     private int highestDemandUncoveredStop() {
         int best = -1;
         double bestDemand = -1.0;
         for (int stop : demandModel.stopsByDemandDescending()) {
-            if (!covered[stop]) {
+            if (!covered[stop] && !excludedHubs[stop]) {
                 // stopsByDemandDescending is already sorted, so the first
                 // uncovered stop is the answer; the comparison is kept only to
                 // make that assumption explicit.

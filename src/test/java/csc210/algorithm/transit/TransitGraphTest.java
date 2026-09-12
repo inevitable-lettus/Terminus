@@ -6,6 +6,10 @@ import csc210.algorithm.client.TopologyData;
 import csc210.algorithm.cost.CostModel;
 import csc210.algorithm.demand.DemandModel;
 import csc210.algorithm.graph.Graph;
+import csc210.algorithm.model.Edge;
+import csc210.algorithm.model.Node;
+import csc210.algorithm.model.Position;
+import csc210.algorithm.routing.BusRoute;
 import csc210.algorithm.routing.RouteBudget;
 import csc210.algorithm.routing.RouteNetwork;
 import csc210.algorithm.routing.RouteNetworkBuilder;
@@ -15,9 +19,11 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -144,6 +150,49 @@ class TransitGraphTest {
 
         assertEquals(transitGraph.vertexCount(), reached,
                 "only " + reached + " of " + transitGraph.vertexCount() + " vertices are reachable");
+    }
+
+    /**
+     * Regression: the ride-edge loop used to add both directions of a
+     * segment at the forward cost, without checking whether the reverse
+     * road was even open. Here A→B is open (1000ms) and B→A is closed;
+     * passengers must be offered the forward ride but never the reverse one.
+     */
+    @Test
+    void noReverseRideIsOfferedWhenTheReturnRoadIsClosed() {
+        List<Node> nodes = List.of(
+                stopNode(0, 0.0),
+                stopNode(1, 10.0));
+        List<Edge> edges = List.of(
+                new Edge(0, 0, 1, 1, "residential", 1, 10.0, 10.0),
+                new Edge(1, 1, 0, 0, "residential", 1, 10.0, 10.0));
+        Graph g = Graph.of(nodes, edges);
+        CostModel c = CostModel.ofCosts(new long[] {1000L, -1L}); // edge 1 (B->A) closed
+
+        BusRoute route = new BusRoute(0, new int[] {0, 1}, new int[] {0, 1}, new int[] {0}, 1000L, 0.0,
+                new int[] {0, 1}, new int[] {0, 1});
+        RouteNetwork oneRouteNetwork = new RouteNetwork(List.of(route), new int[] {0, 1}, 0.0, 0.0);
+
+        TransitGraph transit = TransitGraph.of(g, oneRouteNetwork, c, 0.0);
+        int atA = transit.verticesAt(0)[0];
+        int atB = transit.verticesAt(1)[0];
+
+        assertTrue(hasRideLink(transit, atA, atB), "forward ride A->B must still exist");
+        assertFalse(hasRideLink(transit, atB, atA), "no ride may be offered through a closed road");
+    }
+
+    private static Node stopNode(int id, double xM) {
+        return new Node(id, 1_000_000L + id, new Position(0.0, 0.0, xM, 0.0),
+                0, true, 0.0, false, 0, 0, 0, null, 0.0, 0.0);
+    }
+
+    private static boolean hasRideLink(TransitGraph graph, int from, int to) {
+        for (TransitLink link : graph.outgoing(from)) {
+            if (link.to() == to && link.kind() == TransitLink.Kind.RIDE) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static int reachableFromFirstVertex(TransitGraph graph) {

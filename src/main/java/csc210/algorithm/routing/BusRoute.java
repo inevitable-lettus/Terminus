@@ -15,6 +15,14 @@ package csc210.algorithm.routing;
  * @param travelMillis time to drive the whole line end to end
  * @param demandCovered demand of the stops this line was built to reach,
  *        counting each stop once across the whole network
+ * @param stopOccurrences every stop visit in travel order, <em>including
+ *        repeats</em> when the line revisits a stop — unlike {@code stops},
+ *        which is deduplicated to first occurrence. This is what a ride
+ *        segment must actually be priced against.
+ * @param stopOccurrencePositions index into {@code nodes} (and, one less,
+ *        into {@code edges}) of each entry in {@code stopOccurrences}, so
+ *        the exact edge slice between two consecutive visits can be summed
+ *        without searching for it
  */
 public record BusRoute(
         int id,
@@ -22,7 +30,9 @@ public record BusRoute(
         int[] nodes,
         int[] edges,
         long travelMillis,
-        double demandCovered
+        double demandCovered,
+        int[] stopOccurrences,
+        int[] stopOccurrencePositions
 ) {
 
     public int stopCount() {

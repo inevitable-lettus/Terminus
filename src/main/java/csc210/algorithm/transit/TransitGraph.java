@@ -128,18 +128,29 @@ public final class TransitGraph {
             outgoing.add(new ArrayList<>());
         }
 
-        // Ride edges: consecutive stops along one line, priced at what the bus
-        // actually spends driving the road between them.
+        // Ride edges: consecutive stop *occurrences* along one line (repeats
+        // included), each priced against the exact slice of road edges the
+        // bus drives between them. Forward and return are priced and
+        // validated independently: a route may revisit a stop, and a road
+        // open in one direction is not guaranteed open in the other.
         for (BusRoute route : network.routes()) {
-            for (int i = 0; i + 1 < route.stops().length; i++) {
-                int fromStop = route.stops()[i];
-                int toStop = route.stops()[i + 1];
-                long millis = segmentMillis(route, fromStop, toStop, rideMillis);
+            int[] occurrences = route.stopOccurrences();
+            int[] positions = route.stopOccurrencePositions();
+            for (int i = 0; i + 1 < occurrences.length; i++) {
+                int fromStop = occurrences[i];
+                int toStop = occurrences[i + 1];
+                int fromPos = positions[i];
+                int toPos = positions[i + 1];
                 int from = vertexIndex.get(key(fromStop, route.id()));
                 int to = vertexIndex.get(key(toStop, route.id()));
-                // Lines here are bidirectional: a bus route is driven both ways.
-                outgoing.get(from).add(new TransitLink(from, to, millis, TransitLink.Kind.RIDE, route.id()));
-                outgoing.get(to).add(new TransitLink(to, from, millis, TransitLink.Kind.RIDE, route.id()));
+
+                long forwardMillis = segmentMillis(route, fromPos, toPos, rideMillis);
+                outgoing.get(from).add(new TransitLink(from, to, forwardMillis, TransitLink.Kind.RIDE, route.id()));
+
+                Long reverseMillis = reverseSegmentMillis(route, roadGraph, fromPos, toPos, rideMillis);
+                if (reverseMillis != null) {
+                    outgoing.get(to).add(new TransitLink(to, from, reverseMillis, TransitLink.Kind.RIDE, route.id()));
+                }
             }
         }
 
@@ -197,19 +208,36 @@ public final class TransitGraph {
                 verticesAtStop, walkingRadiusM);
     }
 
-    /** Driving time along one line between two of its consecutive stops. */
-    private static long segmentMillis(BusRoute route, int fromStop, int toStop,
+    /**
+     * Driving time along one line between two of its consecutive stop
+     * occurrences, given their exact positions in {@link BusRoute#nodes()}
+     * — unambiguous even when the line revisits a stop.
+     */
+    private static long segmentMillis(BusRoute route, int fromPos, int toPos,
                                       csc210.algorithm.cost.CostModel rideMillis) {
-        int start = indexOf(route.nodes(), fromStop, 0);
-        int end = indexOf(route.nodes(), toStop, start + 1);
-        if (start < 0 || end < 0) {
-            throw new IllegalStateException(
-                    "route " + route.label() + " lists stops " + fromStop + " and " + toStop
-                            + " that are not consecutive on its traversal");
-        }
         long millis = 0L;
-        for (int i = start; i < end; i++) {
+        for (int i = fromPos; i < toPos; i++) {
             millis += rideMillis.costMillis(route.edges()[i]);
+        }
+        return millis;
+    }
+
+    /**
+     * Driving time for the <em>return</em> leg of a segment, or
+     * {@code null} if any road edge the return trip would need is closed.
+     * The forward and return directions do not share a cost: each is priced
+     * from its own edges, walked via {@link csc210.algorithm.model.Edge#reverseTwin()}.
+     */
+    private static Long reverseSegmentMillis(BusRoute route, Graph roadGraph, int fromPos, int toPos,
+                                             csc210.algorithm.cost.CostModel rideMillis) {
+        long millis = 0L;
+        for (int i = toPos - 1; i >= fromPos; i--) {
+            int forwardEdgeId = route.edges()[i];
+            int reverseEdgeId = roadGraph.edge(forwardEdgeId).reverseTwin();
+            if (!rideMillis.isTraversable(reverseEdgeId)) {
+                return null;
+            }
+            millis += rideMillis.costMillis(reverseEdgeId);
         }
         return millis;
     }
@@ -254,14 +282,5 @@ public final class TransitGraph {
 
     private static long key(int stop, int routeId) {
         return ((long) stop << 32) | (routeId & 0xffffffffL);
-    }
-
-    private static int indexOf(int[] values, int wanted, int from) {
-        for (int i = Math.max(0, from); i < values.length; i++) {
-            if (values[i] == wanted) {
-                return i;
-            }
-        }
-        return -1;
     }
 }

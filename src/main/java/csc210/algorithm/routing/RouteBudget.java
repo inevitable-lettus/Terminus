@@ -27,6 +27,21 @@ public record RouteBudget(
         double walkingRadiusM
 ) {
 
+    public RouteBudget {
+        if (maxRouteMillis <= 0) {
+            throw new IllegalArgumentException("maxRouteMillis must be positive, got " + maxRouteMillis);
+        }
+        if (maxRoutes < 0) {
+            throw new IllegalArgumentException("maxRoutes must not be negative, got " + maxRoutes);
+        }
+        if (!Double.isFinite(targetCoverage) || targetCoverage < 0.0 || targetCoverage > 1.0) {
+            throw new IllegalArgumentException("targetCoverage must be finite and in [0,1], got " + targetCoverage);
+        }
+        if (!Double.isFinite(walkingRadiusM) || walkingRadiusM < 0.0) {
+            throw new IllegalArgumentException("walkingRadiusM must be finite and non-negative, got " + walkingRadiusM);
+        }
+    }
+
     /**
      * Defaults for the DSTNS map: 8 minutes of driving per route, at most 8
      * routes, 90% of demand covered, 250 m walk.

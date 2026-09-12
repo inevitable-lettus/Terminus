@@ -1,5 +1,6 @@
 package csc210.algorithm.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -7,29 +8,55 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 
 /**
- * Thin GET-only wrapper over DSTNS's HTTP API. One instance is reused across
- * every call — {@link HttpClient} is safe to share and pools connections.
+ * Wrapper over DSTNS's HTTP API. One instance is reused across every call —
+ * {@link HttpClient} is safe to share and pools connections.
  *
  * <p>{@code /health} lives at the root and is unwrapped; every {@code /view/*}
  * endpoint lives under {@code /api/v1} and returns an {@link Envelope} whose
  * {@code data} is parsed into the endpoint-specific type.
+ *
+ * <p>The reads are safe to repeat. The writes below are not: they change the
+ * simulator's state, so a failure is reported rather than retried, and the
+ * caller decides what to do about it.
  */
 public final class SandboxClient {
+
+    /** How long to wait for the TCP handshake before giving up. */
+    public static final Duration DEFAULT_CONNECT_TIMEOUT = Duration.ofSeconds(10);
+
+    /** How long to wait for one request to finish once sent, headers through body. */
+    public static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(30);
 
     private final URI baseUri;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
+    private final Duration requestTimeout;
 
     public SandboxClient(String baseUrl) {
-        this(baseUrl, HttpClient.newHttpClient(), SandboxJson.mapper());
+        this(baseUrl,
+                HttpClient.newBuilder().connectTimeout(DEFAULT_CONNECT_TIMEOUT).build(),
+                SandboxJson.mapper(),
+                DEFAULT_REQUEST_TIMEOUT);
     }
 
     public SandboxClient(String baseUrl, HttpClient httpClient, ObjectMapper objectMapper) {
+        this(baseUrl, httpClient, objectMapper, DEFAULT_REQUEST_TIMEOUT);
+    }
+
+    /**
+     * As the other constructors, with the per-request deadline given
+     * explicitly — every SandboxClient operation waits at most this long for
+     * a response before failing with an {@link IOException}, so a stalled
+     * dependency cannot block the caller forever.
+     */
+    public SandboxClient(String baseUrl, HttpClient httpClient, ObjectMapper objectMapper, Duration requestTimeout) {
         this.baseUri = URI.create(baseUrl);
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
+        this.requestTimeout = requestTimeout;
     }
 
     public HealthStatus health() throws IOException, InterruptedException {
@@ -60,14 +87,92 @@ public final class SandboxClient {
             EdgePage page = objectMapper.treeToValue(envelope.data(), EdgePage.class);
             all.addAll(page.items());
             offset += page.items().size();
-            if (page.items().isEmpty() || offset >= page.total()) {
+            if (offset >= page.total()) {
                 return all;
+            }
+            if (page.items().isEmpty()) {
+                // Nothing came back, but the server's own total says more
+                // edges remain — that is not "done", it is a stalled/
+                // inconsistent pagination sequence.  Fail loudly rather than
+                // silently truncating the dataset.
+                throw new IOException("edge pagination stalled: got an empty page at offset " + offset
+                        + " but the server's declared total is " + page.total());
             }
         }
     }
 
+    /**
+     * Starts a run at a fixed seed, so that every later read is reproducible.
+     *
+     * @param seed hex seed string, e.g. {@code "0x2026"}
+     * @param startVirtualTime clock position to begin at, {@code "HH:MM:SS"}
+     * @param playbackDurationSeconds wall-clock seconds the simulated day is compressed into
+     * @throws IOException if a run is already active — DSTNS answers HTTP 409
+     *         rather than silently restarting, and that is surfaced, not swallowed
+     */
+    public JsonNode startPlayback(String seed, String startVirtualTime, int playbackDurationSeconds)
+            throws IOException, InterruptedException {
+        String body = objectMapper.writeValueAsString(java.util.Map.of(
+                "seed", seed,
+                "start_virtual_time", startVirtualTime,
+                "playback_duration_seconds", playbackDurationSeconds,
+                "tick_rate", 1));
+        return send("POST", "/api/v1/playback/start", body);
+    }
+
+    /** Stops the active run, so a fresh {@link #startPlayback} can begin. */
+    public JsonNode stopPlayback() throws IOException, InterruptedException {
+        return send("POST", "/api/v1/playback/stop", "{}");
+    }
+
+    /**
+     * Freezes the clock. Must be called before {@link #seek} if the state read
+     * afterwards is meant to match the time asked for: {@code play: false} on a
+     * seek does <em>not</em> pause a running clock, so the simulation carries on
+     * from wherever it was put and the snapshot drifts.
+     */
+    public JsonNode pausePlayback() throws IOException, InterruptedException {
+        return send("POST", "/api/v1/playback/pause", "{}");
+    }
+
+    /**
+     * Moves the clock to {@code targetTime} ({@code "HH:MM:SS"}) without resuming it.
+     * Pause first — see {@link #pausePlayback()}.
+     */
+    public JsonNode seek(String targetTime) throws IOException, InterruptedException {
+        String body = objectMapper.writeValueAsString(java.util.Map.of(
+                "target_time", targetTime,
+                "play", false));
+        return send("POST", "/api/v1/playback/seek", body);
+    }
+
+    /** Closes an edge to traffic, or reopens it. */
+    public JsonNode setEdgeClosed(int edgeId, boolean closed) throws IOException, InterruptedException {
+        String body = objectMapper.writeValueAsString(java.util.Map.of("closed", closed));
+        return send("PUT", "/api/v1/control/edges/" + edgeId, body);
+    }
+
+    private JsonNode send(String method, String path, String body)
+            throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder(baseUri.resolve(path))
+                .header("Content-Type", "application/json")
+                .timeout(requestTimeout)
+                .method(method, HttpRequest.BodyPublishers.ofString(body))
+                .build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        // Any 2xx counts as success. These are not all 200: starting a run answers
+        // 202 Accepted, because the simulator acknowledges the request and prepares
+        // the scenario rather than finishing the work inside the response.
+        if (response.statusCode() / 100 != 2) {
+            throw new IOException(method + " " + path + " returned HTTP " + response.statusCode()
+                    + ": " + response.body());
+        }
+        return objectMapper.readTree(response.body());
+    }
+
     private <T> T get(String path, Class<T> responseType) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder(baseUri.resolve(path))
+                .timeout(requestTimeout)
                 .GET()
                 .build();
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());

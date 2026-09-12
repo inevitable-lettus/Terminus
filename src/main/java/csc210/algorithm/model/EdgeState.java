@@ -1,5 +1,7 @@
 package csc210.algorithm.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * The live, per-tick state of one edge, as returned by
  * {@code GET /view/snapshot}. Separate from {@link Edge} on purpose:
@@ -18,12 +20,19 @@ package csc210.algorithm.model;
  * @param haltingCount of those, how many are stopped
  */
 public record EdgeState(
-        int id,
-        boolean closed,
+        @JsonProperty(required = true) int id,
+        @JsonProperty(required = true) boolean closed,
         double congestion,
-        double effectiveSpeedMps,
+        @JsonProperty(required = true) double effectiveSpeedMps,
         double rainfall,
         double flood,
         int vehicleCount,
         int haltingCount
-) {}
+) {
+    public EdgeState {
+        if (!Double.isFinite(effectiveSpeedMps) || effectiveSpeedMps < 0.0) {
+            throw new IllegalArgumentException(
+                    "effectiveSpeedMps must be finite and non-negative, got " + effectiveSpeedMps);
+        }
+    }
+}

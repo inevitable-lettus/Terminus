@@ -14,6 +14,16 @@ import java.util.Arrays;
  * {@code O(V²)}: 120 nodes here, but the paths through them share almost all
  * of their length, and writing each one out separately would copy that shared
  * structure over and over.
+ *
+ * <p><strong>Early-stop results are partial, and say so.</strong> When
+ * {@link Dijkstra#from(int, int)} stops at a target before the queue empties
+ * on its own, every node's cost/predecessor entry other than the source and
+ * that target is a snapshot of relaxation-in-progress, not a settled answer
+ * — a cheaper route through a node popped later would never get the chance
+ * to improve it. Rather than expose that silently, this tree tracks whether
+ * the search actually ran to completion and which nodes were settled before
+ * it stopped; querying anything else on an incomplete tree throws instead of
+ * returning a value that looks final but might not be.
  */
 public final class ShortestPathTree {
 
@@ -27,14 +37,59 @@ public final class ShortestPathTree {
     private final int[] predecessorEdge;
     private final int[] predecessorNode;
     private final int nodesExpanded;
+    private final boolean[] settled;
+    private final boolean completed;
+    private final int earlyStopTarget;
 
     ShortestPathTree(int source, long[] costMillis, int[] predecessorEdge, int[] predecessorNode,
-                     int nodesExpanded) {
+                     int nodesExpanded, boolean[] settled, boolean completed, int earlyStopTarget) {
         this.source = source;
         this.costMillis = costMillis;
         this.predecessorEdge = predecessorEdge;
         this.predecessorNode = predecessorNode;
         this.nodesExpanded = nodesExpanded;
+        this.settled = settled;
+        this.completed = completed;
+        this.earlyStopTarget = earlyStopTarget;
+    }
+
+    /**
+     * Whether this search ran to natural completion (the whole reachable
+     * graph settled) rather than stopping early once its target was found.
+     * Every full run ({@link Dijkstra#from(int)}) is complete; a call to
+     * {@link Dijkstra#from(int, int)} is complete only if the target
+     * happened to be the last node the queue would have yielded anyway.
+     */
+    public boolean isComplete() {
+        return completed;
+    }
+
+    /**
+     * True once {@code node} has its final cost — always true for a
+     * {@link #isComplete() complete} tree's reachable nodes, and for the
+     * source and the requested target of an early-stop search.
+     */
+    public boolean isSettled(int node) {
+        return completed || node == source || settled[node];
+    }
+
+    private void requireSettled(int node) {
+        if (!isSettled(node)) {
+            throw new IllegalStateException(
+                    "node " + node + " was not settled by this early-stop search (source=" + source
+                            + ", stopped at target=" + earlyStopTarget + "); this tree only guarantees "
+                            + "answers for the source and that target — call Dijkstra.from(source) for "
+                            + "a complete tree");
+        }
+    }
+
+    private void requireCompleted() {
+        if (!completed) {
+            throw new IllegalStateException(
+                    "this tree is from an early-stop search (source=" + source + ", stopped at target="
+                            + earlyStopTarget + ") and cannot answer a whole-graph query; call "
+                            + "Dijkstra.from(source) for a complete tree");
+        }
     }
 
     public int source() {
@@ -47,11 +102,13 @@ public final class ShortestPathTree {
     }
 
     public boolean isReachable(int node) {
+        requireSettled(node);
         return costMillis[node] != UNREACHABLE;
     }
 
     /** Cheapest cost from the source to {@code node}, or {@link #UNREACHABLE}. */
     public long costTo(int node) {
+        requireSettled(node);
         return costMillis[node];
     }
 
@@ -100,10 +157,12 @@ public final class ShortestPathTree {
 
     /** Id of the edge the cheapest route arrived on, or {@code -1} at the source. */
     public int predecessorEdgeOf(int node) {
+        requireSettled(node);
         return predecessorEdge[node];
     }
 
     public int reachableCount() {
+        requireCompleted();
         int count = 0;
         for (long cost : costMillis) {
             if (cost != UNREACHABLE) {

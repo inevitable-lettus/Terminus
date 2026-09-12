@@ -69,11 +69,17 @@ public final class Dijkstra {
         queue.insert(source, 0L);
 
         int nodesExpanded = 0;
+        boolean stoppedEarly = false;
         while (!queue.isEmpty()) {
             int u = queue.extractMin();
             settled[u] = true;
             nodesExpanded++;
             if (u == target) {
+                // u's own outgoing edges are never relaxed once we break here,
+                // so every other node's cost/predecessor is a snapshot
+                // mid-relaxation, not a final answer — the tree is not complete,
+                // even if u happened to be the last node the queue held.
+                stoppedEarly = true;
                 break;
             }
 
@@ -101,6 +107,7 @@ public final class Dijkstra {
             }
         }
 
-        return new ShortestPathTree(source, costMillis, predecessorEdge, predecessorNode, nodesExpanded);
+        return new ShortestPathTree(source, costMillis, predecessorEdge, predecessorNode, nodesExpanded,
+                settled, !stoppedEarly, target);
     }
 }

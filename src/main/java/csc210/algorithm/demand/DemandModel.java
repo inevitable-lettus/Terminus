@@ -64,8 +64,21 @@ public final class DemandModel {
         }
 
         double[] buildingEffect = new double[nodeCount];
+        // Matching list length does not establish full id coverage — a
+        // duplicate and a missing id can both satisfy it. Validate bounds
+        // and uniqueness explicitly, the same dense-id pattern CostModel.of
+        // uses for edge states.
+        boolean[] seen = new boolean[nodeCount];
         for (NodeState state : snapshot.nodes()) {
-            buildingEffect[state.id()] = state.buildingEffect();
+            int id = state.id();
+            if (id < 0 || id >= nodeCount) {
+                throw new IllegalArgumentException("snapshot refers to unknown node id " + id);
+            }
+            if (seen[id]) {
+                throw new IllegalArgumentException("snapshot lists node id " + id + " twice");
+            }
+            seen[id] = true;
+            buildingEffect[id] = state.buildingEffect();
         }
 
         List<Node> activeBuildings = new ArrayList<>();

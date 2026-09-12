@@ -137,6 +137,50 @@ class DijkstraTest {
         assertTrue(early.nodesExpanded() <= full.nodesExpanded());
     }
 
+    /**
+     * Regression: {@code from(source, target)} used to break the instant
+     * {@code target} was popped, before its own outgoing edges were relaxed,
+     * and return the same tree type as a full run. On this graph that meant
+     * {@code costTo(2)} reported the tentative 10 (via the direct 0->2 edge)
+     * instead of the true 2 (via 0->1->2), and node 3 looked falsely
+     * unreachable. Querying anything but the source and the requested target
+     * on an early-stop tree must now fail loudly instead of answering wrong.
+     */
+    @Test
+    void earlyStopTargetAgreesWithFullRunButOtherNodesAreUnknown() {
+        TestGraphs.Fixture fixture = TestGraphs.build(4, new int[][] {
+                {0, 1, 1}, {0, 2, 10}, {1, 2, 1}, {2, 3, 1}
+        });
+        Dijkstra dijkstra = new Dijkstra(fixture.graph(), fixture.costModel());
+
+        ShortestPathTree full = dijkstra.from(0);
+        ShortestPathTree early = dijkstra.from(0, 1);
+
+        assertFalse(early.isComplete());
+        assertTrue(full.isComplete());
+        assertEquals(full.costTo(1), early.costTo(1));
+        assertArrayEquals(full.pathTo(1), early.pathTo(1));
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> early.costTo(2));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> early.isReachable(3));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, early::reachableCount);
+
+        // The full run proves what the early-stop tree could not safely claim.
+        assertEquals(2L, full.costTo(2));
+        assertTrue(full.isReachable(3));
+    }
+
+    @Test
+    void earlyStopWithSourceEqualsTargetOnlyAnswersForTheSource() {
+        TestGraphs.Fixture fixture = TestGraphs.build(3, new int[][] {{0, 1, 5}, {1, 2, 5}});
+        Dijkstra dijkstra = new Dijkstra(fixture.graph(), fixture.costModel());
+
+        ShortestPathTree early = dijkstra.from(0, 0);
+
+        assertEquals(0L, early.costTo(0));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> early.costTo(1));
+    }
+
     @Test
     void closedEdgesCannotBeUsed() {
         // A single chain 0 -> 1 -> 2 with the middle edge closed strands node 2.

@@ -1,5 +1,7 @@
 package csc210.algorithm.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * A directed road segment in the DSTNS road network, as returned by
  * {@code GET /view/topology}.
@@ -22,12 +24,21 @@ package csc210.algorithm.model;
  * @param freeSpeedMps speed limit with no traffic, in metres per second
  */
 public record Edge(
-        int id,
-        int from,
-        int to,
+        @JsonProperty(required = true) int id,
+        @JsonProperty(required = true) int from,
+        @JsonProperty(required = true) int to,
         int reverseTwin,
         String roadClass,
         int lanes,
-        double lengthM,
-        double freeSpeedMps
-) {}
+        @JsonProperty(required = true) double lengthM,
+        @JsonProperty(required = true) double freeSpeedMps
+) {
+    public Edge {
+        if (!Double.isFinite(lengthM) || lengthM < 0.0) {
+            throw new IllegalArgumentException("lengthM must be finite and non-negative, got " + lengthM);
+        }
+        if (!Double.isFinite(freeSpeedMps) || freeSpeedMps < 0.0) {
+            throw new IllegalArgumentException("freeSpeedMps must be finite and non-negative, got " + freeSpeedMps);
+        }
+    }
+}
