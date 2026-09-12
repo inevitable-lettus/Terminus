@@ -10,7 +10,7 @@ java {
 }
 
 application {
-    mainClass = findProperty('mainClass') ?: 'csc210.algorithm.Hello'
+    mainClass = findProperty('mainClass') ?: 'csc210.algorithm.Main'
 }
 
 repositories {
