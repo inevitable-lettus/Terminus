@@ -92,11 +92,12 @@ Algorithm module detail, with numbers:
 The algorithm module needs JDK 21. The Gradle wrapper is committed, so Gradle itself does not need installing.
 
 ```bash
-./gradlew test     # full test suite; needs no sandbox running
-./gradlew build    # compile and test
+./gradlew test       # 60 tests against saved sandbox responses; needs nothing running
+./gradlew liveTest   # 11 integration tests against a running sandbox
+./gradlew build      # compile and test
 ```
 
-All tests run against saved sandbox responses in `src/test/resources/fixtures/`, so the suite passes with the simulator stopped.
+The default suite reads saved sandbox responses from `src/test/resources/fixtures/`, so it passes with the simulator stopped. The live suite talks to a real sandbox on `127.0.0.1:8090` (override with `-Psandbox=http://host:port`) and skips rather than fails when none is reachable. See [docs/testing.md](docs/testing.md).
 
 ### Repository structure
 
@@ -104,7 +105,7 @@ All tests run against saved sandbox responses in `src/test/resources/fixtures/`,
 .
 ├── README.md          — this file
 ├── DESIGN.md          — design of the algorithm module and why it is built this way
-├── docs/              — algorithm reference, decision log, build log, limitations, API contract
+├── docs/              — algorithm reference, decision log, build log, testing, plan, limitations
 ├── context/           — team-facing project context (meeting notes, team decisions)
 ├── src/main/java/     — the algorithm module
 ├── src/test/java/     — tests

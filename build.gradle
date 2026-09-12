@@ -23,6 +23,30 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+// The default suite runs against saved fixtures and needs nothing running.
+// Tests tagged "live" talk to a real DSTNS instance and are excluded here, so
+// `./gradlew build` works on a laptop with no Docker.
 test {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags 'live'
+    }
+}
+
+// Live integration suite. Needs the sandbox up on 127.0.0.1:8090; override with
+// -Psandbox=http://host:port. Mutates simulator state (clock, road closures) and
+// restores what it changes.
+tasks.register('liveTest', Test) {
+    group = 'verification'
+    description = 'Runs the integration tests against a running DSTNS sandbox.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'live'
+    }
+    systemProperty 'sandbox.url', findProperty('sandbox') ?: 'http://127.0.0.1:8090'
+    outputs.upToDateWhen { false }
+    testLogging {
+        showStandardStreams = true
+        events 'passed', 'failed', 'skipped'
+    }
 }

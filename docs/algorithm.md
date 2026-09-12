@@ -511,4 +511,5 @@ expands fewer vertices than theirs would on the same graph.
 | Passenger network | `src/main/java/csc210/algorithm/transit/` |
 | Saved sandbox responses | `src/test/resources/fixtures/` |
 
-Run everything with `./gradlew test`.
+Run everything with `./gradlew test`. What each suite checks, and why it is
+structured that way, is in [testing.md](testing.md).

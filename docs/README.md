@@ -7,6 +7,8 @@
 | [build-log.md](build-log.md) | Step-by-step build record with the evidence for each step |
 | [limitations.md](limitations.md) | What is weak, what is assumed, and what is not built yet |
 | [sandbox-api.md](sandbox-api.md) | The simulation sandbox's contract, as this module consumes it |
+| [testing.md](testing.md) | How both test suites work, in plain language |
+| [plan.md](plan.md) | What is left to build, in order |
 
 Start with [../DESIGN.md](../DESIGN.md) for the design and its reasoning, then
 [algorithm.md](algorithm.md) for the detail.

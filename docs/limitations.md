@@ -58,10 +58,13 @@ values, the clamp, and the closure rule.
 re-checked at the current HEAD. Correctness rests instead on the Floyd–Warshall
 brute-force comparison and the Dijkstra-versus-A* agreement.
 
-**Everything runs against saved fixtures.** That is the right default — a test
-that needs another service running is a bad test — but it means nothing yet proves
-the module works end to end against a live simulator. Live tests are the next
-piece of work.
+**The default suite runs against saved fixtures.** That is the right default — a
+test that needs another service running is a bad test. A separate live suite
+(`./gradlew liveTest`, 11 tests) now covers the end-to-end path against a running
+simulator, including a real road closure. What it deliberately does not assert is
+exact numbers: the simulator's rate-limited speeds settle differently depending on
+how the clock reached 18:00, so live results differ slightly from the fixtures and
+the tests check properties instead. See [testing.md](testing.md).
 
 **A\*'s 15.7% saving is modest because the graph is small.** 61 vertices is a size
 where any search finishes instantly, and the transfer and walk costs are large flat
@@ -86,5 +89,5 @@ shortest-path algorithms **across different network sizes**. Outstanding pieces:
   tested for load time or whether it loads at all.
 
 **Integration.** A command-line entry point that builds the network and answers a
-query; publishing routes back to the sandbox so they render in its UI; live
-end-to-end tests against a running simulator.
+query, and publishing routes back to the sandbox so they render in its UI. The
+ordered plan for both is in [plan.md](plan.md).
