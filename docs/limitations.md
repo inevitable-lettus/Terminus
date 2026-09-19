@@ -12,16 +12,24 @@ from reality than a count of real shops and schools would be.
 optimal at 18:00 is not optimal at 08:30, and the demand table in the
 [build log](build-log.md) shows how far the picture moves across a day.
 
-**The map is a 2 km synthetic grid, not a real city.** 120 junctions, 436 roads,
-every road exactly 180 m and axis-aligned, 1980 m by 1620 m end to end. Several
-results depend on that — Manhattan admissibility above all — and would need
-rechecking on a real map. The code enforces the precondition rather than assuming
-it, so a non-grid map produces a refusal rather than a wrong answer.
+**The map is real, but tiny.** Since DSTNS `5f75fa5` it is an OpenStreetMap
+extract of Berlin Mitte: 279 junctions, 612 directed road segments, 8 bus stops,
+901 m by 947 m. The farthest two junctions are 951 m apart, so for most pairs
+walking is competitive with any bus, and a network of two lines covers all of the
+demand. That makes the route builder's output thin, and it means the
+"algorithm at scale" research question cannot be answered on this map. The
+bundled `real_network.osm.xml` is larger, but the sandbox's Docker image does not
+ship it.
 
-**The coverage walking radius was pulled below the planning standard.** 250 m
-instead of the usual 400 m, because at 400 m a single route covers the whole map
-and the algorithm demonstrates nothing. That is a concession to the map's size,
-not a claim about pedestrians.
+When the map changed from the synthetic 12 x 10 grid, the Manhattan heuristic
+stopped being admissible. The code enforced that precondition rather than
+assuming it, so the change produced a refusal and a fall-back to Euclidean, not a
+wrong answer — which is the case for writing the check.
+
+**The coverage walking radius was pulled below the planning standard.** 150 m
+instead of the usual 400 m, because the closest pair of stops is 176 m apart and
+at anything above that a stop counts as covered by a bus that never goes there.
+That is a concession to the map's size, not a claim about pedestrians.
 
 ## About the algorithms
 
@@ -30,12 +38,25 @@ reconsiders an earlier choice, and nothing here says the result is within any
 factor of the best possible network. That is deliberate — the alternatives are
 outside the course toolkit — but it is a real limitation, not a formality.
 
-**Lines are treated as running both directions at the same cost.** That only holds
-because this map has a reverse twin for all 436 roads and no one-way streets. On a
-real map the return leg would have to be priced separately.
+**One-way streets are handled only because a second endpoint says which they
+are.** This map has 139 one-way streets. The transit graph prices each direction
+of a line from its own roads and drops a return ride wherever a road cannot be
+driven that way, and publishing sends a return leg only when the whole line can
+be driven back. All of that rests on `source.synthetic_reverse` from
+`/view/edges`: `/view/topology`, which the graph is built from, cannot tell a
+one-way street from a two-way one. If the sandbox stopped sending that flag, the
+module would quietly go back to planning the wrong way down them, and no test
+currently asserts the flag is present.
 
 **The transfer wait is a flat five minutes.** The sandbox publishes no timetable
 or headway, so there is nothing to derive a real wait from.
+
+**Walking the whole way is only offered for short trips.** The planner compares
+a bus journey against walking directly only when the two junctions are within the
+stop-access radius. For longer trips it returns the best bus journey even when
+walking would be quicker: junction 66 to 207 comes back as 21.5 minutes with two
+changes, against roughly 11 minutes on foot. That is a real defect in the answer,
+not a modelling nicety.
 
 **The first boarding is free.** The initial wait is not modelled, so a journey's
 cost is in-vehicle plus transfer time, not door-to-door time.
@@ -51,7 +72,7 @@ precision would need a map with addresses on it, which this one does not have.
 ## About the testing
 
 **The cost model's proof is weaker than planned.** The previous sandbox published
-a per-edge weight to check against, giving 436 exact matches. It was removed in
+a per-edge weight to check against, giving an exact match on every edge. It was removed in
 the rewrite, so what remains is an invariant that must hold, three hand-computed
 values, the clamp, and the closure rule.
 

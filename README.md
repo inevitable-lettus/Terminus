@@ -76,17 +76,18 @@ A closed road is excluded from the search entirely rather than given a large wei
 | Track | State |
 |---|---|
 | Explore & plan | Done |
-| Simulation sandbox (Varun) | Working. DSTNS serving a 120-node / 436-edge map over HTTP, deterministic seeded playback |
-| Algorithm module (Garv) | **Both algorithms built, integrated, and tested.** 124 tests green. The research component is outstanding |
+| Simulation sandbox (Varun) | Working. DSTNS `5f75fa5` serving a real OpenStreetMap extract of Berlin Mitte (279 junctions, 612 road segments) over HTTP, deterministic seeded playback. Does not build as committed — one-line fix in [docs/demo.md](docs/demo.md#known-sandbox-issue) |
+| Algorithm module (Garv) | **Both algorithms built, integrated, and tested.** 125 offline and 21 live tests green. The research component is outstanding |
 | Passenger-facing app | Research phase |
 
 Algorithm module detail, with numbers:
 
 - Graph ingestion, cost model, indexed binary heap, Dijkstra, Algorithm 1, transit graph, Algorithm 2 — all built and under test.
 - A passenger can ask for a journey between **any two junctions**, not just bus stops: the walk to a stop and the walk from one are priced as real edges, and the answer comes back as readable legs.
-- At the 18:00 demand peak the route builder produces **4 routes covering 94.8% of demand**.
-- A* agrees with Dijkstra on **all 3660 journey costs** while expanding **15.9% fewer** vertices.
-- Routes are published back to the sandbox in both directions, so they render in its own view.
+- At the 18:00 demand peak the route builder produces **2 routes covering 100% of demand** on the current map. (On the synthetic grid the sandbox served until `5f75fa5` it was 4 routes covering 94.8%.)
+- A* agrees with Dijkstra on **every journey cost** — 56 journeys on the current map — while expanding **6.8% fewer** vertices. On the old grid the saving was 15.9%: Manhattan distance was admissible there, and on real roads the heuristic falls back to the looser Euclidean bound.
+- **One-way streets are respected.** The sandbox gives every street a reverse direction on `/view/topology`, including one-way streets, and flags the fabricated ones only on `/view/edges`. Those 139 edges are kept out of every search.
+- Routes are published back to the sandbox so they render in its own view — in both directions where the road allows, outbound only where a line uses a one-way street.
 - Outstanding: the weighted-A* research deliverable, and a run of the module against a larger map.
 
 ### Running it
@@ -94,7 +95,7 @@ Algorithm module detail, with numbers:
 The algorithm module needs JDK 21. The Gradle wrapper is committed, so Gradle itself does not need installing.
 
 ```bash
-./gradlew test       # 124 tests against saved sandbox responses; needs nothing running
+./gradlew test       # 125 tests against saved sandbox responses; needs nothing running
 ./gradlew liveTest   # 21 integration tests against a running sandbox
 ./gradlew build      # compile and test
 ```
@@ -106,14 +107,16 @@ The default suite reads saved sandbox responses from `src/test/resources/fixture
 Three modes, each one command. All of them need the sandbox running.
 
 ```bash
-docker start dstns_simulation_engine
+docker start dstns_engine_5f75fa5       # built from DSTNS 5f75fa5; see docs/demo.md
 
 ./gradlew run --args="network"          # build the bus network and print it
-./gradlew run --args="journey 0 119"    # plan one journey between two junction ids
+./gradlew run --args="journey 5 217"    # plan one journey between two junction ids
 ./gradlew run --args="publish"          # send the network to the simulator
 ```
 
-Options: `--time HH:MM:SS` (default `18:00:00`, the demand peak the network is designed for), `--seed 0xNNNN` (default `0x2026`), `--sandbox URL`.
+Options: `--time HH:MM:SS` (default `18:00:00`, the demand peak the network is designed for), `--seed 0xNNNN` (default `0x2026`), `--sandbox URL`, and `--attach`.
+
+By default each command starts its own run at a known seed, so the answer is reproducible from the command line alone — which also resets the simulator for anyone watching its UI. `--attach` does the opposite: it reads whatever run is already going and leaves its clock alone, so you can set a scene in the sandbox's UI and ask the algorithm about exactly that. For presenting both together, follow [docs/demo.md](docs/demo.md).
 
 A journey prints as instructions rather than as vertex indices — one line per leg, then a total. The shape is:
 

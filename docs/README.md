@@ -9,6 +9,7 @@
 | [sandbox-api.md](sandbox-api.md) | The simulation sandbox's contract, as this module consumes it |
 | [testing.md](testing.md) | How both test suites work, in plain language |
 | [plan.md](plan.md) | What is left to build, in order |
+| [demo.md](demo.md) | Presentation runbook: sandbox UI first, then the algorithm on the same run |
 
 Start with [../DESIGN.md](../DESIGN.md) for the design and its reasoning, then
 [algorithm.md](algorithm.md) for the detail.

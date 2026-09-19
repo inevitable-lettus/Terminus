@@ -44,34 +44,50 @@ different ways on two different endpoints, and only one of them carries demand.
   `effective_speed_mps`, `rainfall`, `flood`, `vehicle_count`, `halting_count`.
   Per node: `building_effect`, `rainfall`, `flood`.
 
-At 436 edges a single `limit=1000` request returns everything, but `limit` caps
+At 612 edges a single `limit=1000` request returns everything, but `limit` caps
 at 1000 server-side, so the client pages anyway rather than assuming today's map
 size.
 
 ## What the map actually is
 
-Verified against a live run, not taken from documentation. Earlier notes in this
-project cited a different city and roughly five times the size; that figure had
-never been checked.
+Verified against a live run of DSTNS `5f75fa5`, 2026-09-14. This replaced a
+synthetic grid (120 junctions, 436 segments, every edge 180 m and axis-aligned,
+no one-way streets) when the sandbox's default `map.source` changed from
+`offline-road-fixture` to `osm-xml`.
 
 | Property | Value |
 |---|---|
-| Junctions | 120 |
-| Directed road segments | 436 |
-| Layout | A 12 × 10 grid, every edge exactly 180 m, all axis-aligned |
-| Physical extent | 1980 m × 1620 m |
-| Coordinates | Paris latitude/longitude, plus projected metres (`x_m`, `y_m`) |
-| Road classes | 146 residential, 114 primary, 102 secondary, 74 tertiary |
-| Speed limits | 8.33, 11.11, 13.89, 16.67 m/s |
-| Junction degrees | 80 of degree 4, 36 of degree 3, 4 of degree 2 |
-| Bus stops | 60 |
-| Buildings | 44 — 15 school, 13 store, 9 office, 7 mall |
-| Traffic signals | 24 |
-| One-way streets | None: all 436 edges have a reverse twin |
+| Source | OpenStreetMap extract, Berlin Mitte (`data/fixtures/downtown_osm.xml`) |
+| Junctions | 279 |
+| Directed road segments | 612 |
+| Of which fabricated one-way reverses | 139 (`source.synthetic_reverse`) |
+| Physical extent | 901 m x 947 m; farthest junction pair 951 m |
+| Axis-aligned edges | 0 |
+| Road classes | residential, secondary, primary, service, tertiary |
+| Speed limits | 5.56, 8.33, 11.11, 13.89, 16.67 m/s |
+| Edge length | 0.6 m to 193.1 m, median 15.5 m |
+| Bus stops | 8; closest pair 176 m apart |
+| Buildings | 7 — 3 office, 2 store, 1 mall, 1 school |
 
-Several results in this module depend on the grid. Manhattan distance is
-admissible as a heuristic *because* the edges are axis-aligned, and the code
-enforces that rather than assuming it.
+Manhattan distance is not admissible on this map, and the planner uses Euclidean.
+
+## One-way streets are invisible on `/view/topology`
+
+The most important thing on this page. `/view/topology` gives **every** edge a
+`reverse_twin`, including the reverse direction of a one-way street, which does
+not exist. Nothing on that endpoint distinguishes the fabricated reverse from a
+real road. Only `/view/edges` marks it, with `source.synthetic_reverse: true`.
+
+Three independent signals agree on exactly the same 139 edges:
+
+- `source.synthetic_reverse` is `true`;
+- `traffic.demand_vph` is `0` — they are the only edges with no demand;
+- `POST /control/transit/route` rejects them as "not directly adjacent in the
+  road network". Swept across all 612 edges as two-node routes: exactly 139
+  refused, the same set.
+
+A graph built from `/view/topology` alone drives the wrong way down all of them.
+This module excludes them from the cost model (`EdgeDetail.syntheticReverseIds`).
 
 ## Assumptions this module relies on
 
@@ -102,6 +118,12 @@ enforces that rather than assuming it.
   forward seek, and compare edge state rather than whole envelopes.
 - **`play: false` on a seek does not pause the clock.** Pause explicitly first,
   or the clock keeps running and the state drifts away from the time requested.
+- **Starting a run does not remove published bus routes.** `start` clears
+  weather, surges, signal overrides and news, but not the list of buses sent to
+  `POST /control/transit/route`, so they carry over into the next run and stay on
+  the map. `POST /api/v1/playback/reset` is what clears them. Read from
+  `src/engine.cpp` at `5f75fa5` and confirmed live: after a stop and start, four
+  previously published routes were still listed; after a reset, none.
 - **There is no path-compute endpoint.** DSTNS has its own A* internally
   (`RoutePlanner::route`) but exposes nothing over HTTP — `paths/compute`,
   `routes/compute` and `view/path` all return 404. The planned cross-check

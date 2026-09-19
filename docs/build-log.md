@@ -420,14 +420,58 @@ ConnectException" and exits 1, and an unknown mode prints usage and exits 2.
 
 ---
 
+## The map changed underneath the module (2026-09-14)
+
+**What happened.** DSTNS moved from `0fb6307` to `5f75fa5`, which switched its
+default map from the synthetic grid to a real OpenStreetMap extract of Berlin
+Mitte. The offline suite still passed 124/124 — it was testing saved responses
+from a map that no longer existed. The live suite dropped to 16/21.
+
+`5f75fa5` did not build as committed: `ui-engine/tests/mapFocus.test.tsx` passes
+`exact: true` to `getByRole`, which `tsc -b` rejects with `TS2769`. The image used
+here was built with that option removed locally; the fix belongs upstream.
+
+**One real defect.** Publishing failed with "Node #32 and Node #242 are not
+directly adjacent", though `/view/topology` lists that edge. A sweep of all 612
+edges as two-node routes found exactly 139 refused, and they are exactly the 139
+flagged `source.synthetic_reverse` on `/view/edges` — the fabricated reverse of
+every one-way street. They are also the only 139 edges with zero demand. The
+module had parsed that flag and ignored it.
+
+*Fix:* `EdgeDetail.syntheticReverseIds`, a three-argument `CostModel.of` that
+excludes those ids, used by `Main`, the live suite and every fixture-based test.
+`RoutePublisher` checks the reverse is traversable and publishes one-way lines
+outbound only; its local continuity check ignores excluded edges so it agrees
+with the server.
+
+*Proof:* `publish` is accepted; the live publish test asserts the exact count,
+two per line minus the one-way lines.
+
+**Also fixed.** The CLI died with `409 LIFECYCLE_CONFLICT` on every run after the
+first, because it started playback without stopping the previous run. It now
+stops first. `--attach` reads the running simulation without touching its clock.
+
+*Proof:* two consecutive `network` runs both succeed; `run_id` from
+`/api/v1/playback/status` is identical before and after a `--attach` journey.
+
+**Fixtures recaptured** at seed `0x2026`, clock paused, 08:30 and 18:00.
+Hardcoded Paris figures re-derived; the coverage radius retuned to 150 m; tests
+that asserted the grid rewritten to assert the heuristic guard. See the
+[decision log](decisions.md#the-map-change-2026-09-14).
+
+---
+
 ## Where it stands
 
-124 tests pass with the sandbox container stopped, and all 21 live tests pass
-against DSTNS at `origin/dstns` (`0fb6307`), verified 2026-09-12.
+125 tests pass with the sandbox container stopped, and all 21 live tests pass
+against DSTNS `5f75fa5` (with the `mapFocus.test.tsx` build fix applied locally),
+verified 2026-09-14.
 
-The integration work is done: a passenger can ask for a journey between any two
-junctions, get instructions back, and the network can be published to the
-simulator from the command line. The research deliverable — the weighted-A*
-sweep across network sizes — is outstanding, and so is finding out whether the
-larger map can be loaded at all. See [limitations.md](limitations.md) for what
-is not done and why it matters.
+At 18:00 the route builder produces 2 lines covering 100% of demand on the
+Berlin extract. On live data A* agrees with Dijkstra on every journey cost while
+expanding 6.8% fewer vertices — a smaller saving than on the grid, because
+Euclidean is a looser bound than Manhattan and the transit graph is tiny.
+
+The research deliverable — the weighted-A* sweep across network sizes — is
+outstanding, and this map is too small to answer it. See
+[limitations.md](limitations.md).

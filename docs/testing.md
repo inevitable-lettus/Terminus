@@ -7,7 +7,7 @@ Two suites, and they answer different questions.
 | Default | `./gradlew test` | No | Is the algorithm correct? |
 | Live | `./gradlew liveTest` | Yes | Does it actually work against the real thing? |
 
-`./gradlew test` runs 124 tests against saved copies of real sandbox responses
+`./gradlew test` runs 125 tests against saved copies of real sandbox responses
 and passes on a laptop with Docker switched off. `./gradlew liveTest` runs 21
 tests against a running simulator. The live tests are tagged, and the default
 suite excludes that tag, so nobody is ever blocked by a container they do not
@@ -42,14 +42,14 @@ moves.
 
 ## The default suite — is the algorithm correct?
 
-124 tests across sixteen classes.
+125 tests across sixteen classes.
 
 | Class | Tests | What it establishes |
 |---|---|---|
 | `DomainTypesTest` | 13 | The data records hold what the sandbox sends |
 | `TopologyDataTest` | 3 | A saved response deserializes into those records correctly |
 | `SandboxClientTest` | 5 | The HTTP layer parses envelopes and surfaces failures |
-| `GraphTest` | 6 | The graph builds, ids are dense, the reverse-twin invariant holds on all 436 edges |
+| `GraphTest` | 6 | The graph builds, ids are dense, the reverse-twin invariant holds on all 612 edges |
 | `CostModelTest` | 6 | Costs are right, the clamp works, closed roads are excluded |
 | `IndexedMinHeapTest` | 6 | The heap behaves exactly like a known-good priority queue |
 | `DijkstraTest` | 9 | Shortest paths agree with a brute force, and rebuild correctly |
@@ -85,11 +85,11 @@ frontier. If the two agree, that means something. Comparing two implementations 
 the same idea would just reproduce the same bug twice and feel reassuring.
 
 **Property assertion.** Some things must be true of *every* case, so the test
-checks all of them rather than a sample. Every one of the 436 roads reports a
+checks all of them rather than a sample. Every one of the 612 roads reports a
 speed no higher than its own limit. Every edge's reverse twin points back at it.
 Every reconstructed route, re-added segment by segment, equals the cost the search
 reported. And the one that matters most for A*: at every vertex of every one of
-the 3660 possible journeys, the heuristic's guess is checked against the true
+the 56 possible journeys, the heuristic's guess is checked against the true
 remaining cost that Dijkstra computed exactly, and must never exceed it.
 
 ### Two tests that were wrong, and what they taught
@@ -119,7 +119,7 @@ stay legal.
 Twenty-one tests in three classes. Run them with the simulator up:
 
 ```bash
-docker start dstns_simulation_engine
+docker start dstns_engine_5f75fa5
 ./gradlew liveTest
 ```
 
@@ -159,7 +159,7 @@ Six tests, none of which touch the algorithm. They check the ground it stands on
 - **Live data satisfies what the graph assumes** — ids dense and unique, every
   road with a positive length and speed, every junction with real coordinates
   (the A* heuristic is meaningless without them), and the reverse-twin invariant
-  holding across all 436 edges on live data rather than on a saved copy.
+  holding across all 612 edges on live data rather than on a saved copy.
 - **The snapshot lines up with the topology** — one state per road, one per
   junction, nothing listed twice.
 - **No road exceeds its own speed limit**, checked live.
@@ -208,8 +208,10 @@ allowed to fail.
   published without the junctions between them, and an error is demanded. This is
   the test that makes carrying the full traversal *necessary* rather than merely
   tidy: if it ever starts passing, `BusRoute` could be simplified.
-- **Every line is accepted, in both directions** — eight directed routes from four
-  lines.
+- **Every line is accepted, in whichever directions it can be driven.** A line
+  that uses a one-way street is published outbound only; the test asserts the
+  exact count — two per line, minus the one-way lines. At 18:00 on the current
+  map both lines use one, so two directed routes are published.
 - **A closed road stays out of journeys planned after it closes**, and the road is
   reopened in a `finally` block either way.
 - **A query with no answer says so.** A passenger who will not walk, starting at a
@@ -218,23 +220,26 @@ allowed to fail.
 
 ### What these tests deliberately do not assert
 
-**Exact numbers.** The live results do not match the fixture results, and that is
-expected rather than a bug:
+**Exact numbers.** Live results are not required to match the fixture results.
+On the current map, at 18:00, they happen to agree on every headline figure:
 
 | | Fixture at 18:00 | Live at 18:00 |
 |---|---|---|
-| Total demand | 136.21 | 143.97 |
-| Routes | 4 | 4 |
-| Coverage | 94.8% | 96.9% |
-| Passenger network | 61 vertices, 568 links | 63 vertices, 570 links |
-| A* saving over Dijkstra | 15.9% | 16.9% |
+| Total demand | 22.41 | 22.41 |
+| Routes | 2 | 2 |
+| Coverage | 100% | 100% |
+| A* saving over Dijkstra | 6.8% | 6.8% |
 
-The reason is that the simulator's road speeds are **rate-limited** — they ease
-toward their target rather than jumping to it — so the state at 18:00 depends
-slightly on the path the clock took to get there. Pinning the seed and the time
-makes a run reproducible against itself, which the reproducibility test confirms,
-but it does not make a live run identical to a capture made on a different day
-through a different sequence of seeks.
+That agreement should not be relied on. On the synthetic grid the sandbox served
+before, they differed — 4 routes at 94.8% coverage from the fixture against 96.9%
+live, and a 15.9% A* saving against 16.9% — because the simulator's road speeds
+are **rate-limited**: they ease toward their target rather than jumping to it, so
+the state at 18:00 depends slightly on the path the clock took to get there.
+Pinning the seed and the time makes a run reproducible against itself, which the
+reproducibility test confirms, but it does not make a live run identical to a
+capture made on a different day through a different sequence of seeks. The
+current map is small and mostly uncongested at 18:00, which is likely why the
+effect does not show here.
 
 So the live tests assert **properties**, not values: routes are continuous,
 budgets hold, coverage is above a floor, A* and Dijkstra agree, the heuristic
@@ -265,8 +270,8 @@ comment saying why these are not all 200.
 ## Running everything
 
 ```bash
-./gradlew test                  # 124 tests, no simulator needed
-docker start dstns_simulation_engine
+./gradlew test                  # 125 tests, no simulator needed
+docker start dstns_engine_5f75fa5
 ./gradlew liveTest              # 21 tests against the live simulator
 ```
 

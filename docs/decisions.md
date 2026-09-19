@@ -215,9 +215,14 @@ route whose consecutive nodes are not joined by a single directed edge, but it
 does not say which pair. Checking first costs no round trip and names the gap.
 
 **The return leg is verified, not assumed.** It is the outbound path read
-backwards, which is only valid because every road on this map has a reverse
-twin. That is a property of this map rather than a law, so it fails loudly on a
-map with one-way streets instead of publishing a route no bus could drive.
+backwards, which is only valid when every road on it can be driven the other
+way. Checking that the reverse twin *exists* turned out not to be enough: DSTNS
+gives one-way streets a reverse twin id that is not a road. The check now asks
+the cost model whether the twin is traversable.
+
+**A line that cannot be driven back is published one way, not refused.**
+Throwing would lose the outbound line too, which is less true than publishing
+what can be driven and saying which lines are one-directional.
 
 ## Testing
 
@@ -233,3 +238,43 @@ differ by tie-breaking, and neither structure promises a tie-breaking order.
 HTTP endpoint for the sandbox's pathfinder, re-checked at the current HEAD.
 Porting their C++ implementation as a "reference" would be this module's own code
 checking itself.
+
+## The map change (2026-09-14)
+
+DSTNS `5f75fa5` replaced the synthetic grid with a real OpenStreetMap extract.
+These are the calls that change forced.
+
+**Exclude one-way reverses through the cost model, not a second mechanism.**
+`CostModel.isTraversable` already kept closed roads out of every search. A
+fabricated reverse is a different fact — a closed road exists and may reopen, a
+fabricated one never existed — but "no search may use this edge" is the same
+instruction, so it reuses the same exclusion. The two-argument `CostModel.of`
+still works and excludes nothing, so no caller that predates this changed.
+
+**Recapture the fixtures rather than keep testing the old map.** Keeping them
+would have left the offline suite green while describing a map that no longer
+exists. Recapturing meant re-deriving every hardcoded figure, and it is why
+several tests were rewritten rather than renumbered.
+
+**Tests assert the guard, not the grid.** Tests that named Manhattan outright were
+correct only while the map was a lattice. They now ask
+`isManhattanAdmissibleOn` which measure applies, so they hold on either kind of
+map. Where a test's premise was the grid itself, it was split into the claims
+that survive — Manhattan is the tighter bound; it is only valid when axis-aligned.
+
+**Coverage radius 150 m; route length left at 8 minutes.** The closest pair of
+stops is 176 m apart, so the old 250 m radius counted stops as covered by buses
+that never reached them. Shorter route budgets were tried and rejected: 3, 4 and
+8 minutes all give the same two lines covering all demand, and 2 minutes lost
+coverage and made journeys slower. The shorter budget bought transfers at the
+passenger's expense, which is the wrong trade.
+
+**Assert that changing line is possible, not that a stop is shared.** On this
+map the two lines share no stop, so the only interchange is walking between
+nearby stops. The old assertion demanded a shared stop; the new one demands that
+some link changes line.
+
+**`--attach` reads the running simulation rather than starting one.** The
+default resets the simulator, which is right for reproducibility and wrong when
+someone is driving the UI. Attaching takes the run's own time and seed, so
+`--time` and `--seed` are refused alongside it rather than silently ignored.
