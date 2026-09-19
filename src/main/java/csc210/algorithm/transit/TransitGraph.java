@@ -34,10 +34,14 @@ import java.util.Map;
  * <p>Walk edges join (stop, route) pairs at <em>different</em> stops close
  * enough to walk between, so a passenger can cross the street to a better line.
  *
- * <p><strong>Honest simplifications.</strong> Every line is treated as running
- * in both directions at the same cost, which is only defensible because this
- * map has a reverse twin for all 436 edges and no one-way streets; on a real
- * map the return leg would have to be priced separately. The transfer wait is a
+ * <p><strong>Both directions, priced separately.</strong> Each line can be
+ * ridden either way, but the two directions are separate ride links, each
+ * priced from its own road edges, and a return link is left out wherever any
+ * road on it cannot be driven that way — a closed road, or the fabricated
+ * reverse of a one-way street, which the cost model excludes. A passenger is
+ * never routed backwards along a line no bus could drive.
+ *
+ * <p><strong>Honest simplifications.</strong> The transfer wait is a
  * flat five minutes rather than derived from a timetable, because DSTNS does
  * not publish headways. And boarding the first bus is free — the initial wait
  * is not modelled — so a journey's cost is the in-vehicle and transfer time,
@@ -57,16 +61,19 @@ public final class TransitGraph {
      * <p>This is deliberately not the same number as
      * {@link csc210.algorithm.routing.RouteBudget#walkingRadiusM()}, and the two
      * answer different questions. The route builder's radius asks "is this stop
-     * close enough to count as served?", and was pulled down to 250 m so that
-     * coverage on this small map is not trivially satisfied. This one asks "will
+     * close enough to count as served?", and is pulled down to 150 m — below
+     * the closest pair of stops on this map — so that coverage is not
+     * trivially satisfied. This one asks "will
      * a passenger already out of the house walk to a different stop to change
      * line?", and 400 m — about five minutes — is the standard planning figure.
      *
-     * <p>The distinction is load-bearing, not cosmetic. At 250 m the transit
-     * graph built from the default 18:00 network splits into two components:
-     * line R1 shares no stop with R0, R2 or R3, so 16 of 61 vertices are
-     * unreachable from the rest and a passenger on R1 can never leave it. At
-     * 300 m and above it is fully connected.
+     * <p>The distinction is load-bearing, not cosmetic. On the synthetic grid
+     * this was measured directly: at that map's 250 m coverage radius the
+     * transit graph split in two and a passenger on one line could never leave
+     * it, while at 300 m and above it was fully connected. On the current map
+     * the builder's lines share no stop at all, so walking between nearby stops
+     * is the <em>only</em> way to change line — use the coverage radius here and
+     * that way disappears.
      */
     public static final double DEFAULT_INTERCHANGE_WALK_M = 400.0;
 

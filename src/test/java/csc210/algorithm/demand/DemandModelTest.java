@@ -42,7 +42,7 @@ class DemandModelTest {
 
     @Test
     void scoresEveryStopTheSandboxPlaced() {
-        assertEquals(60, demand.stopCount(), "DSTNS places 60 stops on this map");
+        assertEquals(8, demand.stopCount(), "DSTNS places 8 stops on this map");
         for (int stop : demand.stopNodes()) {
             assertTrue(graph.node(stop).busStop());
         }
@@ -63,7 +63,7 @@ class DemandModelTest {
         }
         assertEquals(1, counts.size(),
                 "every stop reports the same building_effect, so it cannot rank them: " + counts);
-        assertEquals(60, counts.values().iterator().next());
+        assertEquals(8, counts.values().iterator().next());
     }
 
     @Test
@@ -75,17 +75,19 @@ class DemandModelTest {
             assertTrue(demand.demandAt(ranked[i - 1]) >= demand.demandAt(ranked[i]));
         }
 
-        // Every stop with demand has at least one active building in range, and
-        // at 08:30 those are schools and stores — offices and malls are still
-        // shut, which is worth knowing rather than assuming.
-        for (int i = 0; i < 10; i++) {
+        // Every stop with demand has at least one active building in range. At
+        // 08:30 on this map those are a school and three offices; stores and
+        // malls are still shut, which is worth knowing rather than assuming.
+        int top = Math.min(10, ranked.length);
+        for (int i = 0; i < top; i++) {
             List<String> nearbyTypes = activeBuildingTypesNear(ranked[i]);
             assertTrue(!nearbyTypes.isEmpty(),
                     "stop " + ranked[i] + " scores " + demand.demandAt(ranked[i]) + " with nothing near it");
         }
 
-        System.out.println("demand at 08:30, seed 0x2026 — top 10 stops of " + demand.stopCount() + ":");
-        for (int i = 0; i < 10; i++) {
+        System.out.println("demand at 08:30, seed 0x2026 — top " + top + " stops of "
+                + demand.stopCount() + ":");
+        for (int i = 0; i < top; i++) {
             System.out.printf("  stop %3d  demand %.3f  near %s%n",
                     ranked[i], demand.demandAt(ranked[i]), activeBuildingTypesNear(ranked[i]));
         }
@@ -112,8 +114,19 @@ class DemandModelTest {
                 demand.totalDemand(), evening.totalDemand());
     }
 
+    /**
+     * Which building types are awake at 08:30, asserted rather than assumed
+     * because the whole demand model rests on it.
+     *
+     * <p>This replaces an earlier check that schools and stores were the two
+     * active types and offices were shut. That was true of the synthetic map
+     * DSTNS used to serve; on the Berlin extract the mix is different — a
+     * school and three offices are open at 08:30, and the two stores are not.
+     * The morning peak here is a commute, not the school-and-errands pattern
+     * the old map produced.
+     */
     @Test
-    void onlySchoolsAndStoresAreActiveAt0830() {
+    void schoolsAndOfficesAreTheMorningActivity() {
         Map<String, Integer> activeByType = new HashMap<>();
         for (Node node : topology.nodes()) {
             if (node.building() != null && snapshot.nodes().get(node.id()).buildingEffect() > 0.0) {
@@ -123,9 +136,10 @@ class DemandModelTest {
         System.out.println("active buildings at 08:30 by type: " + activeByType);
 
         assertTrue(activeByType.containsKey("school"));
-        assertTrue(activeByType.containsKey("store"));
-        assertTrue(!activeByType.containsKey("office"),
-                "offices are shut at 08:30 in this run — the execution plan assumed otherwise");
+        assertTrue(activeByType.containsKey("office"));
+        assertTrue(!activeByType.containsKey("store"),
+                "stores are shut at 08:30 on this map; if that changed, the demand model's "
+                        + "morning peak means something different now");
         assertTrue(!activeByType.containsKey("mall"));
     }
 
@@ -133,18 +147,32 @@ class DemandModelTest {
     @Test
     void edgeDemandIsPresentAndVaries() {
         List<EdgeDetail> edges = Fixtures.edgeDetailsAt0830();
-        assertEquals(436, edges.size());
+        assertEquals(612, edges.size());
 
         double lowest = Double.MAX_VALUE;
         double highest = 0.0;
+        int noDemand = 0;
         for (EdgeDetail edge : edges) {
             double demandVph = edge.traffic().demandVph();
-            assertTrue(demandVph > 0.0, "edge " + edge.id() + " reports no demand at the morning peak");
+            if (demandVph <= 0.0) {
+                // The only roads carrying no traffic at all are the ones that
+                // are not roads: DSTNS gives a fabricated one-way reverse no
+                // demand, which is a third independent way of spotting them,
+                // alongside the synthetic_reverse flag and the route validator
+                // refusing them.
+                assertTrue(edge.source().syntheticReverse(),
+                        "edge " + edge.id() + " is a real road but reports no demand at the morning peak");
+                noDemand++;
+                continue;
+            }
             lowest = Math.min(lowest, demandVph);
             highest = Math.max(highest, demandVph);
         }
+        assertEquals(Fixtures.oneWayEdgeIdsAt0830().size(), noDemand,
+                "every zero-demand edge should be a fabricated reverse, and every fabricated reverse zero");
         assertTrue(highest > 2 * lowest, "demand should differentiate roads, not sit flat");
-        System.out.printf("edge demand_vph at 08:30 spans %.1f to %.1f%n", lowest, highest);
+        System.out.printf("edge demand_vph at 08:30 spans %.1f to %.1f across %d real roads; "
+                + "%d fabricated reverses carry none%n", lowest, highest, edges.size() - noDemand, noDemand);
     }
 
     /**

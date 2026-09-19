@@ -126,6 +126,19 @@ public final class SandboxClient {
     }
 
     /**
+     * The live run's identity and clock, raw.
+     *
+     * <p>Returned unwrapped because the parts wanted here — {@code run_id},
+     * {@code global_seed} and the {@code clock} block — sit beside {@code data}
+     * in the envelope rather than inside it. Used by {@code --attach} to report
+     * which run was read, so a run driven from the UI and a run read from the
+     * command line can be shown to be the same one.
+     */
+    public JsonNode playbackStatus() throws IOException, InterruptedException {
+        return get("/api/v1/playback/status", JsonNode.class);
+    }
+
+    /**
      * Freezes the clock. Must be called before {@link #seek} if the state read
      * afterwards is meant to match the time asked for: {@code play: false} on a
      * seek does <em>not</em> pause a running clock, so the simulation carries on

@@ -28,11 +28,13 @@ import java.util.List;
  *
  * <p><strong>Why it is not read straight off {@code building_effect} at the
  * stop node, which would be simpler.</strong> Because that number does not
- * describe buildings near the stop. Checked against the 08:30 fixture: all 60
+ * describe buildings near the stop. Checked against the 08:30 fixture: all 8
  * stops report {@code building_effect} of exactly 0.4 — the activity level of
  * the *bus-stop role itself*, identical everywhere, which ranks nothing. The
  * per-node field is per-role activity, not a spatial demand field, and using it
- * would have produced 60 equal stops and a route builder picking arbitrarily.
+ * would have produced 8 equal stops and a route builder picking arbitrarily.
+ * (The same field read 0.4 uniformly across all 60 stops of the map this
+ * replaced, so it is a property of the field, not of one map.)
  *
  * <p>Distance is straight-line in projected metres, not driving distance,
  * because it stands in for a passenger walking to a stop rather than a vehicle

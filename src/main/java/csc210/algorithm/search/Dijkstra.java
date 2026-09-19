@@ -32,8 +32,9 @@ import csc210.algorithm.model.Edge;
  * {@code O(V log V)}. Every edge is examined exactly once, from its source
  * node, and may trigger one {@code decreaseKey} at {@code O(log V)} — that is
  * {@code O(E log V)}. Together, {@code O((V + E) log V)}. On a road network
- * {@code E} is a small multiple of {@code V} (here 436 edges over 120 nodes,
- * average degree under 4), so in practice it behaves like {@code O(V log V)}.
+ * {@code E} is a small multiple of {@code V} (here 612 edges over 279 nodes,
+ * average out-degree about 2.2), so in practice it behaves like
+ * {@code O(V log V)}.
  */
 public final class Dijkstra {
 

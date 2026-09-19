@@ -1,5 +1,6 @@
 package csc210.algorithm;
 
+import csc210.algorithm.client.EdgeDetail;
 import csc210.algorithm.client.SandboxClient;
 import csc210.algorithm.client.SnapshotData;
 import csc210.algorithm.client.TopologyData;
@@ -16,6 +17,7 @@ import csc210.algorithm.routing.RouteNetworkBuilder;
 import csc210.algorithm.transit.TransitGraph;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * The command line. Three things this module can do, each runnable with one
@@ -29,7 +31,18 @@ import java.io.IOException;
  *
  * <p>Options: {@code --time HH:MM:SS} (default 18:00:00, the demand peak the
  * network is designed for), {@code --seed 0xNNNN} (default 0x2026, the seed
- * every figure in the docs was measured at), and {@code --sandbox URL}.
+ * every figure in the docs was measured at), {@code --sandbox URL}, and
+ * {@code --attach}.
+ *
+ * <p><strong>Starting a run versus attaching to one.</strong> By default each
+ * command starts its own run at a known seed, pauses it and seeks to the time
+ * asked for, so the answer is reproducible from the command line alone. That
+ * also resets the simulator out from under anyone watching its UI, and DSTNS
+ * refuses a second start with {@code 409} while a run is live, so the default
+ * stops the previous run first. {@code --attach} does the opposite: it touches
+ * the clock not at all and reads whatever run is already going, which is what
+ * makes it possible to drive the simulator by hand and then ask this module
+ * about exactly the state on screen.
  *
  * <p>All three modes talk to a running DSTNS. That is deliberate — the point of
  * an entry point is to run against the real thing — and it means none of them
@@ -59,7 +72,7 @@ public final class Main {
                     ? failed.getClass().getSimpleName()
                     : failed.getMessage();
             System.err.println("Could not reach the sandbox: " + reason);
-            System.err.println("Is it running? Try: docker start dstns_simulation_engine");
+            System.err.println("Is it running? Try: docker start dstns_engine_5f75fa5");
             System.exit(1);
         }
     }
@@ -69,14 +82,31 @@ public final class Main {
         Options options = Options.parse(args);
         SandboxClient client = new SandboxClient(options.sandboxUrl);
 
-        client.startPlayback(options.seed, "00:00:00", 600);
-        client.pausePlayback();
-        client.seek(options.time);
+        if (options.attach) {
+            adoptLiveRun(client, options);
+        } else {
+            // DSTNS answers 409 rather than restarting when a run is already
+            // active, and one usually is — the previous invocation left it that
+            // way. Stop first, so the seed is this command's rather than
+            // whatever happened to be inherited.
+            try {
+                client.stopPlayback();
+            } catch (IOException nothingWasRunning) {
+                // That is the state we wanted anyway.
+            }
+            client.startPlayback(options.seed, "00:00:00", 600);
+            client.pausePlayback();
+            client.seek(options.time);
+        }
 
         TopologyData topology = client.topology();
         SnapshotData snapshot = client.snapshot();
         Graph roadGraph = Graph.of(topology.nodes(), topology.edges());
-        CostModel costModel = CostModel.of(roadGraph, snapshot);
+        // One-way streets: /view/topology cannot express them, /view/edges can.
+        // Without this exclusion the search drives the wrong way down 139 of
+        // this map's 612 edges, and the simulator rejects the routes it builds.
+        CostModel costModel = CostModel.of(roadGraph, snapshot,
+                EdgeDetail.syntheticReverseIds(client.edges()));
         DemandModel demandModel = DemandModel.of(roadGraph, snapshot);
         RouteNetwork network = new RouteNetworkBuilder(roadGraph, costModel, demandModel,
                 RouteBudget.defaults()).build();
@@ -84,13 +114,14 @@ public final class Main {
         return switch (options.mode) {
             case NETWORK -> describeNetwork(network, options);
             case JOURNEY -> describeJourney(roadGraph, costModel, network, options);
-            case PUBLISH -> publish(client, roadGraph, network);
+            case PUBLISH -> publish(client, roadGraph, costModel, network);
         };
     }
 
     static String describeNetwork(RouteNetwork network, Options options) {
         StringBuilder text = new StringBuilder();
-        text.append(String.format("Network at %s, seed %s%n", options.time, options.seed));
+        text.append(String.format("Network at %s, seed %s%s%n",
+                options.time, options.seed, options.attachedTo()));
         for (BusRoute route : network.routes()) {
             text.append(String.format("  %-4s %3d stops, %5.1f min end to end, demand %.2f%n",
                     route.label(), route.stopCount(), route.travelMillis() / 60_000.0, route.demandCovered()));
@@ -108,15 +139,58 @@ public final class Main {
         JourneyPlanner planner = JourneyPlanner.of(roadGraph, transit);
         Itinerary itinerary = planner.plan(options.from, options.to);
 
-        return String.format("Junction %d to junction %d at %s%n%s",
-                options.from, options.to, options.time, itinerary.describe());
+        return String.format("Junction %d to junction %d at %s%s%n%s",
+                options.from, options.to, options.time, options.attachedTo(), itinerary.describe());
     }
 
-    private static String publish(SandboxClient client, Graph roadGraph, RouteNetwork network)
+    private static String publish(SandboxClient client, Graph roadGraph, CostModel costModel,
+                                  RouteNetwork network) throws IOException, InterruptedException {
+        RoutePublisher publisher = new RoutePublisher(roadGraph, costModel);
+        int count = publisher.publishAll(client, network);
+        List<String> oneWay = publisher.oneWayLines();
+        if (oneWay.isEmpty()) {
+            return String.format("Published %d directed routes (%d lines, both directions).",
+                    count, network.routeCount());
+        }
+        return String.format(
+                "Published %d directed routes from %d lines. %s could not be driven back along %s own "
+                        + "path — one-way streets — so %s published outbound only.",
+                count, network.routeCount(), String.join(", ", oneWay),
+                oneWay.size() == 1 ? "its" : "their",
+                oneWay.size() == 1 ? "it is" : "they are");
+    }
+
+    /**
+     * Reads whatever run is already live, for {@code --attach}, and takes its
+     * clock and seed as this command's own.
+     *
+     * <p>Attaching means the caller is not choosing the time or the seed — the
+     * running simulation already did. Overwriting {@code options} with what was
+     * actually found keeps the printed header truthful rather than echoing
+     * defaults the command never applied.
+     *
+     * <p>Attaching to nothing would otherwise fail further down with a
+     * confusing error about an empty topology, so the lifecycle is checked
+     * here, where the cause is still obvious.
+     */
+    private static void adoptLiveRun(SandboxClient client, Options options)
             throws IOException, InterruptedException {
-        int count = new RoutePublisher(roadGraph).publishAll(client, network);
-        return String.format("Published %d directed routes (%d lines, both directions).",
-                count, network.routeCount());
+        String lifecycle = client.health().lifecycle();
+        if (lifecycle == null || "IDLE".equalsIgnoreCase(lifecycle)) {
+            throw new IllegalArgumentException(
+                    "--attach needs a run that is already going, but the sandbox is "
+                            + (lifecycle == null ? "not reporting a lifecycle" : lifecycle)
+                            + ". Start one in the UI, or drop --attach to have this command start its own.");
+        }
+
+        var status = client.playbackStatus();
+        options.time = status.path("clock").path("simulated_current_time").asText(options.time);
+        options.seed = status.path("global_seed").asText(options.seed);
+        options.runId = status.path("run_id").asText(null);
+        if (!"PAUSED".equalsIgnoreCase(lifecycle)) {
+            System.err.println("Warning: the run is " + lifecycle + ", not PAUSED — the clock is moving "
+                    + "while this reads it, so the answer describes a moment that has already passed.");
+        }
     }
 
     private static void requireJunction(Graph roadGraph, int node, String which) {
@@ -136,6 +210,15 @@ public final class Main {
         String seed = DEFAULT_SEED;
         int from = -1;
         int to = -1;
+        /** Read the run that is already going instead of starting a fresh one. */
+        boolean attach = false;
+        /** The attached run's id, for the printed header. Null unless attached. */
+        String runId = null;
+
+        /** {@code " (attached to run_xxx)"}, or nothing when this command started its own run. */
+        String attachedTo() {
+            return runId == null ? "" : " (attached to " + runId + ")";
+        }
 
         static Options parse(String[] args) {
             if (args.length == 0) {
@@ -159,17 +242,34 @@ public final class Main {
                 next = 3;
             }
 
-            for (int i = next; i < args.length; i += 2) {
+            // Not a fixed stride: --attach is a flag and takes no value, so the
+            // step depends on which option was just read.
+            boolean explicitTime = false;
+            boolean explicitSeed = false;
+            int i = next;
+            while (i < args.length) {
+                String flag = args[i];
+                if ("--attach".equals(flag)) {
+                    options.attach = true;
+                    i += 1;
+                    continue;
+                }
                 if (i + 1 >= args.length) {
-                    throw new IllegalArgumentException("option " + args[i] + " needs a value");
+                    throw new IllegalArgumentException("option " + flag + " needs a value");
                 }
                 String value = args[i + 1];
-                switch (args[i]) {
-                    case "--time" -> options.time = value;
-                    case "--seed" -> options.seed = value;
+                switch (flag) {
+                    case "--time" -> { options.time = value; explicitTime = true; }
+                    case "--seed" -> { options.seed = value; explicitSeed = true; }
                     case "--sandbox" -> options.sandboxUrl = value;
-                    default -> throw new IllegalArgumentException("unknown option '" + args[i] + "'");
+                    default -> throw new IllegalArgumentException("unknown option '" + flag + "'");
                 }
+                i += 2;
+            }
+            if (options.attach && (explicitTime || explicitSeed)) {
+                throw new IllegalArgumentException(
+                        "--attach reads the running simulation's own time and seed, so it cannot be "
+                                + "combined with --time or --seed. Drop --attach to choose them.");
             }
             return options;
         }
@@ -193,6 +293,9 @@ public final class Main {
                 Options:
                   --time HH:MM:SS    virtual time to design for (default 18:00:00)
                   --seed 0xNNNN      simulator seed (default 0x2026)
-                  --sandbox URL      where DSTNS is (default http://127.0.0.1:8090)""";
+                  --sandbox URL      where DSTNS is (default http://127.0.0.1:8090)
+                  --attach           read the run already going instead of starting
+                                     a fresh one; takes its time and seed, and
+                                     leaves the simulator's clock where it is""";
     }
 }

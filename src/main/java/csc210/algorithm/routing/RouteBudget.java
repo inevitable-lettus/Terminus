@@ -44,23 +44,32 @@ public record RouteBudget(
 
     /**
      * Defaults for the DSTNS map: 8 minutes of driving per route, at most 8
-     * routes, 90% of demand covered, 250 m walk.
+     * routes, 90% of demand covered, 150 m walk.
      *
      * <p>The walking radius deserves its justification, because the obvious
      * number is wrong here. The planning rule of thumb is 400 m — roughly five
-     * minutes on foot — and that is what a real city would use. This map is
-     * 1980 m by 1620 m, with the nearest pair of bus stops 255 m apart (180 m
-     * grid spacing, so 180·√2 on the diagonal). At 400 m every stop covers its
-     * diagonal neighbours, one route covers the entire network, and the
-     * algorithm has nothing to show: the whole "city" is a twenty-minute walk
-     * end to end and does not need buses at all. 250 m sits just below the
-     * nearest-stop spacing, so a stop counts as covered only if a bus actually
-     * serves it. That is a decision forced by the sandbox's map being small,
-     * and it is stated rather than buried — at 400 m the numbers look better
-     * and mean less.
+     * minutes on foot — and that is what a real city would use. This map does
+     * not support it. DSTNS serves a real OpenStreetMap extract measuring
+     * 901 m by 947 m with 8 bus stops on it; the closest pair of stops is
+     * 176 m apart and every stop has a neighbour within 273 m. At 400 m, or
+     * even at 250 m, a stop counts as covered by a bus that never goes there,
+     * one route sweeps the whole network, and the algorithm has nothing to
+     * show — the entire "city" is a ten-minute walk end to end and does not
+     * need buses at all.
+     *
+     * <p>150 m sits below the closest stop spacing on this map, so a stop is
+     * covered only when a bus actually serves it. That is a decision forced by
+     * the sandbox's map being small, and it is stated rather than buried: at
+     * 400 m the coverage numbers look better and mean less.
+     *
+     * <p>Every figure here was re-derived when the sandbox replaced its
+     * synthetic 1980 m by 1620 m grid — 60 stops on a 180 m lattice, nearest
+     * pair 255 m apart — with this extract. The reasoning survived unchanged;
+     * not one of its numbers did, which is why the argument is written out
+     * rather than left as a bare constant.
      */
     public static RouteBudget defaults() {
-        return new RouteBudget(8 * 60 * 1000L, 8, 0.90, 250.0);
+        return new RouteBudget(8 * 60 * 1000L, 8, 0.90, 150.0);
     }
 
     public RouteBudget withMaxRouteMillis(long millis) {

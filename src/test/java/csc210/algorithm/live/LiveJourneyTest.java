@@ -119,16 +119,25 @@ class LiveJourneyTest {
     }
 
     @Test
-    @DisplayName("the simulator accepts every generated line, in both directions")
+    @DisplayName("the simulator accepts every generated line, in whichever directions it can be driven")
     void publishingTheNetworkIsAccepted() throws IOException, InterruptedException {
         LiveWorld live = plannerAtDesignTime();
-        RoutePublisher publisher = new RoutePublisher(live.world().graph());
+        RoutePublisher publisher = new RoutePublisher(live.world().graph(), live.world().costModel());
 
         int published = publisher.publishAll(live.world().client(), live.network());
 
-        assertEquals(2 * live.network().routeCount(), published,
-                "each line is published outbound and back");
-        System.out.println("Published " + published + " directed routes to the simulator.");
+        // Not two per line any more. This map has one-way streets, and a line
+        // that uses one cannot retrace its own path — DSTNS rejects the reverse
+        // as "not directly adjacent in the road network", because the reverse
+        // twin it publishes on /view/topology is a fabrication. Outbound is
+        // always publishable; the return leg is only sometimes.
+        int lines = live.network().routeCount();
+        int oneWay = publisher.oneWayLines().size();
+        assertEquals(2 * lines - oneWay, published,
+                "every line publishes outbound, and back only where the road allows");
+        assertTrue(published >= lines, "every line must at least publish outbound");
+        System.out.println("Published " + published + " directed routes from " + lines
+                + " lines; one-way lines: " + publisher.oneWayLines());
     }
 
     @Test
@@ -230,14 +239,22 @@ class LiveJourneyTest {
     }
 
     @Test
-    @DisplayName("the live map is still a grid, so Manhattan is still the heuristic in use")
+    @DisplayName("the heuristic in use is the one the live map's geometry allows")
     void theHeuristicChoiceIsMadeFromTheLiveMap() throws IOException, InterruptedException {
         LiveWorld live = plannerAtDesignTime();
-        // JourneyPlanner.of asks the map rather than assuming. On the DSTNS grid
-        // that answer is Manhattan; on a map with diagonal roads it must become
-        // Euclidean on its own, which is what makes the same code portable.
-        assertEquals(csc210.algorithm.search.TransitHeuristic.Distance.MANHATTAN, live.planner().distance(),
-                "this map was an axis-aligned lattice; if it is not any more, the heuristic must have changed too");
+        // JourneyPlanner.of asks the map rather than assuming, and this asserts
+        // that it asked — not what the answer happens to be today. The previous
+        // version demanded Manhattan, which was right while DSTNS served an
+        // axis-aligned lattice and wrong the morning it served real roads. The
+        // portable claim is that the choice follows the geometry.
+        var geometry = csc210.algorithm.search.TransitHeuristic.isManhattanAdmissibleOn(live.world().graph());
+        assertEquals(geometry
+                        ? csc210.algorithm.search.TransitHeuristic.Distance.MANHATTAN
+                        : csc210.algorithm.search.TransitHeuristic.Distance.EUCLIDEAN,
+                live.planner().distance(),
+                "the planner must pick the measure this map's geometry permits");
+        System.out.println("live map is axis-aligned: " + geometry
+                + ", planner uses " + live.planner().distance());
     }
 
     @Test

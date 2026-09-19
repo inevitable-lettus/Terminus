@@ -40,7 +40,7 @@ class RouteNetworkBuilderTest {
         TopologyData topology = Fixtures.topology();
         SnapshotData snapshot = Fixtures.snapshotAt1800();
         graph = Graph.of(topology.nodes(), topology.edges());
-        costModel = CostModel.of(graph, snapshot);
+        costModel = CostModel.of(graph, snapshot, Fixtures.oneWayEdgeIdsAt1800());
         demandModel = DemandModel.of(graph, snapshot);
     }
 

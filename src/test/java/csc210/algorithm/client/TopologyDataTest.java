@@ -12,9 +12,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
- * Deserializes a saved {@code /view/topology} response (fixture captured
- * 2026-09-09 from a live DSTNS run) with no sandbox running — step 1.4.
- * The known values asserted below were read directly off that fixture.
+ * Deserializes a saved {@code /view/topology} response (fixture recaptured
+ * 2026-09-14 from a live DSTNS run on the Berlin Mitte extract) with no sandbox
+ * running — step 1.4. The known values asserted below were read directly off
+ * that fixture.
  */
 class TopologyDataTest {
 
@@ -32,8 +33,8 @@ class TopologyDataTest {
     void deserializesEveryNodeAndEdge() throws IOException {
         TopologyData topology = loadFixture();
 
-        assertEquals(120, topology.nodes().size());
-        assertEquals(436, topology.edges().size());
+        assertEquals(279, topology.nodes().size());
+        assertEquals(612, topology.edges().size());
     }
 
     @Test
@@ -41,13 +42,15 @@ class TopologyDataTest {
         TopologyData topology = loadFixture();
 
         Node node = topology.nodes().stream()
-                .filter(n -> n.id() == 4)
+                .filter(n -> n.id() == 16)
                 .findFirst()
                 .orElseThrow();
 
-        assertEquals(9000000004L, node.osmNodeId());
-        assertEquals(48.866616910829585, node.position().lat());
-        assertEquals(2.366763309735022, node.position().lon());
+        // A real OpenStreetMap id now, not a synthesised 9000000000-series one:
+        // this map is compiled from an actual extract rather than generated.
+        assertEquals(25664657L, node.osmNodeId());
+        assertEquals(52.5181506, node.position().lat());
+        assertEquals(13.390521, node.position().lon());
         assertEquals("store", node.building());
     }
 
@@ -60,10 +63,13 @@ class TopologyDataTest {
                 .findFirst()
                 .orElseThrow();
 
-        assertEquals(1, edge.from());
-        assertEquals(0, edge.to());
+        assertEquals(7, edge.from());
+        assertEquals(272, edge.to());
         assertEquals(1, edge.reverseTwin());
         assertEquals("primary", edge.roadClass());
-        assertEquals(180.0, edge.lengthM());
+        // Real road geometry: lengths vary per segment rather than sitting on a
+        // uniform grid pitch, so this is the measured length of one way, not a
+        // constant shared by every edge.
+        assertEquals(15.784139959364941, edge.lengthM());
     }
 }

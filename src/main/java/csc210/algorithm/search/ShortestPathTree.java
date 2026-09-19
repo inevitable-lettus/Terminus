@@ -11,7 +11,7 @@ import java.util.Arrays;
  * parent per node — if two routes into a node tied, the search kept whichever
  * it settled first, and either is equally optimal. Storing the predecessor
  * rather than the path itself keeps the result {@code O(V)} instead of
- * {@code O(V²)}: 120 nodes here, but the paths through them share almost all
+ * {@code O(V²)}: 279 nodes here, but the paths through them share almost all
  * of their length, and writing each one out separately would copy that shared
  * structure over and over.
  *

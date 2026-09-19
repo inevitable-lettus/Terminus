@@ -14,11 +14,18 @@ import java.io.UncheckedIOException;
  * Loads the saved DSTNS responses in {@code src/test/resources/fixtures/} so
  * tests never need the sandbox running.
  *
- * <p>{@code topology.json} and {@code snapshot.json} were captured 2026-09-09
- * with the clock IDLE, so every edge sits at free-flow speed.
- * {@code snapshot_0830.json} and {@code edges_0830.json} were captured
- * 2026-09-10 from a run at seed {@code 0x2026}, paused at virtual time
- * 08:30:00 — the morning peak the route builder optimises for.
+ * <p><strong>Recaptured 2026-09-14</strong>, at seed {@code 0x2026} with the
+ * clock paused, after DSTNS replaced its synthetic 120-node Paris-coordinate
+ * grid with a real OpenStreetMap extract of Berlin Mitte — 279 junctions, 612
+ * directed segments, 8 bus stops. Every figure asserted against these files
+ * changed with them; none of the earlier numbers describe this map.
+ *
+ * <p>{@code snapshot_0830.json} / {@code edges_0830.json} and
+ * {@code snapshot_1800.json} / {@code edges_1800.json} are the two slices the
+ * demand model is compared across. {@code topology.json} is time-independent.
+ * {@code snapshot.json} was taken with no run active; the clock had simply
+ * been left where the previous run stopped it, so it is a quiet moment rather
+ * than a true free-flow reading, and nothing currently asserts against it.
  */
 public final class Fixtures {
 
@@ -44,7 +51,7 @@ public final class Fixtures {
         return read("/fixtures/snapshot_1800.json", SnapshotData.class);
     }
 
-    /** Live edge state with the clock IDLE — every edge at free-flow speed. */
+    /** Live edge state with no run active. Not asserted against; see the class note. */
     public static SnapshotData snapshotIdle() {
         return read("/fixtures/snapshot.json", SnapshotData.class);
     }
@@ -57,6 +64,23 @@ public final class Fixtures {
     /** The same nested edge page captured at 18:00. */
     public static java.util.List<csc210.algorithm.client.EdgeDetail> edgeDetailsAt1800() {
         return read("/fixtures/edges_1800.json", csc210.algorithm.client.EdgePage.class).items();
+    }
+
+    /**
+     * Ids of the fabricated reverse directions of one-way streets, from the
+     * 18:00 edge capture — what {@code Main} excludes from every search.
+     *
+     * <p>Fixture-based tests build their cost model with this so they model the
+     * same road network production does. Without it they would be testing a map
+     * where 139 of 612 edges are drivable in a direction no vehicle may take.
+     */
+    public static java.util.Set<Integer> oneWayEdgeIdsAt1800() {
+        return csc210.algorithm.client.EdgeDetail.syntheticReverseIds(edgeDetailsAt1800());
+    }
+
+    /** As {@link #oneWayEdgeIdsAt1800}, from the 08:30 capture. The set is time-independent. */
+    public static java.util.Set<Integer> oneWayEdgeIdsAt0830() {
+        return csc210.algorithm.client.EdgeDetail.syntheticReverseIds(edgeDetailsAt0830());
     }
 
     private static <T> T read(String resource, Class<T> payloadType) {

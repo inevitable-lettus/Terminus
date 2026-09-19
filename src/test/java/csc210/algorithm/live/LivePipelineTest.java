@@ -36,6 +36,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Tag("live")
 class LivePipelineTest {
+    /**
+     * The distance measure the planner would really choose for {@code graph}.
+     *
+     * <p>These tests used to name Manhattan outright, which held only while
+     * DSTNS served an axis-aligned lattice; on real roads the heuristic refuses
+     * to build and the test reported the guard working as a failure. Asking the
+     * geometry keeps them true on either map.
+     */
+    private static TransitHeuristic.Distance measureFor(csc210.algorithm.graph.Graph graph) {
+        return TransitHeuristic.isManhattanAdmissibleOn(graph)
+                ? TransitHeuristic.Distance.MANHATTAN
+                : TransitHeuristic.Distance.EUCLIDEAN;
+    }
+
 
     @Test
     @DisplayName("the whole pipeline runs on live data and produces a usable network")
@@ -104,7 +118,7 @@ class LivePipelineTest {
                 TransitPath plain = aStar.find(source, goal, AStar.zeroHeuristic());
                 TransitPath aimed = aStar.find(source, goal,
                         TransitHeuristic.towards(transit, goal,
-                                TransitHeuristic.Distance.MANHATTAN, world.graph())::estimateMillis);
+                                measureFor(world.graph()), world.graph())::estimateMillis);
 
                 assertEquals(plain.found(), aimed.found());
                 if (plain.found()) {
@@ -136,7 +150,7 @@ class LivePipelineTest {
         // not of the fixture, so it must hold against live costs unchanged.
         for (int goal = 0; goal < transit.vertexCount(); goal++) {
             TransitHeuristic guess = TransitHeuristic.towards(transit, goal,
-                    TransitHeuristic.Distance.MANHATTAN, world.graph());
+                    measureFor(world.graph()), world.graph());
             for (int source = 0; source < transit.vertexCount(); source++) {
                 if (source == goal) {
                     continue;

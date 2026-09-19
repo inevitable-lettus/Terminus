@@ -41,10 +41,12 @@ import csc210.algorithm.transit.TransitGraph;
  * whenever every edge runs due north-south or east-west, because a route made
  * only of axis-aligned moves must cover the full {@code |dx| + |dy|} and cannot
  * cut the corner. A tighter admissible heuristic expands fewer vertices, so
- * Manhattan is the default here. <strong>It is admissible only because this
- * map's edges really are axis-aligned</strong> — all 436 of them, checked live
- * — and it can overestimate on a map with diagonal roads, where it would break
- * A*'s guarantee. {@link #isManhattanAdmissibleOn} makes that precondition an
+ * Manhattan is preferred wherever it is legal. <strong>It is admissible only on
+ * a map whose edges really are axis-aligned</strong> — true of every edge on the
+ * synthetic grid DSTNS used to serve, and of none of the 612 on the Berlin
+ * extract it serves now — and it can overestimate on a map with diagonal roads,
+ * where it would break A*'s guarantee. On the current map the planner therefore
+ * runs Euclidean. {@link #isManhattanAdmissibleOn} makes that precondition an
  * explicit runtime check rather than a silent assumption.
  *
  * <p>One case needs checking separately: a walk link cuts diagonally between two

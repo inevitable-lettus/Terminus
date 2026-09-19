@@ -42,7 +42,7 @@ class TransitGraphTest {
         TopologyData topology = Fixtures.topology();
         SnapshotData snapshot = Fixtures.snapshotAt1800();
         roadGraph = Graph.of(topology.nodes(), topology.edges());
-        CostModel costModel = CostModel.of(roadGraph, snapshot);
+        CostModel costModel = CostModel.of(roadGraph, snapshot, Fixtures.oneWayEdgeIdsAt1800());
         DemandModel demandModel = DemandModel.of(roadGraph, snapshot);
         RouteBudget budget = RouteBudget.defaults();
         network = new RouteNetworkBuilder(roadGraph, costModel, demandModel, budget).build();
@@ -88,8 +88,29 @@ class TransitGraphTest {
                         "vertex " + from + " at shared stop " + stop + " cannot reach every other line here");
             }
         }
-        assertTrue(sharedStops > 0, "no stop is served by two lines, so no transfer is ever possible");
-        System.out.println("stops served by more than one line: " + sharedStops);
+        // A stop served by two lines is not the only way to change line, and on
+        // this map it is not the way that happens. The greedy builder covers
+        // each stop once, so with 8 stops and 2 lines the routes come out
+        // disjoint and no stop carries two of them. Changing line still has to
+        // be possible somewhere, or the network is a set of unconnected
+        // shuttles — so that is what gets asserted, rather than a same-stop
+        // interchange this map does not produce.
+        int interchangeLinks = 0;
+        for (int from = 0; from < transitGraph.vertexCount(); from++) {
+            for (TransitLink link : transitGraph.outgoing(from)) {
+                boolean changesLine = transitGraph.vertex(link.from()).routeId()
+                        != transitGraph.vertex(link.to()).routeId();
+                if (changesLine
+                        && (link.kind() == TransitLink.Kind.TRANSFER || link.kind() == TransitLink.Kind.WALK)) {
+                    interchangeLinks++;
+                }
+            }
+        }
+        assertTrue(interchangeLinks > 0,
+                "no way to change line anywhere in the network — every line is a shuttle in isolation");
+        System.out.println("stops served by more than one line: " + sharedStops
+                + "; links that change line: " + interchangeLinks
+                + (sharedStops == 0 ? " (all by walking between nearby stops)" : ""));
     }
 
     @Test

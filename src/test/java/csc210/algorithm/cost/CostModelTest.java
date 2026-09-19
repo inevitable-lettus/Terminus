@@ -51,14 +51,18 @@ class CostModelTest {
     @Test
     void costMatchesHandComputedValues() {
         // Read straight off snapshot_0830.json: the slowest edge in the fixture,
-        // one mid-range edge and one at the map's top speed. All 436 edges on
-        // this map are exactly 180 m long, so only the speed term varies.
-        // 180 / 0.6663812935984038 * 1000 = 270115.6...  -> 270116
-        assertEquals(270_116L, costModel.costMillis(239));
-        // 180 / 11.11 * 1000 = 16201.6...                -> 16202
-        assertEquals(16_202L, costModel.costMillis(110));
-        // 180 / 16.67 * 1000 = 10797.8...                -> 10798
-        assertEquals(10_798L, costModel.costMillis(425));
+        // one mid-range edge and one still at its free-flow limit. Unlike the
+        // synthetic grid this map replaced, these are real road segments, so
+        // length varies per edge and both terms of the formula move — each
+        // line below therefore shows its own arithmetic.
+        //
+        // Edge 53 is jammed to the 0.1 m/s floor, which is what the clamp is
+        // for: 8.895731 / 0.1 * 1000 = 88957.3...        -> 88957
+        assertEquals(88_957L, costModel.costMillis(53));
+        // 127.948100 / 5.677794 * 1000 = 22534.7...      -> 22535
+        assertEquals(22_535L, costModel.costMillis(12));
+        // 130.166397 / 8.33 * 1000 = 15626.2...          -> 15626
+        assertEquals(15_626L, costModel.costMillis(34));
     }
 
     @Test

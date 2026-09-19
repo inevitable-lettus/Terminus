@@ -46,7 +46,7 @@ class JourneyPlannerTest {
         TopologyData topology = Fixtures.topology();
         SnapshotData snapshot = Fixtures.snapshotAt1800();
         roadGraph = Graph.of(topology.nodes(), topology.edges());
-        CostModel costModel = CostModel.of(roadGraph, snapshot);
+        CostModel costModel = CostModel.of(roadGraph, snapshot, Fixtures.oneWayEdgeIdsAt1800());
         DemandModel demandModel = DemandModel.of(roadGraph, snapshot);
         RouteNetwork network = new RouteNetworkBuilder(roadGraph, costModel, demandModel,
                 RouteBudget.defaults()).build();

@@ -1,5 +1,6 @@
 package csc210.algorithm.live;
 
+import csc210.algorithm.client.EdgeDetail;
 import csc210.algorithm.client.SandboxClient;
 import csc210.algorithm.client.SnapshotData;
 import csc210.algorithm.client.TopologyData;
@@ -90,7 +91,7 @@ final class LiveSandbox {
         Graph graph = Graph.of(topology.nodes(), topology.edges());
 
         return new World(client, topology, snapshot, graph,
-                CostModel.of(graph, snapshot), DemandModel.of(graph, snapshot));
+                costsFor(client, graph, snapshot), DemandModel.of(graph, snapshot));
     }
 
     /** Re-reads live state without touching the clock, for before-and-after comparisons. */
@@ -98,6 +99,19 @@ final class LiveSandbox {
         SnapshotData snapshot = client.snapshot();
         Graph graph = Graph.of(topology.nodes(), topology.edges());
         return new World(client, topology, snapshot, graph,
-                CostModel.of(graph, snapshot), DemandModel.of(graph, snapshot));
+                costsFor(client, graph, snapshot), DemandModel.of(graph, snapshot));
+    }
+
+    /**
+     * The cost model exactly as {@code Main} builds it, one-way streets
+     * excluded.
+     *
+     * <p>Shared by both readers above so the live suite can never be testing a
+     * differently-built world than the one the command line produces — which is
+     * the whole point of a live suite.
+     */
+    static CostModel costsFor(SandboxClient client, Graph graph, SnapshotData snapshot)
+            throws IOException, InterruptedException {
+        return CostModel.of(graph, snapshot, EdgeDetail.syntheticReverseIds(client.edges()));
     }
 }

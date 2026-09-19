@@ -25,6 +25,16 @@ import csc210.algorithm.model.EdgeState;
  * returns false and search must skip it. Modelling closure as a large finite
  * weight would let a search route through a closed road whenever every
  * alternative happened to be worse, which is not a slower answer but a wrong one.
+ *
+ * <p><strong>Two different reasons an edge is untraversable, one mechanism.</strong>
+ * A <em>closed</em> road exists but is shut right now — a crash, a flood, a
+ * manual closure — and may reopen on the next snapshot. A <em>synthetic
+ * reverse</em> never existed at all: DSTNS emits a reverse twin for every
+ * one-way street on {@code /view/topology} so the graph looks symmetric, and
+ * only {@code /view/edges} marks it with {@code source.synthetic_reverse}.
+ * Driving one is not slow, it is illegal. Both end up excluded here, because
+ * "search must not use this edge" is the same instruction either way, but they
+ * are not the same fact and the caller decides which ids fall into which.
  */
 public final class CostModel {
 
@@ -47,12 +57,34 @@ public final class CostModel {
     }
 
     /**
-     * Builds the cost of every edge in {@code graph} from one snapshot.
+     * Builds the cost of every edge in {@code graph} from one snapshot, with
+     * every edge the snapshot does not close treated as drivable.
      *
      * @throws IllegalArgumentException if the snapshot does not carry exactly
      *         one state per edge, or refers to an edge the graph does not have
      */
     public static CostModel of(Graph graph, SnapshotData snapshot) {
+        return of(graph, snapshot, java.util.Set.of());
+    }
+
+    /**
+     * As {@link #of(Graph, SnapshotData)}, additionally excluding edges that do
+     * not exist as drivable roads at all — in practice the ids DSTNS flags as
+     * {@code source.synthetic_reverse}, the fabricated reverse direction of a
+     * one-way street.
+     *
+     * <p>These cannot be detected from the snapshot: a synthetic reverse
+     * reports a perfectly healthy speed and {@code closed: false}, exactly like
+     * any other road. They have to be supplied by the caller, which is why this
+     * is a parameter rather than something derived here.
+     *
+     * @param nonTraversableEdges edge ids no path may use, whatever the snapshot says
+     * @throws IllegalArgumentException if the snapshot does not carry exactly
+     *         one state per edge, refers to an edge the graph does not have, or
+     *         an excluded id is not an edge of {@code graph}
+     */
+    public static CostModel of(Graph graph, SnapshotData snapshot,
+                               java.util.Set<Integer> nonTraversableEdges) {
         int edgeCount = graph.edgeCount();
         if (snapshot.edges().size() != edgeCount) {
             throw new IllegalArgumentException(
@@ -83,6 +115,16 @@ public final class CostModel {
             if (costMillis[id] == -2L) {
                 throw new IllegalArgumentException("snapshot has no state for edge id " + id);
             }
+        }
+
+        // Applied after the snapshot pass, not during it: a road that does not
+        // exist stays excluded no matter what state was reported for it.
+        for (int id : nonTraversableEdges) {
+            if (id < 0 || id >= edgeCount) {
+                throw new IllegalArgumentException(
+                        "asked to exclude edge id " + id + ", which is not an edge of this graph");
+            }
+            costMillis[id] = CLOSED;
         }
         return new CostModel(costMillis);
     }

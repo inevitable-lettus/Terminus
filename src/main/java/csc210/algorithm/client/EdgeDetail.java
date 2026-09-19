@@ -10,9 +10,10 @@ import csc210.algorithm.model.EdgeConfiguration;
  * shape; this one is richer and paged, and it is the only place
  * {@code demand_vph} appears.
  *
- * <p>Only {@link Traffic#demandVph()} is actually consumed, by step 4.1. The
- * rest is modeled because it is what the endpoint sends and modelling it makes
- * the contract visible.
+ * <p>{@link Traffic#demandVph()} is consumed by step 4.1, and
+ * {@link Source#syntheticReverse()} by {@link #syntheticReverseIds} — this is
+ * the only endpoint publishing either fact. The rest is modeled because it is
+ * what the endpoint sends and modelling it makes the contract visible.
  */
 public record EdgeDetail(
         int id,
@@ -28,6 +29,30 @@ public record EdgeDetail(
 
     /** Where this edge came from in the OpenStreetMap extract it was compiled from. */
     public record Source(long osmWayId, boolean syntheticReverse) {}
+
+    /**
+     * Ids of the edges DSTNS fabricated to make one-way streets look
+     * bidirectional, which no vehicle may actually drive.
+     *
+     * <p>{@code /view/topology} — the endpoint the graph is built from — gives
+     * every one of these a {@code reverse_twin} and no way to tell it from a
+     * real road. Only the flag read here separates them, so this is the one
+     * place the distinction can be recovered, and every caller that builds a
+     * cost model from live data needs it.
+     *
+     * <p>Verified against DSTNS {@code 5f75fa5}: the 139 ids this returns are
+     * exactly the 139 that {@code POST /control/transit/route} refuses as
+     * "not directly adjacent in the road network".
+     */
+    public static java.util.Set<Integer> syntheticReverseIds(java.util.List<EdgeDetail> edges) {
+        java.util.Set<Integer> ids = new java.util.HashSet<>();
+        for (EdgeDetail edge : edges) {
+            if (edge.source() != null && edge.source().syntheticReverse()) {
+                ids.add(edge.id());
+            }
+        }
+        return ids;
+    }
 
     /**
      * The structural facts, matching {@link csc210.algorithm.model.Edge}.
