@@ -76,8 +76,8 @@ A closed road is excluded from the search entirely rather than given a large wei
 | Track | State |
 |---|---|
 | Explore & plan | Done |
-| Simulation sandbox (Varun) | Working. DSTNS `5f75fa5` serving a real OpenStreetMap extract of Berlin Mitte (279 junctions, 612 road segments) over HTTP, deterministic seeded playback. Does not build as committed — one-line fix in [docs/demo.md](docs/demo.md#known-sandbox-issue) |
-| Algorithm module (Garv) | **Both algorithms built, integrated, and tested.** 125 offline and 21 live tests green. The research component is outstanding |
+| Simulation sandbox (Varun) | Working. DSTNS 2.0 (`dstns-v2`) picks a real city from 181 by seed and downloads its OpenStreetMap extract; runs are started by the operator through the simulator's own CLI. The older `5f75fa5` (Berlin Mitte, 279 junctions, 612 road segments) is what the saved test fixtures were captured from |
+| Algorithm module (Garv) | **Both algorithms built, integrated, and tested; adapted to DSTNS 2.0 from its source, not yet run against it.** 207 offline tests green. The live suite and the 2.0 fixtures are the next thing to run. The research component is outstanding |
 | Passenger-facing app | Research phase |
 
 Algorithm module detail, with numbers:
@@ -87,16 +87,17 @@ Algorithm module detail, with numbers:
 - At the 18:00 demand peak the route builder produces **2 routes covering 100% of demand** on the current map. (On the synthetic grid the sandbox served until `5f75fa5` it was 4 routes covering 94.8%.)
 - A* agrees with Dijkstra on **every journey cost** — 56 journeys on the current map — while expanding **6.8% fewer** vertices. On the old grid the saving was 15.9%: Manhattan distance was admissible there, and on real roads the heuristic falls back to the looser Euclidean bound.
 - **One-way streets are respected.** The sandbox gives every street a reverse direction on `/view/topology`, including one-way streets, and flags the fabricated ones only on `/view/edges`. Those 139 edges are kept out of every search.
-- Routes are published back to the sandbox so they render in its own view — in both directions where the road allows, outbound only where a line uses a one-way street.
-- Outstanding: the weighted-A* research deliverable, and a run of the module against a larger map.
+- Routes are **written to files**, `routes.json` and `routes.geojson`, in both directions where the road allows and outbound only where a line uses a one-way street. Publishing them back to the simulator is gone: DSTNS 2.0 retired that endpoint (HTTP 410).
+- **Built for any city, not one map.** Duplicate stops are merged, demand is read from the simulator's own per-stop figure where it has one and falls back to buildings and then to uniform, and the route budget and the A* speed bound are derived from the map instead of being constants tuned to Berlin.
+- Outstanding: a live run against DSTNS 2.0 (the code was written from its source), the weighted-A* research deliverable.
 
 ### Running it
 
 The algorithm module needs JDK 21. The Gradle wrapper is committed, so Gradle itself does not need installing.
 
 ```bash
-./gradlew test       # 125 tests against saved sandbox responses; needs nothing running
-./gradlew liveTest   # 21 integration tests against a running sandbox
+./gradlew test       # 207 tests against saved sandbox responses; needs nothing running
+./gradlew liveTest   # integration tests against a running sandbox
 ./gradlew build      # compile and test
 ```
 
@@ -104,33 +105,41 @@ The default suite reads saved sandbox responses from `src/test/resources/fixture
 
 ### Using it
 
-Three modes, each one command. All of them need the sandbox running.
+Start a run in the simulator first — DSTNS 2.0 only lets its operator do that, through its own CLI or UI. Then one command per question:
 
 ```bash
-docker start dstns_engine_5f75fa5       # built from DSTNS 5f75fa5; see docs/demo.md
-
-./gradlew run --args="network"          # build the bus network and print it
-./gradlew run --args="journey 5 217"    # plan one journey between two junction ids
-./gradlew run --args="publish"          # send the network to the simulator
+./bus network            # the bus lines and how well they cover demand
+./bus stops              # the busiest stops, and which lines serve them
+./bus journey 5 217      # one passenger journey between two junction ids
+./bus export             # write the network to out/ as JSON and GeoJSON
+./bus help               # every option
 ```
 
-Options: `--time HH:MM:SS` (default `18:00:00`, the demand peak the network is designed for), `--seed 0xNNNN` (default `0x2026`), `--sandbox URL`, and `--attach`.
+`./bus` builds on first use and after any change, then runs. Each command reads the run that is already going and **leaves its clock alone**, so you can set a scene in the simulator and ask the algorithm about exactly that. Useful options:
 
-By default each command starts its own run at a known seed, so the answer is reproducible from the command line alone — which also resets the simulator for anyone watching its UI. `--attach` does the opposite: it reads whatever run is already going and leaves its clock alone, so you can set a scene in the sandbox's UI and ask the algorithm about exactly that. For presenting both together, follow [docs/demo.md](docs/demo.md).
+| Option | Meaning |
+|---|---|
+| `--time HH:MM:SS` | pause the run and read it at that virtual time |
+| `--minutes N`, `--routes N`, `--walk METRES` | override the budget, which is otherwise derived from the map |
+| `--top N` | `stops`: how many to list |
+| `--out DIR` | `export`: where to write |
+| `--start`, `--seed N` | stop the current run and start our own; needs the operator token (`DSTNS_OPERATOR_TOKEN`, or `--token-file PATH`) |
 
-A journey prints as instructions rather than as vertex indices — one line per leg, then a total. The shape is:
+Every report opens with what it stands on — the run, the map, how many stops after merging duplicates, where the demand came from and the budget in force — because a coverage figure means little without them. It then says *why* the builder stopped (target met, line cap hit, or nothing reachable left) and whether riders can move between the lines. A journey prints as numbered instructions with a running clock:
 
 ```text
-Junction FROM to junction TO at HH:MM:SS
-Walk from junction FROM to stop S (M min)
-Ride Rn from stop S to stop T, k stops (M min)
-Change line at stop T (5.0 min wait)
-Ride Rm from stop T to stop U, k stops (M min)
-Walk from stop U to junction TO (M min)
-Total M min, n transfers
+Journey  junction 5 -> junction 56  at 18:00:00
+  from 52.51446, 13.38480   to 52.51712, 13.39258   straight line 605 m
+
+   1  Walk from junction 5 to stop 5                       0.0 min   at   0.0
+   2  Ride R0, stop 5 -> stop 214 (2 stops)                0.8 min   at   0.8
+   3  Walk from stop 214 to junction 56                    3.0 min   at   3.9
+
+  Total 3.9 min, 0 transfers. Walking straight there would take about 7.2 min.
+  The search looked at 8 of 8 transit vertices.
 ```
 
-The actual durations depend on the road speeds at the virtual time asked for, so they are not reproduced here — run it and see.
+That output is from the saved Berlin fixtures; the durations depend on the road speeds at the virtual time asked for. For presenting the simulator and this together, follow [docs/demo.md](docs/demo.md).
 
 ### Repository structure
 

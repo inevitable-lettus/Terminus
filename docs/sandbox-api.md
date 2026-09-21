@@ -5,7 +5,37 @@ track. DSTNS owns this contract; this file records only the parts consumed here
 and what is assumed about them. Anything checked against a live run rather than
 read from documentation is marked as such, because the two have disagreed before.
 
-Base URL: `http://127.0.0.1:8090`. No authentication.
+Base URL: `http://127.0.0.1:8090`. Reads need no authentication; starting a run
+needs the operator token on DSTNS 2.0 (below).
+
+> **Two versions are described here.** Sections marked **[2.0]** come from reading
+> the source of `origin/dstns-v2` (`bc6e517`, 2026-09-20) and **have not been
+> checked against a live run**. Everything else was checked live against DSTNS
+> `5f75fa5`. The client is written to work with both, and to say so where the two
+> disagree.
+
+## DSTNS 2.0 — what changed for this module **[2.0]**
+
+| Change | How the module handles it |
+|---|---|
+| `POST /control/transit/route` returns **410** `TRANSIT_API_RETIRED` ("not part of the supported API") | Publishing is removed. Lines are written to `routes.json` and `routes.geojson` instead (see [decisions.md](decisions.md#dstns-20)). |
+| `POST /playback/start` and `/prepare` return **403** `CLI_START_REQUIRED` unless header `X-DSTNS-Operator` matches the server's token (`DSTNS_OPERATOR_TOKEN`, or the file `logs/operator.token`) | The client sends the header on those two requests only. Without a token, `./bus` reads the run already going and refuses `--start` **before** stopping anything. |
+| `start` is asynchronous, and the lifecycle passes through `PREPARING` while a city is downloaded (`BOOTING, IDLE, PREPARING, READY, RUNNING, PAUSED, SEEKING, STOPPING, STOPPED, COMPLETED, ERROR, TERMINATING`) | `awaitReady` polls `/health` (case-insensitively) until `READY`, `RUNNING` or `PAUSED`, and fails on `ERROR`. |
+| The world is a real city chosen by seed (`urban-crfg-v3`: 181 cities, then a district), so the map differs per seed | Nothing about the map is assumed: stop merging, the route budget and the heuristic speed are all derived from it. |
+| `/view/topology` edges carry `synthetic_reverse` (and `name`, `tags`) | Read into `Edge.syntheticReverse`, a nullable `Boolean`: `null` means the server did not say (5f75fa5), and then `/view/edges` is asked instead. |
+| New `GET /view/places?kind=&offset=&limit=` (limit clamps silently at 2000) and `GET /view/stops` (= `places?kind=bus_stop`) | Paged until `total`. `demand.multiplier` is the per-stop demand; see below. |
+| `GET /view/topology` node `bus_stop` is the raw OSM-tagged nodes plus the simulator's own placed stops; **only the places are thinned** | Flagged stops within 60 m are merged into one before anything is designed. |
+| `PUT /control/edges/{id}` kept; `POST /control/edges/{id}/override` added | No change needed. |
+| Playback `seek`, `pause`, `stop` are not gated | Used as before. |
+
+**Places and stop demand.** A place is `{id, name, kind, position, anchor_node,
+demand:{multiplier, baseline, factors, radius_m}}`. For a `bus_stop` the
+multiplier is 1.0 when unmodulated and rises with the generators around it (the
+server couples stops to nearby schools, offices and shops, and caps every place
+at 3.0). It is a relative intensity, not a passenger count. Unverified: whether
+the `anchor_node` of a stop place is a junction the topology also flags as a stop.
+The module tolerates either — a stop with no place attached counts as 1.0, and if
+no stop has one the demand falls back to buildings, then to uniform.
 
 ## Endpoints used
 
@@ -19,7 +49,9 @@ Base URL: `http://127.0.0.1:8090`. No authentication.
 | `POST /api/v1/playback/pause` | Freeze the clock, so a snapshot is reproducible |
 | `POST /api/v1/playback/seek` | Move the clock to a chosen virtual time |
 | `PUT /api/v1/control/edges/{id}` | Close a road, or apply a manual speed or capacity override |
-| `POST /api/v1/control/transit/route` | Publish a generated bus route back for display (not yet used) |
+| `GET /api/v1/view/places?kind=bus_stop` | **[2.0]** The simulator's own per-stop demand |
+| `GET /api/v1/playback/status` | The run's id, seed and clock, for the header of every report |
+| `POST /api/v1/control/transit/route` | Was: publish a bus route back for display. **Retired in 2.0 (410)** and no longer called |
 
 Every `/view/*` and `/playback/*` response is wrapped in an envelope carrying
 `api_version`, `run_id`, `global_seed`, `state_revision`, `config_revision` and a
@@ -129,7 +161,13 @@ This module excludes them from the cost model (`EdgeDetail.syntheticReverseIds`)
   `routes/compute` and `view/path` all return 404. The planned cross-check
   against it was dropped rather than left open.
 
-## Publishing routes back
+## Publishing routes back — retired in DSTNS 2.0
+
+Historical: this module used to publish routes with the endpoint below, and it
+still works on DSTNS `5f75fa5`. On 2.0 it answers 410, and the module no longer
+calls it. The continuity rule it enforced is still checked locally before any
+file is written, because it is simply a true statement about what a drivable
+route is.
 
 `POST /api/v1/control/transit/route` takes `{bus_id, label, nodes[]}` and
 validates that **every consecutive pair of nodes is joined by a single directed

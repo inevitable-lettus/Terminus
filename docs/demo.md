@@ -1,93 +1,105 @@
 # Demo runbook — sandbox, then algorithm
 
-A rehearsed path for showing the module to someone: the simulator first, in its
-own UI, then the algorithm answering questions about exactly the state on screen.
-Every command and output below was run against DSTNS `5f75fa5` on 2026-09-14.
+A path for showing the module to someone: the simulator first, in its own UI,
+then the algorithm answering questions about exactly the state on screen.
+
+> **Status.** Rewritten for DSTNS 2.0 (`dstns-v2`) from its source. **It has not
+> been rehearsed against a live 2.0 yet**, so the printed outputs below are from
+> the saved Berlin fixtures (DSTNS `5f75fa5`, 2026-09-14) and will differ: 2.0
+> serves a different city for every seed. Do a dry run and replace the samples
+> with what you see. Steps that depend on 2.0 behaviour are marked **[2.0]**.
 
 ## Before anyone is watching
 
-The image is already built and the container already exists, so starting it
-needs no source checkout:
+**[2.0]** Only the simulator's operator can start a run, so start it the way its
+own README says (the operator CLI, `./launcher` in the sandbox repo), pick or
+note the seed, and let it finish downloading the city. Then in the UI seek to
+`18:00:00` and **pause** — 18:00 is the demand peak the network is designed for,
+and a moving clock changes road speeds while the algorithm is reading them.
+
+Check the module can see it, and warm the JVM so the first command is not slow in
+front of people:
 
 ```bash
-docker start dstns_engine_5f75fa5
-curl -s http://127.0.0.1:8090/health        # {"ok":true,...}
+./bus help          # ends with "Simulator at http://127.0.0.1:8090: PAUSED"
+./bus network
 ```
 
-Use that container, not the older `dstns_simulation_engine`, which runs the
-previous sandbox. If the container is ever deleted, rebuilding needs a `dstns`
-checkout with the fix under "Known sandbox issue" applied.
-
-Clear everything published during testing. **Stopping and starting a run is not
-enough** — DSTNS's `start` clears weather, surges and news but keeps every
-published bus route, so routes from the test suite would still be on the map.
-Only `reset` removes them:
-
-```bash
-curl -s -X POST http://127.0.0.1:8090/api/v1/playback/stop
-curl -s -X POST http://127.0.0.1:8090/api/v1/playback/reset
-```
-
-then start a run from the UI, seek to 18:00 and pause. Check the *Live
-Bulletins* panel has no `Transit bus ... dispatched` entries. Do this *after*
-running `liveTest`, which publishes routes of its own.
-
-Warm the JVM so the first command is not slow in front of people:
-
-```bash
-./gradlew run -q --args="network --attach"
-```
+If the simulator is somewhere else, add `--sandbox http://host:port`.
 
 ## Act 1 — the sandbox
 
 Open `http://localhost:8090`.
 
-- **What it is.** A deterministic traffic simulator, C++20, serving a real
-  OpenStreetMap extract of Berlin Mitte: 279 junctions, 612 road segments.
-- **Seed.** Bottom bar, `Active Seed`. Same seed and same virtual time give the
-  same state, so any number reported can be reproduced.
-- **Clock.** Top left. **Seek to `18:00:00` and pause.** 18:00 is the demand peak
-  the network is designed for, and pausing matters: a moving clock changes the
-  road speeds while the algorithm is reading them.
-- **Where demand comes from.** Click a building junction — a school, office, mall
-  or store. Its peak profile is the time-of-day window it generates trips in.
-  Demand is synthetic, derived from these, not counted.
+- **What it is.** A deterministic traffic simulator, C++20. **[2.0]** The seed
+  picks a real city from 181 and a district inside it; the map is downloaded from
+  OpenStreetMap on demand.
+- **Seed.** Same seed and same virtual time give the same state, so any number
+  reported can be reproduced.
+- **Where demand comes from.** **[2.0]** Every place on the map — schools, shops,
+  offices, bus stops — has a demand multiplier, and a stop's follows the places
+  around it. The algorithm reads that figure per stop.
 
 The line to land: the sandbox owns the city and its traffic. It plans no routes
 for us.
 
 ## Act 2 — the algorithm
 
-Use `--attach` for everything. It reads the run on screen without touching its
-clock, and prints the run id, so the audience can see both halves are looking at
-the same simulation.
+Nothing below touches the simulator's clock, and the header names the run, so the
+audience can see both halves are looking at the same simulation.
 
 ```bash
-./gradlew run -q --args="network --attach"
+./bus network
 ```
 ```text
-Network at 18:00:00, seed 0x00000000000000000000000000002026 (attached to run_...)
-  R0     6 stops,   2.7 min end to end, demand 16.77
-  R1     2 stops,   0.9 min end to end, demand 5.64
-2 routes, covering 100.0% of 22.41 total demand
+DSTNS world
+  run      run_ab12  seed 0x2026  time 18:00:00  (attached; clock untouched)
+  map      279 junctions, 612 roads, graph 92237c35208c
+  one-way  139 roads excluded (read from /view/edges)
+  stops    8 flagged, 8 after merging those within 60 m
+  demand   BUILDINGS — summed from nearby building junctions
+  budget   8 min per line (default), walk 121 m (derived), up to 3 lines (derived), target 90%
+
+Lines
+  line  stops  minutes   demand  share  first -> last   direction
+  R0        6      2.7    16.77  74.8%      5 -> 54     one way (a one-way street)
+  R1        2      0.9     5.64  25.2%     32 -> 56     one way (a one-way street)
+
+Summary
+  2 lines cover 100.0% of demand (8 of 8 stops within reach)
+  stopped because the 90% coverage target was met
+  interchanges: none — no stop is served by more than one line
+  passenger network: connected — a rider can reach any served stop from any other
 ```
+
+Read the header aloud, because it is the honesty of the result. **[2.0]** On a
+live run, look at the `demand` line: `PLACES` means the simulator's own figure was
+used; `BUILDINGS` or `UNIFORM` means it was not, and the `places unavailable`
+note under it says why.
 
 Say what built it: greedy demand-covering construction, with our own Dijkstra on
 our own indexed binary heap as the subroutine. Say what it is not: designing an
 optimal bus network is NP-hard, and the usual methods — genetic algorithms,
 simulated annealing — are outside the course toolkit. This is a heuristic with
-no optimality claim, and it says so.
+no optimality claim, and it says so. The `stopped because` line says which limit
+ended it, and which flag would change that.
 
-Then a journey:
+Then pick real junction ids and plan a journey:
 
 ```bash
-./gradlew run -q --args="journey 5 217 --attach"
+./bus stops
+./bus journey 5 56
 ```
 ```text
-Walk from junction 5 to stop 5 (0.0 min)
-Ride R0 from stop 5 to stop 217, 4 stops (2.0 min)
-Walk from stop 217 to junction 217 (0.0 min)
-Total 2.0 min, 0 transfers
+Journey  junction 5 -> junction 56  at 18:00:00
+  from 52.51446, 13.38480   to 52.51712, 13.39258   straight line 605 m
+
+   1  Walk from junction 5 to stop 5                       0.0 min   at   0.0
+   2  Ride R0, stop 5 -> stop 214 (2 stops)                0.8 min   at   0.8
+   3  Walk from stop 214 to junction 56                    3.0 min   at   3.9
+
+  Total 3.9 min, 0 transfers. Walking straight there would take about 7.2 min.
+  The search looked at 8 of 8 transit vertices.
 ```
 
 This is A* over the transit graph. The query is between two *junctions*, not two
@@ -96,88 +108,82 @@ stops — the walk at each end is priced as a real edge.
 ## Act 3 — the same trip, backwards
 
 The strongest moment, because it shows a bug being caught and fixed rather than
-a feature.
+a feature. Swap the two ids from Act 2:
 
 ```bash
-./gradlew run -q --args="journey 217 5 --attach"
-```
-```text
-Walk from junction 217 to stop 205 (3.3 min)
-Walk from stop 205 to junction 5 (2.9 min)
-Total 6.2 min, 0 transfers
+./bus journey 56 5
 ```
 
-Same two places, three times as long, and no bus. R0 uses a one-way street, so it
-cannot be driven back along its own path.
+On the Berlin map the answer is several times longer and has no bus: line R0 uses
+a one-way street, so it cannot be driven back along its own path.
 
-The story behind it: the sandbox publishes the road network with a reverse
-direction for *every* street, including one-way ones, and does not mark which
-reverses are fake. When the sandbox switched to this real map, our publishing
-started being rejected. A sweep of all 612 roads found 139 refused — exactly the
-139 flagged as fabricated on a different endpoint, and exactly the 139 with no
-traffic demand. Three independent signals, one set. The search now excludes
-them.
+The story behind it: the simulator publishes the road network with a reverse
+direction for *every* street, including one-way ones. Nothing on the old topology
+said which reverses were fake, and the search was driving the wrong way down 139
+of 612 roads. Three independent signals agreed on that set — the simulator's
+route validator refused exactly those edges, a flag on a different endpoint
+marked them, and none of them carried traffic demand. **[2.0]** The topology now
+carries the flag itself, so the header reads `flagged by the topology`.
 
-Then publish, and switch back to the UI:
+Then export, and show the result on a map:
 
 ```bash
-./gradlew run -q --args="publish --attach"
+./bus export
 ```
 ```text
-Published 2 directed routes from 2 lines. R0, R1 could not be driven back along
-their own path — one-way streets — so they are published outbound only.
+Wrote 2 lines to:
+  out/routes.json
+  out/routes.geojson
+  R0, R1 cannot be driven back along their own path (one-way streets), so they are written outbound only.
 ```
 
-The lines render in the simulator's own view. The algorithm's output has become
-the simulator's input.
+Drag `out/routes.geojson` onto any GeoJSON viewer (geojson.io works). **[2.0]**
+The lines can no longer be sent back to the simulator to render there — it
+retired that endpoint — which is why the output is a file.
 
-**If you want a live-conditions beat**, trigger *Traffic Surge* or *Simulate Rain*
-on a junction near R0's stops in the UI, then re-run the Act 2 journey with
-`--attach`. Journey times should rise. Rehearse this first — how much they move
-depends on where the event lands, and it has not been measured for this runbook.
+**If you want a live-conditions beat**, trigger a traffic surge or rain on a
+junction near a line's stops in the simulator, pause, then re-run the journey.
+Times should rise. Rehearse this first — how much they move depends on where the
+event lands, and it has not been measured.
 
 ## Act 4 — the evidence
 
 ```bash
-./gradlew test       # 125 tests, saved sandbox responses, nothing needs to run
-./gradlew liveTest   # 21 tests against the running simulator
+./gradlew test       # 207 tests, saved sandbox responses, nothing needs to run
+./gradlew liveTest   # against the running simulator; see docs/testing.md
 ```
 
 Why two suites: the offline one cannot be broken by the simulator changing, and
 the live one exists to notice when it does. That is not hypothetical — the map
-changed this week, the offline suite stayed green against a map that no longer
-existed, and the live suite is what caught it.
+changed once and the offline suite stayed green against a map that no longer
+existed; the live suite is what caught it. The same applies now: the offline
+suite has not seen a 2.0 response yet.
 
 ## Things to be ready for
 
-- **"Why is walking often the answer?"** The map is 901 m by 947 m. For most
-  pairs, walking is genuinely competitive with a bus. That is the map, not the
-  algorithm.
-- **"Isn't that 21-minute answer wrong?"** Junction 66 to 207 comes back as 21.5
-  minutes with two changes, when walking takes about 11. It is wrong. The
-  planner only compares against walking the whole way for short trips; see
-  [limitations.md](limitations.md). Avoid this pair, or raise it yourself.
-- **"Why does A* only save 6.8%?"** On a real map Manhattan distance is not
+- **"Why is walking often the answer?"** On a small district, walking is
+  genuinely competitive with a bus. That is the map, not the algorithm.
+- **"Isn't a long answer wrong?"** The planner compares against walking the whole
+  way only for short trips; see [limitations.md](limitations.md). If a result
+  looks worse than walking, that is the limitation, and worth raising yourself.
+- **"Why does A* save so little?"** On a real map Manhattan distance is not
   admissible, so the heuristic falls back to Euclidean, which is looser, and the
-  transit graph has only eight vertices. The saving was 15.9% on the old grid
-  with Manhattan.
-- **"What's left?"** The weighted-A* research sweep, and a map large enough to
-  make it meaningful.
+  transit graph is small.
+- **"Why did the budget change between cities?"** The walking radius and line cap
+  are derived from that map's stop spacing and stop count, and the header says so.
+  The 150 m / 8 lines the earlier version used were an argument about one small
+  map, not a constant.
+- **"What's left?"** A live run against 2.0, and the weighted-A* research sweep.
 
 ## If something breaks
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `409 LIFECYCLE_CONFLICT` | should no longer happen | re-run; the CLI now stops the old run first |
-| `--attach needs a run that is already going` | no run active | press Resume in the UI |
-| `Could not reach the sandbox` | container down | `docker start dstns_engine_5f75fa5`, wait for `/health` |
-| journey says "Walk the whole way" | the two junctions are close | use `5 217` and `217 5` |
-| old routes still drawn on the map | a restarted run keeps published buses | `stop`, then `reset`, then start again |
-
-## Known sandbox issue
-
-DSTNS `5f75fa5` does not build as committed. `ui-engine/tests/mapFocus.test.tsx`
-lines 34 and 36 pass `exact: true` to `getByRole`, which is not a valid
-`ByRoleOptions` key, and `npm run build` type-checks tests, so the Docker build
-fails with `TS2769`. Removing `exact: true` from both calls fixes it. Until that
-lands upstream, build from a checkout with that change applied.
+| `No run is going on ...` | nothing has been started | start a run in the simulator's CLI or UI |
+| `--start needs the simulator's operator token` | 2.0 only starts runs for its operator | set `DSTNS_OPERATOR_TOKEN` or pass `--token-file <sandbox>/logs/operator.token`; nothing was stopped |
+| `the simulator refused the operator token` | wrong token | the previous run **was** already stopped; start one in the simulator |
+| `Could not read the simulator` | not running | `./launcher` in the sandbox repo |
+| `the simulator was still PREPARING after ...` | a city download is slow or blocked | check the simulator's own log; it needs to reach the Overpass API |
+| `Warning: the run is RUNNING` | the clock is moving | pause it, or pass `--time` |
+| `stops ... 0 after merging` / `No bus stops in this world` | that district has no usable stops | pick another seed |
+| journey says "Walk the whole way" | the two junctions are close | choose ids from `./bus stops` that are further apart |

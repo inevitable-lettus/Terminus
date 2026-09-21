@@ -1,5 +1,16 @@
 # Plan — finishing the bus route algorithm
 
+> **Update, 2026-09-21 — DSTNS 2.0.** `origin/dstns-v2` retires route publishing
+> (Phase B.3), gates run start behind an operator token, and serves a real city
+> chosen by seed, which also answers D.1: the larger map is now the normal case,
+> not a special one. The module was adapted from that branch's source — see
+> [decisions.md](decisions.md#dstns-20) and the first section of
+> [limitations.md](limitations.md) — and **has not yet been run against it**.
+> Next: run `./bus network` and `./gradlew liveTest` against a live 2.0, recapture
+> fixtures ([testing.md](testing.md#recapturing-fixtures-from-dstns-20)), then the
+> Phase 6 research deliverable. The text below is the plan as it stood on
+> 2026-09-12 and is kept as history.
+
 > **Status, 2026-09-12.** Phases A, B, C and F are done. D.2 is covered by tests.
 > D.1 is **blocked**: no endpoint for loading `real_network.osm.xml` has been
 > found, and this plan's claim that it is "loadable through the playback API"

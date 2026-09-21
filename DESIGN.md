@@ -113,4 +113,4 @@ This part is **not built yet**, and the current 279-junction Berlin extract, und
 
 ## Where things stand
 
-Both algorithms are built and tested; 60 tests pass with the sandbox stopped. Outstanding: a command-line entry point, publishing routes back to the sandbox so they render in its UI, live end-to-end tests, and the research deliverable. Progress and evidence per step are in [docs/build-log.md](docs/build-log.md).
+Both algorithms are built and tested; 207 tests pass with the sandbox stopped, and a command-line entry point (`./bus`) and file export are in place. The module has been adapted to DSTNS 2.0 from its source but not yet run against it. Outstanding: a live run against 2.0 and the research deliverable. Progress and evidence per step are in [docs/build-log.md](docs/build-log.md).

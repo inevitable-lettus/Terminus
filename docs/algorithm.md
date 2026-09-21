@@ -612,7 +612,12 @@ possible.
 
 ---
 
-## 10. Publishing routes back
+## 10. Publishing routes back *(retired in DSTNS 2.0 — now export to files)*
+
+> DSTNS 2.0 answers `POST /control/transit/route` with 410. `RoutePublisher` became
+> `RouteExporter` (`src/main/java/csc210/algorithm/export/`), which runs the same
+> continuity and return-leg checks and writes `routes.json` and `routes.geojson`
+> instead. The section below describes the original design.
 
 `POST /control/transit/route` validates that every consecutive pair of nodes is
 joined by a single directed edge and does **not** fill gaps. A route listing only
@@ -645,7 +650,7 @@ law, so it is checked and fails loudly on a map with one-way streets.
 | Algorithm 1 | `src/main/java/csc210/algorithm/routing/` |
 | Passenger network | `src/main/java/csc210/algorithm/transit/` |
 | Door-to-door queries, itineraries | `src/main/java/csc210/algorithm/journey/` |
-| Publishing routes back | `src/main/java/csc210/algorithm/publish/` |
+| Exporting routes to files | `src/main/java/csc210/algorithm/export/` |
 | Command line | `src/main/java/csc210/algorithm/Main.java` |
 | Saved sandbox responses | `src/test/resources/fixtures/` |
 

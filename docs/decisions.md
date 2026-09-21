@@ -210,6 +210,10 @@ your front door to the first stop as a change of bus.
 
 ## Publishing
 
+> **Superseded by [DSTNS 2.0](#dstns-20).** The endpoint these decisions were
+> about is retired, and the lines are written to files. The continuity and
+> return-leg decisions survive, applied to the export.
+
 **Continuity is checked locally before anything is sent.** The server rejects a
 route whose consecutive nodes are not joined by a single directed edge, but it
 does not say which pair. Checking first costs no round trip and names the gap.
@@ -278,3 +282,84 @@ some link changes line.
 default resets the simulator, which is right for reproducibility and wrong when
 someone is driving the UI. Attaching takes the run's own time and seed, so
 `--time` and `--seed` are refused alongside it rather than silently ignored.
+
+**`--attach` reads the running simulation rather than starting one.** *(Now the
+default, and no longer needs the flag — see below.)*
+
+## DSTNS 2.0
+
+Decided 2026-09-21 from a reading of `origin/dstns-v2`'s source, **before any live
+run against it**. Each of these is a bet placed on the source; the first live run
+is what confirms or overturns it. Where a bet is unverifiable it is written to
+degrade rather than fail.
+
+**Export to files, not to the simulator.** `POST /control/transit/route` is
+retired (410, "not part of the supported API"). Rejected: asking the sandbox track
+to restore it — the docs say it is gone on purpose. The output is `routes.json`
+(everything the algorithm produced, plus the run it came from) and
+`routes.geojson` (drawable anywhere). No timestamps, so the same input gives the
+same bytes and a difference means the result changed. The continuity check stays
+because it was never really the server's rule; it is what a drivable route is.
+
+**Attach by default; starting a run is explicit and checks the token first.** 2.0
+only lets its operator start a run, so the ordinary case is that one is already
+going. Rejected: keeping "stop, start, seek" as the default. It cannot work
+without the token, and worse, `stop` is not gated while `start` is, so a refused
+start had already killed the run somebody was watching. The token is now checked
+before anything is stopped, and the one case that cannot be — a wrong token — is
+named in the message. `--attach` is still accepted and does nothing.
+
+**Wait for `READY` after a start.** A start is acknowledged before the world
+exists, and on 2.0 the world may be a city being downloaded. `IDLE` and `STOPPED`
+are waited through rather than accepted, because straight after a start they can
+be the state from before it took effect; the timeout is what keeps that from
+being an endless wait.
+
+**One world loader for the command line and the live suite.** They each carried a
+copy of topology → snapshot → graph → one-way exclusion → demand, which is exactly
+how a fix reached one and not the other. Rejected: fixing both copies. A third
+change would have missed one again.
+
+**One-way streets: trust the topology when it says, ask `/view/edges` when it
+doesn't.** `Edge.syntheticReverse` is a nullable `Boolean` because *absent* and
+*false* are different answers: an older server that says nothing must not read as
+"every road is legal". Rejected: defaulting to `false`, which would silently
+route the wrong way down 139 roads on the older server.
+
+**Merge stops within 60 m.** The topology's `bus_stop` flag is raw OSM plus the
+simulator's placed stops, and only the *places* are thinned, so one real stop can
+arrive as several flagged junctions. 60 m is the server's own rule for stops on
+parallel streets. Rejected: using `/view/stops` as the stop set — it is the
+thinned *places*, whose anchors need not be junctions we can route between, and
+it does not exist on the older server. The merge is greedy in id order and
+deliberately **non-transitive**, so a chain of stops 50 m apart is not collapsed
+into one stop hundreds of metres long.
+
+**Demand chain: places, then buildings, then uniform.** Real-city extracts tag
+few buildings on road junctions, so the building-based demand can score every stop
+zero, and a builder handed zeros skips every hub and returns nothing. Rejected:
+buildings only (the probable failure above), and places only (the older server
+has none). The chosen source is printed in every report header, because "coverage
+94%" means something different on each. The places figure is a relative intensity
+(1.0 unmodulated, capped at 3.0), not a passenger count, and every stop starts
+from 1.0 — so coverage on `PLACES` is closer to "share of stops, weighted a
+little", and that is worth saying if asked.
+
+**Derive the budget from the stops.** The earlier 150 m walk and 8-line cap were
+an argument about one 8-stop map. Now the radius is half the median
+nearest-neighbour spacing, clamped to 75–400 m, and the line cap is one per twelve
+stops, clamped to 3–20. The 75 m floor is not arbitrary: it must exceed the 60 m
+merge radius, or a merged-away stop is outside its own representative's reach and
+is never counted covered. `RouteBudget.defaults()` stays, because tests pin
+numbers to it. Every figure can be overridden and the header says which were.
+
+**Heuristic speed follows the map.** `h` divides by the fastest speed anything
+moves at. The constant 16.67 m/s was correct for the road classes DSTNS
+configured; a real extract can carry a class configured faster, and dividing by
+too small a speed overestimates, which silently costs A* its optimality. It is now
+the larger of that constant and the fastest edge present.
+
+**Keep every existing fixture, and prove new behaviour on small hand-built data.**
+No fixture was recaptured, because there is no live 2.0 to capture from yet.
+Rejected: hand-writing a "2.0 fixture" — it would encode what I *expect* the
+server to send, which is the assumption under test.

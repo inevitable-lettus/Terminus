@@ -7,9 +7,10 @@ Two suites, and they answer different questions.
 | Default | `./gradlew test` | No | Is the algorithm correct? |
 | Live | `./gradlew liveTest` | Yes | Does it actually work against the real thing? |
 
-`./gradlew test` runs 125 tests against saved copies of real sandbox responses
-and passes on a laptop with Docker switched off. `./gradlew liveTest` runs 21
-tests against a running simulator. The live tests are tagged, and the default
+`./gradlew test` runs 207 tests against saved copies of real sandbox responses
+(captured from DSTNS `5f75fa5`) and small hand-built graphs, and passes with no
+simulator running. `./gradlew liveTest` runs the integration tests against a
+running simulator. The live tests are tagged, and the default
 suite excludes that tag, so nobody is ever blocked by a container they do not
 have running.
 
@@ -42,25 +43,31 @@ moves.
 
 ## The default suite — is the algorithm correct?
 
-125 tests across sixteen classes.
+207 tests across twenty-two classes.
 
 | Class | Tests | What it establishes |
 |---|---|---|
 | `DomainTypesTest` | 13 | The data records hold what the sandbox sends |
 | `TopologyDataTest` | 3 | A saved response deserializes into those records correctly |
-| `SandboxClientTest` | 5 | The HTTP layer parses envelopes and surfaces failures |
-| `GraphTest` | 6 | The graph builds, ids are dense, the reverse-twin invariant holds on all 612 edges |
+| `SandboxClientTest` | 13 | The HTTP layer parses envelopes and surfaces failures; **[2.0]** the operator token travels on the start and nothing else, a refused start is not reported as an outage, `awaitReady` waits through `PREPARING` and fails on `ERROR`, places page past the server's clamp |
+| `GraphTest` | 10 | The graph builds, ids are dense, the reverse-twin invariant holds on all 612 edges; a topology that says which edges are one-way is trusted, one that is silent is not read as "all legal" |
 | `CostModelTest` | 6 | Costs are right, the clamp works, closed roads are excluded |
 | `IndexedMinHeapTest` | 6 | The heap behaves exactly like a known-good priority queue |
 | `DijkstraTest` | 9 | Shortest paths agree with a brute force, and rebuild correctly |
 | `DemandModelTest` | 9 | Demand is scored from the right signal at the right time |
-| `RouteBudgetTest` | 10 | The stopping conditions reject nonsense and hold their defaults |
+| `RouteBudgetTest` | 16 | The stopping conditions reject nonsense and hold their defaults; the derived budget scales with the map, never drops below the merge radius, and survives fewer than two stops |
 | `RouteNetworkBuilderTest` | 12 | Routes are continuous, budgeted, and reproducible |
 | `TransitGraphTest` | 7 | The passenger network is connected and transfers cost something |
-| `AStarTest` | 7 | A* finds the same answers as Dijkstra for less work, and its guess is sound |
+| `AStarTest` | 8 | A* finds the same answers as Dijkstra for less work, and its guess is sound |
+| `HeuristicSpeedTest` | 2 | A road faster than the configured maximum shrinks the guess instead of breaking A*'s guarantee |
 | `JourneyPlannerTest` | 16 | A query between two junctions is answered, and the spliced endpoints keep the guess admissible |
-| `RoutePublisherTest` | 6 | Routes satisfy the server's continuity rule, and the return leg is real |
-| `MainTest` | 8 | The command line parses its arguments and renders what it found |
+| `RouteExporterTest` | 13 | Routes are drivable traversals, the return leg is real, both files say what the network says, output is byte-stable, and a broken route writes nothing |
+| `OptionsTest` | 12 | Every command and option parses, defaults are attach-and-leave-the-clock-alone, bad values are one-line errors |
+| `ReportTest` | 18 | Every report says what it stands on, why the builder stopped, and how a journey unfolds, including the empty and unreachable cases |
+| `MainTest` | 15 | The whole flow against a stub that records requests: attach touches nothing, `--time` pauses and seeks only, and a start without a token **stops nothing** |
+| `DemandChainTest` | 8 | Places, then buildings, then uniform; merged stops sum their places; NaN and negative figures are discarded |
+| `StopSetTest` | 8 | Stops within 60 m merge, the radius is inclusive, chains are not collapsed, the result is deterministic |
+| `WorldLoaderTest` | 2 | The whole pipeline over the fixtures: an older server needs `/view/edges` and has no places; a 2.0 server is never asked for edges |
 | `HelloTest` | 1 | The toolchain compiles and runs a test at all |
 
 ### The three kinds of proof used, and why each was chosen
@@ -116,12 +123,21 @@ stay legal.
 
 ## The live suite — does it work against the real thing?
 
-Twenty-one tests in three classes. Run them with the simulator up:
+The integration tests, in three classes. Run them with the simulator up and a run
+going:
 
 ```bash
-docker start dstns_engine_5f75fa5
 ./gradlew liveTest
 ```
+
+**[2.0]** Only the operator can start a run, so `LiveSandbox` has two modes. With
+`DSTNS_OPERATOR_TOKEN` set it starts a run of its own at seed `0x2026`, as it
+always did. Without it, it **adopts the run already going** — pausing and seeking
+it, which are not gated — and skips if there is none. It never stops a run it
+could not restart. In adopt mode the map is whatever the operator chose, so
+figures that were pinned to the Berlin fixtures (for example "coverage above
+80%") may not hold on another city, and a failure there is a finding about the
+assumption, not necessarily a bug.
 
 Against a simulator somewhere else, pass its address:
 
@@ -270,16 +286,39 @@ comment saying why these are not all 200.
 ## Running everything
 
 ```bash
-./gradlew test                  # 125 tests, no simulator needed
-docker start dstns_engine_5f75fa5
-./gradlew liveTest              # 21 tests against the live simulator
+./gradlew test                  # 207 tests, no simulator needed
+# start a run in the simulator's own CLI, then:
+./gradlew liveTest              # against the live simulator
 ```
 
-The live suite changes simulator state. It moves the clock, and it closes a road
-and reopens it in a `finally` block so that one is restored pass or fail.
+The live suite changes simulator state: it moves the clock, and it closes a road
+and reopens it in a `finally` block so that one is restored pass or fail. It no
+longer publishes routes — DSTNS 2.0 retired that — so nothing is left behind on
+the map.
 
-It also **publishes routes, and those stay**: eight buses, `R0`/`R0-R` through
-`R3`/`R3-R`, plus a rejected `GAPPED` attempt that never registers. They are
-overwritten by the next run rather than accumulating, since the server keys
-buses by `bus_id`, but a simulator that has had the live suite run against it is
-not in a pristine state. Restart the container if that matters.
+---
+
+## Recapturing fixtures from DSTNS 2.0
+
+The saved fixtures are from `5f75fa5`. Nothing offline has seen a 2.0 response
+yet, and that is the largest gap in this module's evidence. With a run going and
+paused at 18:00, from the repository root:
+
+```bash
+B=http://127.0.0.1:8090/api/v1
+curl -s $B/view/topology            > src/test/resources/fixtures/v2/topology.json
+curl -s $B/view/snapshot            > src/test/resources/fixtures/v2/snapshot_1800.json
+curl -s "$B/view/places?kind=bus_stop&limit=2000" > src/test/resources/fixtures/v2/places_bus_stop.json
+curl -s $B/playback/status          > src/test/resources/fixtures/v2/status.json
+```
+
+Note the seed and the city (`/system/map-status`) in the commit message. Then
+check, in this order, before writing any new test against them:
+
+1. Does every edge in `topology.json` carry `synthetic_reverse`?
+2. Does each stop place's `anchor_node` fall on a node whose `bus_stop` is true?
+   If not, the module falls back to 1.0 per stop for those — worth knowing.
+3. How many nodes are flagged `bus_stop`, and how many survive merging?
+4. Is `data.items[].position` in the shape `{lat, lon, x_m, y_m}`?
+
+Each of these is an assumption the 2.0 code makes from reading the source.

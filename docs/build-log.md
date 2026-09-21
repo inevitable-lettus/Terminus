@@ -475,3 +475,36 @@ Euclidean is a looser bound than Manhattan and the transit graph is tiny.
 The research deliverable — the weighted-A* sweep across network sizes — is
 outstanding, and this map is too small to answer it. See
 [limitations.md](limitations.md).
+
+## 2026-09-21 — catching up to DSTNS 2.0
+
+**What happened.** The sandbox track published `origin/dstns-v2` (`bc6e517`,
+18 commits past `dstns`). Docker was down and nothing was run; the whole adaptation
+is from reading its source and this module's own code end to end first.
+
+**What the reading found, and what each became.**
+
+| Found | Consequence if left | Now |
+|---|---|---|
+| Route publishing returns 410 | `publish` fails | export to `routes.json` / `routes.geojson` |
+| Start needs an operator token; `stop` is not gated | `Main` stopped the run, then was refused — the user's run destroyed | token checked before any stop; attach is the default |
+| Start is async, a city may be downloading | seek races the preparation | `awaitReady` |
+| Building demand needs tagged *junctions* | probably all-zero demand, so an empty network | places, then buildings, then uniform; source printed |
+| Flagged stops are raw OSM, unthinned | duplicate stops inflate demand and lines | merge within 60 m |
+| Budget and heuristic constants tuned to Berlin | unreachable coverage target; a possible inadmissible heuristic | derived from the map |
+| Topology now carries `synthetic_reverse` | a needless paged request | trusted when present, `/view/edges` when not |
+| `Main` and the live setup duplicated the loading pipeline | the next fix reaches one of them | one `WorldLoader` |
+
+**Also changed.** The command line became `./bus` with `network`, `stops`,
+`journey` and `export`, and every report opens with the run, map, stop count,
+demand source and budget, then says why the builder stopped and whether the
+lines connect.
+
+**Numbers.** 207 offline tests, up from 125, all green. The existing Berlin
+fixtures are untouched and still pass; every new behaviour is proved on small
+hand-built data.
+
+**Not done, and not knowable from here.** Nothing has run against a live 2.0. The
+places payload, the stop anchors and the lifecycle strings are readings of source.
+[limitations.md](limitations.md) lists each and what happens if it is wrong.
+
