@@ -185,4 +185,158 @@ class SandboxClientTest {
             server.stop(0);
         }
     }
+
+    // --- DSTNS 2.0: operator gate, async start, places ---------------------
+
+    /** Serves fixed responses for a few paths and records the headers each one saw. */
+    private static HttpServer server(java.util.function.Consumer<HttpServer> routes) throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        routes.accept(server);
+        server.start();
+        return server;
+    }
+
+    private static void reply(com.sun.net.httpserver.HttpExchange exchange, int status, String body)
+            throws IOException {
+        byte[] bytes = body.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        exchange.getResponseHeaders().add("Content-Type", "application/json");
+        exchange.sendResponseHeaders(status, bytes.length);
+        exchange.getResponseBody().write(bytes);
+        exchange.close();
+    }
+
+    private static String base(HttpServer server) {
+        return "http://127.0.0.1:" + server.getAddress().getPort();
+    }
+
+    @Test
+    void startWithoutTheOperatorTokenIsReportedAsARefusalNotAnOutage() throws Exception {
+        HttpServer server = server(s -> s.createContext("/api/v1/playback/start", exchange -> reply(exchange, 403,
+                "{\"error\":{\"code\":\"CLI_START_REQUIRED\",\"message\":\"Start simulations through the operator CLI.\"}}")));
+        try {
+            SandboxClient client = new SandboxClient(base(server));
+            assertTrue(!client.hasOperatorToken());
+            RunStartRefusedException refused = assertThrows(RunStartRefusedException.class,
+                    () -> client.startPlayback("1", "00:00:00", 600));
+            assertTrue(refused.getMessage().contains("no operator token"), refused.getMessage());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void operatorTokenTravelsOnTheStartAndOnNothingElse() throws Exception {
+        java.util.List<String> startHeader = new java.util.concurrent.CopyOnWriteArrayList<>();
+        java.util.List<String> otherHeader = new java.util.concurrent.CopyOnWriteArrayList<>();
+        HttpServer server = server(s -> {
+            s.createContext("/api/v1/playback/start", exchange -> {
+                startHeader.add(String.valueOf(exchange.getRequestHeaders().getFirst("X-DSTNS-Operator")));
+                reply(exchange, 202, "{\"ok\":true}");
+            });
+            s.createContext("/api/v1/playback/pause", exchange -> {
+                otherHeader.add(String.valueOf(exchange.getRequestHeaders().getFirst("X-DSTNS-Operator")));
+                reply(exchange, 200, "{\"ok\":true}");
+            });
+        });
+        try {
+            SandboxClient client = new SandboxClient(base(server)).withOperatorToken("  secret\n");
+            assertTrue(client.hasOperatorToken());
+            client.startPlayback("1", "00:00:00", 600);
+            client.pausePlayback();
+            assertEquals(List.of("secret"), startHeader, "surrounding whitespace is stripped");
+            assertEquals(List.of("null"), otherHeader, "the credential must not leak onto other requests");
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void aBlankTokenIsTreatedAsNoToken() {
+        assertTrue(!new SandboxClient("http://127.0.0.1:1").withOperatorToken("  \n").hasOperatorToken());
+    }
+
+    @Test
+    void awaitReadyWaitsThroughPreparationAndReturnsOnceThereIsAWorld() throws Exception {
+        AtomicInteger calls = new AtomicInteger();
+        String[] states = {"IDLE", "PREPARING", "PREPARING", "ready"};
+        HttpServer server = server(s -> s.createContext("/health", exchange -> reply(exchange, 200,
+                "{\"ok\":true,\"product\":\"x\",\"lifecycle\":\"" + states[Math.min(calls.getAndIncrement(), 3)] + "\"}")));
+        try {
+            new SandboxClient(base(server)).awaitReady(Duration.ofSeconds(5), Duration.ofMillis(10));
+            assertEquals(4, calls.get(), "lifecycle case must not matter, and IDLE/PREPARING must be waited through");
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void awaitReadyFailsFastWhenTheRunIsInError() throws Exception {
+        HttpServer server = server(s -> s.createContext("/health", exchange -> reply(exchange, 200,
+                "{\"ok\":true,\"product\":\"x\",\"lifecycle\":\"ERROR\"}")));
+        try {
+            IOException failure = assertThrows(IOException.class,
+                    () -> new SandboxClient(base(server)).awaitReady(Duration.ofSeconds(5), Duration.ofMillis(10)));
+            assertTrue(failure.getMessage().contains("ERROR"), failure.getMessage());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void awaitReadyGivesUpWhenPreparationNeverFinishes() throws Exception {
+        HttpServer server = server(s -> s.createContext("/health", exchange -> reply(exchange, 200,
+                "{\"ok\":true,\"product\":\"x\",\"lifecycle\":\"PREPARING\"}")));
+        try {
+            IOException failure = assertThrows(IOException.class,
+                    () -> new SandboxClient(base(server)).awaitReady(Duration.ofMillis(150), Duration.ofMillis(20)));
+            assertTrue(failure.getMessage().contains("PREPARING"), failure.getMessage());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    private static String placeJson(String id, int anchor, double multiplier) {
+        return "{\"id\":\"" + id + "\",\"name\":\"\",\"kind\":\"bus_stop\",\"position\":"
+                + "{\"lat\":52.5,\"lon\":13.4,\"x_m\":10.5,\"y_m\":-20.0},\"anchor_node\":" + anchor
+                + ",\"demand\":{\"multiplier\":" + multiplier + ",\"baseline\":1.0,\"factors\":[],\"radius_m\":400.0}}";
+    }
+
+    @Test
+    void placesArePagedAcrossTheServersLimitAndParsed() throws Exception {
+        AtomicInteger calls = new AtomicInteger();
+        java.util.List<String> queries = new java.util.concurrent.CopyOnWriteArrayList<>();
+        HttpServer server = server(s -> s.createContext("/api/v1/view/places", exchange -> {
+            queries.add(exchange.getRequestURI().getQuery());
+            int call = calls.getAndIncrement();
+            String items = call == 0
+                    ? placeJson("node/1", 4, 1.5) + "," + placeJson("node/2", 9, 2.0)
+                    : placeJson("node/3", 12, 1.0);
+            reply(exchange, 200, "{\"api_version\":\"1.0\",\"data\":{\"items\":[" + items
+                    + "],\"total\":3,\"offset\":0,\"limit\":2000,\"kind\":\"bus_stop\"}}");
+        }));
+        try {
+            List<Place> places = new SandboxClient(base(server)).places("bus_stop");
+            assertEquals(3, places.size());
+            assertEquals(4, places.get(0).anchorNode());
+            assertEquals(1.5, places.get(0).demand().multiplier());
+            assertEquals(400.0, places.get(0).demand().radiusM());
+            assertEquals(10.5, places.get(0).position().xM());
+            assertTrue(queries.get(0).contains("kind=bus_stop") && queries.get(0).contains("limit=2000"), queries.get(0));
+            assertTrue(queries.get(1).contains("offset=2"), queries.get(1));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void placesThatStallBeforeTheDeclaredTotalFailLoudly() throws Exception {
+        HttpServer server = server(s -> s.createContext("/api/v1/view/places", exchange -> reply(exchange, 200,
+                "{\"api_version\":\"1.0\",\"data\":{\"items\":[],\"total\":5,\"offset\":0,\"limit\":2000}}")));
+        try {
+            IOException failure = assertThrows(IOException.class, () -> new SandboxClient(base(server)).places("bus_stop"));
+            assertTrue(failure.getMessage().contains("stalled"), failure.getMessage());
+        } finally {
+            server.stop(0);
+        }
+    }
 }

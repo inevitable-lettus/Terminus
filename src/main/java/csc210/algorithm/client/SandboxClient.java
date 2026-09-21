@@ -35,6 +35,9 @@ public final class SandboxClient {
     private final ObjectMapper objectMapper;
     private final Duration requestTimeout;
 
+    /** The operator credential DSTNS 2.0 requires to start a run; null when not supplied. */
+    private final String operatorToken;
+
     public SandboxClient(String baseUrl) {
         this(baseUrl,
                 HttpClient.newBuilder().connectTimeout(DEFAULT_CONNECT_TIMEOUT).build(),
@@ -53,10 +56,30 @@ public final class SandboxClient {
      * dependency cannot block the caller forever.
      */
     public SandboxClient(String baseUrl, HttpClient httpClient, ObjectMapper objectMapper, Duration requestTimeout) {
+        this(baseUrl, httpClient, objectMapper, requestTimeout, null);
+    }
+
+    private SandboxClient(String baseUrl, HttpClient httpClient, ObjectMapper objectMapper,
+                          Duration requestTimeout, String operatorToken) {
         this.baseUri = URI.create(baseUrl);
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
         this.requestTimeout = requestTimeout;
+        this.operatorToken = operatorToken == null || operatorToken.isBlank() ? null : operatorToken.strip();
+    }
+
+    /**
+     * A client that presents {@code token} as the operator credential when it
+     * starts a run. DSTNS 2.0 only honours a start that carries it, and only
+     * the start: no other request is sent the header.
+     */
+    public SandboxClient withOperatorToken(String token) {
+        return new SandboxClient(baseUri.toString(), httpClient, objectMapper, requestTimeout, token);
+    }
+
+    /** Whether this client holds an operator credential, so a caller can check before it stops anything. */
+    public boolean hasOperatorToken() {
+        return operatorToken != null;
     }
 
     public HealthStatus health() throws IOException, InterruptedException {
@@ -102,6 +125,68 @@ public final class SandboxClient {
     }
 
     /**
+     * Every place of one kind ({@code "bus_stop"}, say), paged until the server
+     * says it has sent them all. DSTNS 2.0 and later; an older server answers
+     * 404, which surfaces as an {@link IOException} for the caller to fall back on.
+     *
+     * @param kind the classifier's kind, or empty for every place
+     */
+    public java.util.List<Place> places(String kind) throws IOException, InterruptedException {
+        java.util.List<Place> all = new java.util.ArrayList<>();
+        String filter = kind == null || kind.isEmpty() ? "" : "&kind=" + kind;
+        int offset = 0;
+        while (true) {
+            Envelope envelope = get("/api/v1/view/places?offset=" + offset + "&limit=2000" + filter, Envelope.class);
+            PlacePage page = objectMapper.treeToValue(envelope.data(), PlacePage.class);
+            all.addAll(page.items());
+            offset += page.items().size();
+            if (offset >= page.total()) {
+                return all;
+            }
+            if (page.items().isEmpty()) {
+                throw new IOException("places pagination stalled: got an empty page at offset " + offset
+                        + " but the server's declared total is " + page.total());
+            }
+        }
+    }
+
+    /**
+     * Waits until the simulator has a world to read: {@code READY}, {@code RUNNING}
+     * or {@code PAUSED}. A start is acknowledged with 202 before the world exists —
+     * on DSTNS 2.0 it may first have to download a city — so reading straight after
+     * it races the preparation.
+     *
+     * <p>{@code IDLE} and {@code STOPPED} are waited through rather than accepted:
+     * right after a start they can be the state that was there <em>before</em> the
+     * request took effect, and a world is only worth reading once it is prepared.
+     * The timeout is what stops that becoming an endless wait.
+     *
+     * @throws IOException if the run enters {@code ERROR} or {@code COMPLETED}, or
+     *         nothing usable appears within {@code timeout}
+     */
+    public void awaitReady(Duration timeout, Duration pollEvery) throws IOException, InterruptedException {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        String last = "unknown";
+        while (true) {
+            String lifecycle = health().lifecycle();
+            last = lifecycle == null ? "unknown" : lifecycle;
+            switch (last.toUpperCase(java.util.Locale.ROOT)) {
+                case "READY", "RUNNING", "PAUSED" -> {
+                    return;
+                }
+                case "ERROR", "COMPLETED", "TERMINATING" ->
+                    throw new IOException("the simulator is " + last + ", so there is no world to read");
+                default -> { /* still preparing, or not yet started: keep waiting */ }
+            }
+            if (System.nanoTime() >= deadline) {
+                throw new IOException("the simulator was still " + last + " after "
+                        + timeout.toSeconds() + " s; it may be downloading a map");
+            }
+            Thread.sleep(pollEvery.toMillis());
+        }
+    }
+
+    /**
      * Starts a run at a fixed seed, so that every later read is reproducible.
      *
      * @param seed hex seed string, e.g. {@code "0x2026"}
@@ -117,7 +202,7 @@ public final class SandboxClient {
                 "start_virtual_time", startVirtualTime,
                 "playback_duration_seconds", playbackDurationSeconds,
                 "tick_rate", 1));
-        return send("POST", "/api/v1/playback/start", body);
+        return send("POST", "/api/v1/playback/start", body, true);
     }
 
     /** Stops the active run, so a fresh {@link #startPlayback} can begin. */
@@ -209,12 +294,28 @@ public final class SandboxClient {
 
     private JsonNode send(String method, String path, String body)
             throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder(baseUri.resolve(path))
+        return send(method, path, body, false);
+    }
+
+    /**
+     * @param startsRun whether this request begins a run, and so carries the
+     *        operator credential when one is held — and no other request does
+     */
+    private JsonNode send(String method, String path, String body, boolean startsRun)
+            throws IOException, InterruptedException {
+        HttpRequest.Builder builder = HttpRequest.newBuilder(baseUri.resolve(path))
                 .header("Content-Type", "application/json")
                 .timeout(requestTimeout)
-                .method(method, HttpRequest.BodyPublishers.ofString(body))
-                .build();
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                .method(method, HttpRequest.BodyPublishers.ofString(body));
+        if (startsRun && operatorToken != null) {
+            builder.header("X-DSTNS-Operator", operatorToken);
+        }
+        HttpResponse<String> response = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() == 403 && response.body().contains("CLI_START_REQUIRED")) {
+            throw new RunStartRefusedException(operatorToken == null
+                    ? "the simulator only starts runs for its operator, and no operator token was given"
+                    : "the simulator refused the operator token it was given");
+        }
         // Any 2xx counts as success. These are not all 200: starting a run answers
         // 202 Accepted, because the simulator acknowledges the request and prepares
         // the scenario rather than finishing the work inside the response.
