@@ -90,4 +90,55 @@ class GraphTest {
                         0, false, 0, false, 0, 0, 0, null, 0, 0)),
                         java.util.List.of()));
     }
+
+    // --- one-way status straight from the topology (DSTNS 2.0) -------------
+
+    private static csc210.algorithm.model.Node plainNode(int id) {
+        return new csc210.algorithm.model.Node(id, 1L, new csc210.algorithm.model.Position(0, 0, id * 50.0, 0),
+                0, false, 0, false, 0, 0, 0, null, 0, 0);
+    }
+
+    @Test
+    void oldFixtureDoesNotSayWhichEdgesAreOneWay() {
+        // The saved topology predates the flag. "Absent" must not read as
+        // "every road is legal": the caller has to go and ask /view/edges.
+        assertEquals(false, graph.oneWayKnown());
+        assertEquals(0, graph.syntheticReverseIds().size());
+    }
+
+    @Test
+    void topologyThatCarriesTheFlagIsTrustedAndReportsTheFabricatedEdges() throws IOException {
+        String json = """
+                {"id":0,"from":0,"to":1,"reverse_twin":1,"length_m":50,"free_speed_mps":10,"synthetic_reverse":false}""";
+        String twin = """
+                {"id":1,"from":1,"to":0,"reverse_twin":0,"length_m":50,"free_speed_mps":10,"synthetic_reverse":true}""";
+        ObjectMapper mapper = SandboxJson.mapper();
+        Graph flagged = Graph.of(
+                java.util.List.of(plainNode(0), plainNode(1)),
+                java.util.List.of(mapper.readValue(json, Edge.class), mapper.readValue(twin, Edge.class)));
+
+        assertEquals(true, flagged.oneWayKnown());
+        assertEquals(java.util.Set.of(1), flagged.syntheticReverseIds());
+    }
+
+    @Test
+    void oneMissingFlagIsEnoughToMakeTheAnswerUnknown() throws IOException {
+        Edge said = SandboxJson.mapper().readValue(
+                "{\"id\":0,\"from\":0,\"to\":1,\"reverse_twin\":1,\"length_m\":50,\"free_speed_mps\":10,\"synthetic_reverse\":false}",
+                Edge.class);
+        Edge silent = new Edge(1, 1, 0, 0, "residential", 1, 50.0, 10.0);
+        Graph mixed = Graph.of(java.util.List.of(plainNode(0), plainNode(1)), java.util.List.of(said, silent));
+
+        assertEquals(false, mixed.oneWayKnown());
+    }
+
+    @Test
+    void fastestFreeFlowSpeedIsReadOffTheEdges() {
+        Graph two = Graph.of(java.util.List.of(plainNode(0), plainNode(1)), java.util.List.of(
+                new Edge(0, 0, 1, 1, "primary", 1, 50.0, 16.67),
+                new Edge(1, 1, 0, 0, "motorway", 1, 50.0, 27.78)));
+
+        assertEquals(27.78, two.maxFreeSpeedMps());
+        assertEquals(0.0, Graph.of(java.util.List.of(plainNode(0)), java.util.List.of()).maxFreeSpeedMps());
+    }
 }

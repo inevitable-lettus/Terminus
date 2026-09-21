@@ -99,6 +99,45 @@ public final class Graph {
         return edges[id];
     }
 
+    /**
+     * Whether the topology said, for every edge, if it is a fabricated reverse.
+     * False means at least one edge carried no answer — a server older than
+     * DSTNS 2.0 — and {@link #syntheticReverseIds()} is then incomplete: the
+     * caller has to ask {@code /view/edges} instead.
+     */
+    public boolean oneWayKnown() {
+        for (Edge edge : edges) {
+            if (edge.syntheticReverse() == null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Ids of the edges the topology flags as the fabricated reverse of a
+     * one-way street: real ids, but not roads any vehicle may drive. Only
+     * meaningful when {@link #oneWayKnown()}; an edge with no answer is left out.
+     */
+    public java.util.Set<Integer> syntheticReverseIds() {
+        java.util.Set<Integer> ids = new java.util.TreeSet<>();
+        for (Edge edge : edges) {
+            if (Boolean.TRUE.equals(edge.syntheticReverse())) {
+                ids.add(edge.id());
+            }
+        }
+        return ids;
+    }
+
+    /** The fastest free-flow speed on any edge, in metres per second; 0 for an edgeless graph. */
+    public double maxFreeSpeedMps() {
+        double fastest = 0.0;
+        for (Edge edge : edges) {
+            fastest = Math.max(fastest, edge.freeSpeedMps());
+        }
+        return fastest;
+    }
+
     /** Ids of every edge leaving {@code nodeId}, in {@code O(degree)}. */
     public int[] outgoingEdges(int nodeId) {
         int start = adjacencyStart[nodeId];
