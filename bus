@@ -1,0 +1,14 @@
+#!/bin/sh
+# The bus route algorithm, one command.
+#
+#   ./bus network            the bus lines and how well they cover demand
+#   ./bus stops              the busiest stops, and which lines serve them
+#   ./bus journey FROM TO    one passenger journey between two junctions
+#   ./bus export             write the network to out/ as JSON and GeoJSON
+#   ./bus help               every option
+#
+# Builds first if the sources changed (a no-op otherwise), then runs.
+set -e
+cd "$(dirname "$0")"
+./gradlew -q installDist
+exec build/install/csc210-algorithm/bin/csc210-algorithm "$@"

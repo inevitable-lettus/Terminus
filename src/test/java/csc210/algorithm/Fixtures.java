@@ -83,6 +83,25 @@ public final class Fixtures {
         return csc210.algorithm.client.EdgeDetail.syntheticReverseIds(edgeDetailsAt0830());
     }
 
+    /**
+     * The world as {@link csc210.algorithm.world.WorldLoader} builds it from an
+     * older server, at 18:00, from the saved fixtures: every step the loader takes
+     * except the HTTP.
+     */
+    public static csc210.algorithm.world.World world1800() {
+        TopologyData topology = topology();
+        SnapshotData snapshot = snapshotAt1800();
+        csc210.algorithm.graph.Graph graph = csc210.algorithm.graph.Graph.of(topology.nodes(), topology.edges());
+        java.util.Set<Integer> oneWay = oneWayEdgeIdsAt1800();
+        csc210.algorithm.demand.StopSet stops = csc210.algorithm.demand.StopSet.of(graph);
+        csc210.algorithm.demand.DemandModel demand =
+                csc210.algorithm.demand.DemandModel.of(graph, snapshot, stops, null);
+        return new csc210.algorithm.world.World(topology, snapshot, graph,
+                csc210.algorithm.cost.CostModel.of(graph, snapshot, oneWay), stops, demand,
+                oneWay.size(), false, null,
+                csc210.algorithm.routing.RouteBudget.forStops(graph, demand.stopNodes()));
+    }
+
     private static <T> T read(String resource, Class<T> payloadType) {
         try (InputStream in = Fixtures.class.getResourceAsStream(resource)) {
             if (in == null) {

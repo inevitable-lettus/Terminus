@@ -5,6 +5,9 @@ ai-context/
 # Gradle
 .gradle/
 build/
+
+# Written by ./bus export
+out/
 !gradle/wrapper/gradle-wrapper.jar
 
 # IDE Java build output (VSCode Java ext, etc.)
