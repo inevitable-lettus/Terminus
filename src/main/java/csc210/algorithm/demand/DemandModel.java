@@ -1,5 +1,6 @@
 package csc210.algorithm.demand;
 
+import csc210.algorithm.client.Place;
 import csc210.algorithm.client.SnapshotData;
 import csc210.algorithm.graph.Graph;
 import csc210.algorithm.model.Node;
@@ -45,19 +46,87 @@ public final class DemandModel {
     private final int[] stopNodes;
     private final double[] demandAtNode;
     private final double totalDemand;
+    private final DemandSource source;
 
-    private DemandModel(int[] stopNodes, double[] demandAtNode, double totalDemand) {
+    private DemandModel(int[] stopNodes, double[] demandAtNode, double totalDemand, DemandSource source) {
         this.stopNodes = stopNodes;
         this.demandAtNode = demandAtNode;
         this.totalDemand = totalDemand;
+        this.source = source;
     }
 
     /**
-     * Scores every bus stop DSTNS placed, from the building activity in one snapshot.
+     * Scores every bus stop DSTNS flagged, from the building activity in one
+     * snapshot, with no merging and no fallback: the model as it was before
+     * DSTNS 2.0, kept for the fixtures that pin it. Prefer
+     * {@link #of(Graph, SnapshotData, StopSet, List)} against a live server.
      *
      * @throws IllegalArgumentException if the snapshot does not cover every node
      */
     public static DemandModel of(Graph graph, SnapshotData snapshot) {
+        StopSet stops = StopSet.unclustered(graph);
+        double[] buildings = buildingDemand(graph, snapshot, stops);
+        return assemble(graph, stops, buildings, DemandSource.BUILDINGS);
+    }
+
+    /**
+     * Scores the given stops from the best source available, in this order:
+     *
+     * <ol>
+     *   <li>{@link DemandSource#PLACES} — the simulator's own per-stop demand, if
+     *       any stop had a place attached;</li>
+     *   <li>{@link DemandSource#BUILDINGS} — our sum over building junctions, if it
+     *       found anything at all;</li>
+     *   <li>{@link DemandSource#UNIFORM} — every stop equal, so the builder still
+     *       has something to design for.</li>
+     * </ol>
+     *
+     * <p>The chain exists because the second source can be silent. It needs
+     * buildings tagged on <em>road junctions</em>, and a real city extract puts most
+     * shops and schools on separate features, so every stop can score zero. A
+     * builder handed all zeros skips every hub and returns no network at all.
+     *
+     * @param places the simulator's places, or {@code null} if they could not be read
+     * @throws IllegalArgumentException if the snapshot does not cover every node
+     */
+    public static DemandModel of(Graph graph, SnapshotData snapshot, StopSet stops, List<Place> places) {
+        if (places != null && !places.isEmpty()) {
+            PlaceDemand fromPlaces = PlaceDemand.of(graph.nodeCount(), stops, places);
+            if (fromPlaces.matchedStops() > 0) {
+                double[] scores = new double[graph.nodeCount()];
+                for (int stop : stops.representatives()) {
+                    scores[stop] = fromPlaces.demandAt(stop);
+                }
+                return assemble(graph, stops, scores, DemandSource.PLACES);
+            }
+        }
+        double[] buildings = buildingDemand(graph, snapshot, stops);
+        DemandModel fromBuildings = assemble(graph, stops, buildings, DemandSource.BUILDINGS);
+        if (fromBuildings.totalDemand() > 0.0) {
+            return fromBuildings;
+        }
+        double[] uniform = new double[graph.nodeCount()];
+        for (int stop : stops.representatives()) {
+            uniform[stop] = 1.0;
+        }
+        return assemble(graph, stops, uniform, DemandSource.UNIFORM);
+    }
+
+    private static DemandModel assemble(Graph graph, StopSet stops, double[] demandAtNode, DemandSource source) {
+        int[] stopNodes = stops.representatives();
+        double total = 0.0;
+        for (int stop : stopNodes) {
+            total += demandAtNode[stop];
+        }
+        return new DemandModel(stopNodes, demandAtNode, total, source);
+    }
+
+    /** Where the demand figures came from. */
+    public DemandSource source() {
+        return source;
+    }
+
+    private static double[] buildingDemand(Graph graph, SnapshotData snapshot, StopSet stops) {
         int nodeCount = graph.nodeCount();
         if (snapshot.nodes().size() != nodeCount) {
             throw new IllegalArgumentException(
@@ -92,15 +161,8 @@ public final class DemandModel {
         }
 
         double[] demandAtNode = new double[nodeCount];
-        List<Integer> stops = new ArrayList<>();
-        double totalDemand = 0.0;
-
-        for (int id = 0; id < nodeCount; id++) {
+        for (int id : stops.representatives()) {
             Node stop = graph.node(id);
-            if (!stop.busStop()) {
-                continue;
-            }
-            stops.add(id);
             double demand = 0.0;
             for (Node building : activeBuildings) {
                 // The building's own radius, not the stop's: the sandbox states
@@ -110,14 +172,8 @@ public final class DemandModel {
                 }
             }
             demandAtNode[id] = demand;
-            totalDemand += demand;
         }
-
-        int[] stopNodes = new int[stops.size()];
-        for (int i = 0; i < stopNodes.length; i++) {
-            stopNodes[i] = stops.get(i);
-        }
-        return new DemandModel(stopNodes, demandAtNode, totalDemand);
+        return demandAtNode;
     }
 
     /** Ids of every node DSTNS flagged as a bus stop, ascending. */
