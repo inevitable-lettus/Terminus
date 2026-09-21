@@ -60,10 +60,17 @@ import csc210.algorithm.transit.TransitGraph;
 public final class TransitHeuristic {
 
     /**
-     * Fastest speed on this map, in metres per second: 16.67, the primary-road
-     * free-flow limit. Worth noting for the writeup — DSTNS's own A* hardcodes
-     * 33.33 m/s, roughly twice too loose. Ours is tighter and still admissible,
-     * so it expands fewer vertices than theirs would on the same graph.
+     * The floor for the fastest speed on the map, in metres per second: 16.67,
+     * the primary-road free-flow limit DSTNS configures. Worth noting for the
+     * writeup — DSTNS's own A* hardcodes 33.33 m/s, roughly twice too loose. Ours
+     * is tighter and still admissible, so it expands fewer vertices than theirs
+     * would on the same graph.
+     *
+     * <p>It is a floor, not the value used: {@link #towards} takes the larger of
+     * this and the fastest edge actually on the map. Admissibility needs the
+     * divisor to be at least as fast as anything that moves, and a real-city
+     * extract can carry a road class configured faster than this. Trusting the
+     * constant would let A* quietly return a path that is not the cheapest.
      */
     public static final double MAX_SPEED_MPS = 16.67;
 
@@ -80,11 +87,13 @@ public final class TransitHeuristic {
     private final TransitGraph graph;
     private final Distance distance;
     private final Position goal;
+    private final double maxSpeedMps;
 
-    private TransitHeuristic(TransitGraph graph, Distance distance, Position goal) {
+    private TransitHeuristic(TransitGraph graph, Distance distance, Position goal, double maxSpeedMps) {
         this.graph = graph;
         this.distance = distance;
         this.goal = goal;
+        this.maxSpeedMps = maxSpeedMps;
     }
 
     /**
@@ -100,7 +109,8 @@ public final class TransitHeuristic {
                     "this map has edges that are not axis-aligned, so Manhattan distance can "
                             + "overestimate and would break A*'s optimality guarantee");
         }
-        return new TransitHeuristic(graph, distance, graph.vertex(goalVertex).position());
+        double maxSpeed = Math.max(MAX_SPEED_MPS, roadGraph.maxFreeSpeedMps());
+        return new TransitHeuristic(graph, distance, graph.vertex(goalVertex).position(), maxSpeed);
     }
 
     /** Milliseconds A* should assume are still to come, at best, from {@code vertex}. */
@@ -110,7 +120,7 @@ public final class TransitHeuristic {
             case EUCLIDEAN -> Math.hypot(from.xM() - goal.xM(), from.yM() - goal.yM());
             case MANHATTAN -> Math.abs(from.xM() - goal.xM()) + Math.abs(from.yM() - goal.yM());
         };
-        return (long) Math.floor(metres / MAX_SPEED_MPS * 1000.0);
+        return (long) Math.floor(metres / maxSpeedMps * 1000.0);
     }
 
     /**
