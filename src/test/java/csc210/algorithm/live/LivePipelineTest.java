@@ -55,7 +55,7 @@ class LivePipelineTest {
     @DisplayName("the whole pipeline runs on live data and produces a usable network")
     void endToEndOnLiveData() throws IOException, InterruptedException {
         LiveSandbox.World world = LiveSandbox.at(LiveSandbox.DESIGN_TIME);
-        RouteBudget budget = RouteBudget.defaults();
+        RouteBudget budget = world.budget();
 
         RouteNetwork network = new RouteNetworkBuilder(
                 world.graph(), world.costModel(), world.demandModel(), budget).build();
@@ -102,7 +102,7 @@ class LivePipelineTest {
     void aStarMatchesDijkstraOnLiveData() throws IOException, InterruptedException {
         LiveSandbox.World world = LiveSandbox.at(LiveSandbox.DESIGN_TIME);
         RouteNetwork network = new RouteNetworkBuilder(world.graph(), world.costModel(),
-                world.demandModel(), RouteBudget.defaults()).build();
+                world.demandModel(), world.budget()).build();
         TransitGraph transit = TransitGraph.of(world.graph(), network, world.costModel());
         AStar aStar = new AStar(transit);
 
@@ -142,7 +142,7 @@ class LivePipelineTest {
     void heuristicStaysAdmissibleOnLiveData() throws IOException, InterruptedException {
         LiveSandbox.World world = LiveSandbox.at(LiveSandbox.DESIGN_TIME);
         RouteNetwork network = new RouteNetworkBuilder(world.graph(), world.costModel(),
-                world.demandModel(), RouteBudget.defaults()).build();
+                world.demandModel(), world.budget()).build();
         TransitGraph transit = TransitGraph.of(world.graph(), network, world.costModel());
         AStar aStar = new AStar(transit);
 
@@ -220,7 +220,7 @@ class LivePipelineTest {
     private static RouteNetwork buildOnce() throws IOException, InterruptedException {
         LiveSandbox.World world = LiveSandbox.at(LiveSandbox.DESIGN_TIME);
         return new RouteNetworkBuilder(world.graph(), world.costModel(),
-                world.demandModel(), RouteBudget.defaults()).build();
+                world.demandModel(), world.budget()).build();
     }
 
     private static int reachableFromFirstVertex(TransitGraph graph) {

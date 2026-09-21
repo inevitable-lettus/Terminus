@@ -6,7 +6,6 @@ import csc210.algorithm.journey.StopAccess;
 import csc210.algorithm.journey.StopAccessIndex;
 import csc210.algorithm.publish.RoutePublisher;
 import csc210.algorithm.routing.BusRoute;
-import csc210.algorithm.routing.RouteBudget;
 import csc210.algorithm.routing.RouteNetwork;
 import csc210.algorithm.routing.RouteNetworkBuilder;
 import csc210.algorithm.transit.TransitGraph;
@@ -42,7 +41,7 @@ class LiveJourneyTest {
     private static LiveWorld plannerAtDesignTime() throws IOException, InterruptedException {
         LiveSandbox.World world = LiveSandbox.at(LiveSandbox.DESIGN_TIME);
         RouteNetwork network = new RouteNetworkBuilder(world.graph(), world.costModel(),
-                world.demandModel(), RouteBudget.defaults()).build();
+                world.demandModel(), world.budget()).build();
         TransitGraph transit = TransitGraph.of(world.graph(), network, world.costModel());
         return new LiveWorld(world, network, transit, JourneyPlanner.of(world.graph(), transit));
     }
@@ -189,7 +188,7 @@ class LiveJourneyTest {
                     "the simulator reported the road open again immediately after being told to close it");
 
             RouteNetwork rebuilt = new RouteNetworkBuilder(after.graph(), after.costModel(),
-                    after.demandModel(), RouteBudget.defaults()).build();
+                    after.demandModel(), after.budget()).build();
             TransitGraph transit = TransitGraph.of(after.graph(), rebuilt, after.costModel());
             JourneyPlanner planner = JourneyPlanner.of(after.graph(), transit);
             RoutePublisher publisher = new RoutePublisher(after.graph());

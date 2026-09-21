@@ -1,14 +1,16 @@
 package csc210.algorithm.live;
 
-import csc210.algorithm.client.EdgeDetail;
 import csc210.algorithm.client.SandboxClient;
 import csc210.algorithm.client.SnapshotData;
 import csc210.algorithm.client.TopologyData;
 import csc210.algorithm.cost.CostModel;
 import csc210.algorithm.demand.DemandModel;
 import csc210.algorithm.graph.Graph;
+import csc210.algorithm.routing.RouteBudget;
+import csc210.algorithm.world.WorldLoader;
 
 import java.io.IOException;
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -23,6 +25,14 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * running — without the explicit pause the simulation carries on from wherever it
  * was put and the state read back is a few minutes past the time asked for.
  *
+ * <p><strong>Two ways in, decided by the operator token.</strong> DSTNS 2.0 only
+ * starts a run for its operator. With {@code DSTNS_OPERATOR_TOKEN} set in the
+ * environment this class starts a run of its own at {@link #SEED}, as before. Without
+ * it, it <em>attaches</em> to whatever run is already going — pausing and seeking
+ * it, which are not gated — and skips if there is none. It never stops a run it
+ * could not restart. In attach mode the seed is whatever the operator chose, so a
+ * test that depends on a particular map should say so.
+ *
  * <p>If no sandbox is reachable the tests <em>skip</em> rather than fail. A test
  * that cannot run has not found a defect, and reporting it as one would train
  * everybody to ignore red builds.
@@ -35,6 +45,8 @@ final class LiveSandbox {
     /** The demand peak the route network is designed for. */
     static final String DESIGN_TIME = "18:00:00";
 
+    private static final Duration READY_TIMEOUT = Duration.ofMinutes(3);
+
     private LiveSandbox() {}
 
     /** Everything downstream of one live read, built exactly as production code would. */
@@ -44,11 +56,18 @@ final class LiveSandbox {
             SnapshotData snapshot,
             Graph graph,
             CostModel costModel,
-            DemandModel demandModel
-    ) {}
+            DemandModel demandModel,
+            RouteBudget budget
+    ) {
+        static World of(SandboxClient client, csc210.algorithm.world.World built) {
+            return new World(client, built.topology(), built.snapshot(), built.graph(),
+                    built.costModel(), built.demandModel(), built.budget());
+        }
+    }
 
     static SandboxClient client() {
-        return new SandboxClient(System.getProperty("sandbox.url", "http://127.0.0.1:8090"));
+        return new SandboxClient(System.getProperty("sandbox.url", "http://127.0.0.1:8090"))
+                .withOperatorToken(System.getenv("DSTNS_OPERATOR_TOKEN"));
     }
 
     /** Skips the whole test unless a sandbox answers on the configured URL. */
@@ -66,52 +85,37 @@ final class LiveSandbox {
     }
 
     /**
-     * Parks the simulator at {@link #DESIGN_TIME} on seed {@link #SEED} and reads
-     * the world from it.
+     * Parks the simulator at {@code virtualTime} and reads the world from it.
      *
-     * <p>A run may already be active from an earlier test or an earlier session,
-     * and starting one then answers HTTP 409. Rather than guess, the existing run
-     * is stopped first and a fresh one started, so the seed is known rather than
-     * inherited.
+     * <p>With an operator token a run may already be active, and starting one then
+     * answers HTTP 409, so the existing run is stopped first and a fresh one
+     * started at {@link #SEED}. Without a token the existing run is adopted.
      */
     static World at(String virtualTime) throws IOException, InterruptedException {
         SandboxClient client = requireReachableSandbox();
 
-        try {
-            client.stopPlayback();
-        } catch (IOException alreadyStopped) {
-            // Nothing was running. Not a failure — that is the state we wanted.
+        if (client.hasOperatorToken()) {
+            try {
+                client.stopPlayback();
+            } catch (IOException alreadyStopped) {
+                // Nothing was running. Not a failure — that is the state we wanted.
+            }
+            client.startPlayback(SEED, "00:00:00", 600);
+            client.awaitReady(READY_TIMEOUT, Duration.ofSeconds(1));
+        } else {
+            String lifecycle = client.health().lifecycle();
+            assumeTrue(lifecycle != null && !"IDLE".equalsIgnoreCase(lifecycle),
+                    "DSTNS 2.0 only starts runs for its operator: set DSTNS_OPERATOR_TOKEN, "
+                            + "or start a run in the operator CLI and rerun");
         }
-        client.startPlayback(SEED, "00:00:00", 600);
         client.pausePlayback();
         client.seek(virtualTime);
 
-        TopologyData topology = client.topology();
-        SnapshotData snapshot = client.snapshot();
-        Graph graph = Graph.of(topology.nodes(), topology.edges());
-
-        return new World(client, topology, snapshot, graph,
-                costsFor(client, graph, snapshot), DemandModel.of(graph, snapshot));
+        return World.of(client, WorldLoader.load(client));
     }
 
     /** Re-reads live state without touching the clock, for before-and-after comparisons. */
     static World reread(SandboxClient client, TopologyData topology) throws IOException, InterruptedException {
-        SnapshotData snapshot = client.snapshot();
-        Graph graph = Graph.of(topology.nodes(), topology.edges());
-        return new World(client, topology, snapshot, graph,
-                costsFor(client, graph, snapshot), DemandModel.of(graph, snapshot));
-    }
-
-    /**
-     * The cost model exactly as {@code Main} builds it, one-way streets
-     * excluded.
-     *
-     * <p>Shared by both readers above so the live suite can never be testing a
-     * differently-built world than the one the command line produces — which is
-     * the whole point of a live suite.
-     */
-    static CostModel costsFor(SandboxClient client, Graph graph, SnapshotData snapshot)
-            throws IOException, InterruptedException {
-        return CostModel.of(graph, snapshot, EdgeDetail.syntheticReverseIds(client.edges()));
+        return World.of(client, WorldLoader.load(client));
     }
 }

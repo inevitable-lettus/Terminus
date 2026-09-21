@@ -130,13 +130,9 @@ class LiveContractTest {
     void pauseThenSeekPutsTheClockWhereAsked() throws IOException, InterruptedException {
         SandboxClient client = LiveSandbox.requireReachableSandbox();
 
-        try {
-            client.stopPlayback();
-        } catch (IOException nothingRunning) {
-            // Fine — nothing to stop.
-        }
-        client.startPlayback(LiveSandbox.SEED, "00:00:00", 600);
-        client.pausePlayback();
+        // Starts a run (operator token set) or adopts the one already going, paused
+        // at midnight — then this test does the seek it is actually about.
+        LiveSandbox.at("00:00:00");
         var seekResponse = client.seek("18:00:00");
 
         // 18:00:00 is 64800 seconds into the virtual day.
