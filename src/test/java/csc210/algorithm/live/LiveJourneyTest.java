@@ -4,7 +4,7 @@ import csc210.algorithm.journey.Itinerary;
 import csc210.algorithm.journey.JourneyPlanner;
 import csc210.algorithm.journey.StopAccess;
 import csc210.algorithm.journey.StopAccessIndex;
-import csc210.algorithm.publish.RoutePublisher;
+import csc210.algorithm.export.RouteExporter;
 import csc210.algorithm.routing.BusRoute;
 import csc210.algorithm.routing.RouteNetwork;
 import csc210.algorithm.routing.RouteNetworkBuilder;
@@ -118,52 +118,25 @@ class LiveJourneyTest {
     }
 
     @Test
-    @DisplayName("the simulator accepts every generated line, in whichever directions it can be driven")
-    void publishingTheNetworkIsAccepted() throws IOException, InterruptedException {
+    @DisplayName("every generated line is a drivable traversal, in whichever directions the roads allow")
+    void everyLineIsDrivableAndExportsCleanly() throws IOException, InterruptedException {
         LiveWorld live = plannerAtDesignTime();
-        RoutePublisher publisher = new RoutePublisher(live.world().graph(), live.world().costModel());
+        RouteExporter exporter = new RouteExporter(live.world().graph(), live.world().costModel());
 
-        int published = publisher.publishAll(live.world().client(), live.network());
-
-        // Not two per line any more. This map has one-way streets, and a line
-        // that uses one cannot retrace its own path — DSTNS rejects the reverse
-        // as "not directly adjacent in the road network", because the reverse
-        // twin it publishes on /view/topology is a fabrication. Outbound is
-        // always publishable; the return leg is only sometimes.
-        int lines = live.network().routeCount();
-        int oneWay = publisher.oneWayLines().size();
-        assertEquals(2 * lines - oneWay, published,
-                "every line publishes outbound, and back only where the road allows");
-        assertTrue(published >= lines, "every line must at least publish outbound");
-        System.out.println("Published " + published + " directed routes from " + lines
-                + " lines; one-way lines: " + publisher.oneWayLines());
-    }
-
-    @Test
-    @DisplayName("the server really does reject a route with a gap in it")
-    void aGappedRouteIsRejectedByTheServer() throws IOException, InterruptedException {
-        LiveWorld live = plannerAtDesignTime();
-        BusRoute route = live.network().routes().get(0);
-        int[] stopsOnly = route.stops();
-
-        // This is the check that makes the full-traversal design necessary
-        // rather than merely defensible. If the server accepted a stops-only
-        // route, carrying every intermediate junction would be dead weight.
-        assertTrue(stopsOnly.length >= 2);
-        IOException rejected = assertThrows(IOException.class,
-                () -> live.world().client().publishRoute("GAPPED", "gapped", stopsOnly),
-                "a route listing only its stops must be rejected; if this passes, the "
-                        + "server fills gaps after all and BusRoute.nodes() could be simplified");
-
-        // It must be rejected for being discontinuous, not for some unrelated
-        // reason. The first version of this test passed because bus_id was
-        // being sent as a number, so the server never got as far as looking at
-        // the nodes — green for the wrong reason is worse than red.
-        assertFalse(rejected.getMessage().contains("INVALID_FIELD_TYPE"),
-                "rejected on field types, so the gap was never actually tested: " + rejected.getMessage());
-        assertTrue(rejected.getMessage().contains("adjacent")
-                        || rejected.getMessage().contains("Discontinuous"),
-                "expected a discontinuity complaint, got: " + rejected.getMessage());
+        for (BusRoute route : live.network().routes()) {
+            exporter.requireContinuous(route.nodes(), route.label() + " outbound");
+            if (exporter.canBeDrivenBack(route)) {
+                exporter.requireContinuous(exporter.returnNodes(route), route.label() + " return");
+            }
+        }
+        // Publishing to the simulator is retired in DSTNS 2.0 (HTTP 410), so the
+        // drivability rule its validator used to enforce is checked here directly.
+        var written = exporter.toJson(live.network(), new RouteExporter.Meta(
+                null, LiveSandbox.DESIGN_TIME, live.world().topology().graphHash(), null,
+                live.world().graph().nodeCount(), live.world().graph().edgeCount(),
+                live.world().demandModel().stopCount()));
+        assertTrue(written.contains("\"routes\""));
+        System.out.println("One-way lines: " + exporter.oneWayLines(live.network()));
     }
 
     @Test
@@ -191,7 +164,7 @@ class LiveJourneyTest {
                     after.demandModel(), after.budget()).build();
             TransitGraph transit = TransitGraph.of(after.graph(), rebuilt, after.costModel());
             JourneyPlanner planner = JourneyPlanner.of(after.graph(), transit);
-            RoutePublisher publisher = new RoutePublisher(after.graph());
+            RouteExporter publisher = new RouteExporter(after.graph());
 
             for (BusRoute rebuiltRoute : rebuilt.routes()) {
                 for (int edge : rebuiltRoute.edges()) {

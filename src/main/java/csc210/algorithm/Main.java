@@ -9,7 +9,7 @@ import csc210.algorithm.demand.DemandModel;
 import csc210.algorithm.graph.Graph;
 import csc210.algorithm.journey.Itinerary;
 import csc210.algorithm.journey.JourneyPlanner;
-import csc210.algorithm.publish.RoutePublisher;
+import csc210.algorithm.export.RouteExporter;
 import csc210.algorithm.routing.BusRoute;
 import csc210.algorithm.routing.RouteBudget;
 import csc210.algorithm.routing.RouteNetwork;
@@ -26,7 +26,7 @@ import java.util.List;
  * <pre>
  *   network            build the bus network and print it
  *   journey FROM TO    plan one passenger journey between two junctions
- *   publish            send the network to the simulator so it renders there
+ *   publish            write the network to out/ (the simulator no longer accepts routes)
  * </pre>
  *
  * <p>Options: {@code --time HH:MM:SS} (default 18:00:00, the demand peak the
@@ -114,7 +114,7 @@ public final class Main {
         return switch (options.mode) {
             case NETWORK -> describeNetwork(network, options);
             case JOURNEY -> describeJourney(roadGraph, costModel, network, options);
-            case PUBLISH -> publish(client, roadGraph, costModel, network);
+            case PUBLISH -> export(roadGraph, costModel, network, topology, options, demandModel.stopCount());
         };
     }
 
@@ -143,21 +143,18 @@ public final class Main {
                 options.from, options.to, options.time, options.attachedTo(), itinerary.describe());
     }
 
-    private static String publish(SandboxClient client, Graph roadGraph, CostModel costModel,
-                                  RouteNetwork network) throws IOException, InterruptedException {
-        RoutePublisher publisher = new RoutePublisher(roadGraph, costModel);
-        int count = publisher.publishAll(client, network);
-        List<String> oneWay = publisher.oneWayLines();
-        if (oneWay.isEmpty()) {
-            return String.format("Published %d directed routes (%d lines, both directions).",
-                    count, network.routeCount());
-        }
-        return String.format(
-                "Published %d directed routes from %d lines. %s could not be driven back along %s own "
-                        + "path — one-way streets — so %s published outbound only.",
-                count, network.routeCount(), String.join(", ", oneWay),
-                oneWay.size() == 1 ? "its" : "their",
-                oneWay.size() == 1 ? "it is" : "they are");
+    private static String export(Graph roadGraph, CostModel costModel, RouteNetwork network,
+                                 TopologyData topology, Options options, int stops) throws IOException {
+        RouteExporter exporter = new RouteExporter(roadGraph, costModel);
+        RouteExporter.Written written = exporter.write(network,
+                new RouteExporter.Meta(options.seed, options.time, topology.graphHash(), null,
+                        roadGraph.nodeCount(), roadGraph.edgeCount(), stops),
+                java.nio.file.Path.of("out"));
+        String oneWay = written.oneWayLines().isEmpty()
+                ? ""
+                : " " + String.join(", ", written.oneWayLines()) + " cannot be driven back (one-way streets).";
+        return String.format("Wrote %d routes to %s and %s.%s",
+                written.routes(), written.json(), written.geojson(), oneWay);
     }
 
     /**
@@ -288,7 +285,7 @@ public final class Main {
                 Usage:
                   network            build the bus network and print it
                   journey FROM TO    plan one journey between two junction ids
-                  publish            send the network to the simulator
+                  publish            write the network to out/ as JSON and GeoJSON
 
                 Options:
                   --time HH:MM:SS    virtual time to design for (default 18:00:00)
