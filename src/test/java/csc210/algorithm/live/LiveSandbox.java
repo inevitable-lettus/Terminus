@@ -84,25 +84,33 @@ final class LiveSandbox {
         return client;
     }
 
+    /** Whether this JVM has already started its own run; one per suite is enough. */
+    private static boolean startedOurRun;
+
     /**
      * Parks the simulator at {@code virtualTime} and reads the world from it.
      *
      * <p>With an operator token a run may already be active, and starting one then
      * answers HTTP 409, so the existing run is stopped first and a fresh one
-     * started at {@link #SEED}. Without a token the existing run is adopted.
+     * started at {@link #SEED} — once per suite, not once per test: every test
+     * pauses and seeks before it reads, so a shared run gives each the same
+     * world, and restarting a real city costs tens of seconds each time.
+     * Without a token the existing run is adopted.
      */
-    static World at(String virtualTime) throws IOException, InterruptedException {
+    static synchronized World at(String virtualTime) throws IOException, InterruptedException {
         SandboxClient client = requireReachableSandbox();
 
-        if (client.hasOperatorToken()) {
+        if (client.hasOperatorToken() && !startedOurRun) {
             try {
                 client.stopPlayback();
-            } catch (IOException alreadyStopped) {
-                // Nothing was running. Not a failure — that is the state we wanted.
+            } catch (csc210.algorithm.client.SandboxHttpException nothingToStop) {
+                // The simulator answered; nothing it owns is in our way.
             }
+            client.awaitLeaving("STOPPING", READY_TIMEOUT, Duration.ofSeconds(1));
             client.startPlayback(SEED, "00:00:00", 600);
             client.awaitReady(READY_TIMEOUT, Duration.ofSeconds(1));
-        } else {
+            startedOurRun = true;
+        } else if (!client.hasOperatorToken()) {
             String lifecycle = client.health().lifecycle();
             assumeTrue(lifecycle != null && !"IDLE".equalsIgnoreCase(lifecycle),
                     "DSTNS 2.0 only starts runs for its operator: set DSTNS_OPERATOR_TOKEN, "

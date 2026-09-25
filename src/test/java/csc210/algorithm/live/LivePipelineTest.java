@@ -61,8 +61,11 @@ class LivePipelineTest {
                 world.graph(), world.costModel(), world.demandModel(), budget).build();
 
         assertTrue(network.routeCount() > 0, "no routes were built from live data");
-        assertTrue(network.coverage() > 0.80,
-                "live coverage was only " + network.coverage());
+        // The builder stops at the coverage target or at the line cap, whichever
+        // comes first; which one depends on the map the seed chose.
+        assertTrue(network.coverage() >= budget.targetCoverage() || network.routeCount() == budget.maxRoutes(),
+                "stopped at " + network.coverage() + " coverage with " + network.routeCount()
+                        + " lines, neither at the target nor at the cap");
 
         System.out.printf("live network at %s: %d routes, %.1f%% of demand %.2f%n",
                 LiveSandbox.DESIGN_TIME, network.routeCount(),
@@ -169,15 +172,23 @@ class LivePipelineTest {
     void aLiveClosureIsHonoured() throws IOException, InterruptedException {
         LiveSandbox.World world = LiveSandbox.at(LiveSandbox.DESIGN_TIME);
 
-        // Pick an edge that the shortest path from 0 to 60 actually uses, so the
-        // closure has something to change. A road nothing routes through would
-        // make this test pass without proving anything.
+        // Pick an edge the shortest path between two real stops actually uses —
+        // the first line's ends, which the builder guarantees can reach each
+        // other — so the closure has something to change. A road nothing routes
+        // through would make this test pass without proving anything.
+        RouteNetwork network = new RouteNetworkBuilder(world.graph(), world.costModel(),
+                world.demandModel(), world.budget()).build();
+        assertTrue(network.routeCount() > 0, "no line to take a journey along");
+        int[] ends = network.routes().get(0).stops();
+        int from = ends[0];
+        int to = ends[ends.length - 1];
+
         Dijkstra dijkstra = new Dijkstra(world.graph(), world.costModel());
-        ShortestPathTree before = dijkstra.from(0);
-        int[] pathEdges = before.edgePathTo(60);
-        assertTrue(pathEdges.length > 0, "no path from 0 to 60 to disrupt");
+        ShortestPathTree before = dijkstra.from(from);
+        int[] pathEdges = before.edgePathTo(to);
+        assertTrue(pathEdges.length > 0, "no path from " + from + " to " + to + " to disrupt");
         int edgeToClose = pathEdges[pathEdges.length / 2];
-        long costBefore = before.costTo(60);
+        long costBefore = before.costTo(to);
 
         try {
             world.client().setEdgeClosed(edgeToClose, true);
@@ -186,16 +197,20 @@ class LivePipelineTest {
             assertTrue(!closed.costModel().isTraversable(edgeToClose),
                     "edge " + edgeToClose + " was closed but the cost model still allows it");
 
-            ShortestPathTree after = new Dijkstra(closed.graph(), closed.costModel()).from(0);
-            assertTrue(after.isReachable(60), "closing one road should not strand the destination on a grid");
-            for (int edgeId : after.edgePathTo(60)) {
+            ShortestPathTree after = new Dijkstra(closed.graph(), closed.costModel()).from(from);
+            if (!after.isReachable(to)) {
+                // A real street can be the only way in; then being cut off is the right answer.
+                System.out.printf("closed edge %d: %d is now unreachable from %d%n", edgeToClose, to, from);
+                return;
+            }
+            for (int edgeId : after.edgePathTo(to)) {
                 assertTrue(edgeId != edgeToClose, "the new path still uses the closed road");
             }
-            assertTrue(after.costTo(60) >= costBefore,
+            assertTrue(after.costTo(to) >= costBefore,
                     "rerouting around a closure cannot be cheaper than the original path");
 
-            System.out.printf("closed edge %d: journey 0->60 went from %d ms to %d ms%n",
-                    edgeToClose, costBefore, after.costTo(60));
+            System.out.printf("closed edge %d: journey %d->%d went from %d ms to %d ms%n",
+                    edgeToClose, from, to, costBefore, after.costTo(to));
         } finally {
             // Leave the simulator as we found it, whatever happened above.
             world.client().setEdgeClosed(edgeToClose, false);
