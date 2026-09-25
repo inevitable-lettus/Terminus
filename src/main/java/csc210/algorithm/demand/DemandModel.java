@@ -1,6 +1,6 @@
 package csc210.algorithm.demand;
 
-import csc210.algorithm.client.Place;
+import csc210.algorithm.client.Feature;
 import csc210.algorithm.client.SnapshotData;
 import csc210.algorithm.graph.Graph;
 import csc210.algorithm.model.Node;
@@ -47,12 +47,17 @@ public final class DemandModel {
     private final double[] demandAtNode;
     private final double totalDemand;
     private final DemandSource source;
+    private final int generatorsAssigned;
+    private final int generatorsActive;
 
-    private DemandModel(int[] stopNodes, double[] demandAtNode, double totalDemand, DemandSource source) {
+    private DemandModel(int[] stopNodes, double[] demandAtNode, double totalDemand, DemandSource source,
+                        int generatorsAssigned, int generatorsActive) {
         this.stopNodes = stopNodes;
         this.demandAtNode = demandAtNode;
         this.totalDemand = totalDemand;
         this.source = source;
+        this.generatorsAssigned = generatorsAssigned;
+        this.generatorsActive = generatorsActive;
     }
 
     /**
@@ -73,8 +78,8 @@ public final class DemandModel {
      * Scores the given stops from the best source available, in this order:
      *
      * <ol>
-     *   <li>{@link DemandSource#PLACES} — the simulator's own per-stop demand, if
-     *       any stop had a place attached;</li>
+     *   <li>{@link DemandSource#CATCHMENT} — the simulator's trip generators,
+     *       each credited to its nearest stop, if any was within reach;</li>
      *   <li>{@link DemandSource#BUILDINGS} — our sum over building junctions, if it
      *       found anything at all;</li>
      *   <li>{@link DemandSource#UNIFORM} — every stop equal, so the builder still
@@ -86,18 +91,22 @@ public final class DemandModel {
      * shops and schools on separate features, so every stop can score zero. A
      * builder handed all zeros skips every hub and returns no network at all.
      *
-     * @param places the simulator's places, or {@code null} if they could not be read
+     * @param features the topology's features, or {@code null} from a server that
+     *        sends none — together with the snapshot's {@code demand} list they
+     *        are the catchment source
      * @throws IllegalArgumentException if the snapshot does not cover every node
      */
-    public static DemandModel of(Graph graph, SnapshotData snapshot, StopSet stops, List<Place> places) {
-        if (places != null && !places.isEmpty()) {
-            PlaceDemand fromPlaces = PlaceDemand.of(graph.nodeCount(), stops, places);
-            if (fromPlaces.matchedStops() > 0) {
-                double[] scores = new double[graph.nodeCount()];
-                for (int stop : stops.representatives()) {
-                    scores[stop] = fromPlaces.demandAt(stop);
-                }
-                return assemble(graph, stops, scores, DemandSource.PLACES);
+    public static DemandModel of(Graph graph, SnapshotData snapshot, StopSet stops, List<Feature> features) {
+        if (features != null && snapshot.demand() != null) {
+            CatchmentDemand catchment = CatchmentDemand.of(graph, stops, features, snapshot.demand());
+            double[] scores = new double[graph.nodeCount()];
+            for (int stop : stops.representatives()) {
+                scores[stop] = catchment.demandAt(stop);
+            }
+            DemandModel fromCatchment = assemble(graph, stops, scores, DemandSource.CATCHMENT,
+                    catchment.assignedGenerators(), catchment.activeGenerators());
+            if (fromCatchment.totalDemand() > 0.0) {
+                return fromCatchment;
             }
         }
         double[] buildings = buildingDemand(graph, snapshot, stops);
@@ -113,17 +122,32 @@ public final class DemandModel {
     }
 
     private static DemandModel assemble(Graph graph, StopSet stops, double[] demandAtNode, DemandSource source) {
+        return assemble(graph, stops, demandAtNode, source, 0, 0);
+    }
+
+    private static DemandModel assemble(Graph graph, StopSet stops, double[] demandAtNode, DemandSource source,
+                                        int generatorsAssigned, int generatorsActive) {
         int[] stopNodes = stops.representatives();
         double total = 0.0;
         for (int stop : stopNodes) {
             total += demandAtNode[stop];
         }
-        return new DemandModel(stopNodes, demandAtNode, total, source);
+        return new DemandModel(stopNodes, demandAtNode, total, source, generatorsAssigned, generatorsActive);
     }
 
     /** Where the demand figures came from. */
     public DemandSource source() {
         return source;
+    }
+
+    /** For {@link DemandSource#CATCHMENT}: generators within reach of a stop, and so counted. */
+    public int generatorsAssigned() {
+        return generatorsAssigned;
+    }
+
+    /** For {@link DemandSource#CATCHMENT}: active generators the map could place. */
+    public int generatorsActive() {
+        return generatorsActive;
     }
 
     private static double[] buildingDemand(Graph graph, SnapshotData snapshot, StopSet stops) {

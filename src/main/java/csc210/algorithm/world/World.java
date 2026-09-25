@@ -23,7 +23,7 @@ import csc210.algorithm.routing.RouteBudget;
  * @param oneWayEdges how many edges were excluded as fabricated reverses of one-way streets
  * @param oneWayFromTopology whether the topology said so itself (DSTNS 2.0) rather than
  *        needing a second request
- * @param placesNote why the simulator's places were not used, or {@code null} if they were read
+ * @param demandNote why the preferred demand source was not used, or {@code null} if it was
  * @param budget the route budget derived from this map's stops
  */
 public record World(
@@ -35,6 +35,6 @@ public record World(
         DemandModel demandModel,
         int oneWayEdges,
         boolean oneWayFromTopology,
-        String placesNote,
+        String demandNote,
         RouteBudget budget
 ) {}

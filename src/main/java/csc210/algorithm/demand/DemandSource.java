@@ -7,11 +7,11 @@ package csc210.algorithm.demand;
 public enum DemandSource {
 
     /**
-     * The simulator's own per-place demand ({@code GET /view/places}, DSTNS 2.0):
-     * what its model says each bus stop is drawing, couplings to nearby
-     * generators included.
+     * The simulator's trip generators (DSTNS 2.0): every active school, office,
+     * shop and so on, credited to its nearest stop within its own radius. See
+     * {@link CatchmentDemand}.
      */
-    PLACES,
+    CATCHMENT,
 
     /**
      * Our own sum over building junctions near each stop — the only source before

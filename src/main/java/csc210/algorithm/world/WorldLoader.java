@@ -1,12 +1,12 @@
 package csc210.algorithm.world;
 
 import csc210.algorithm.client.EdgeDetail;
-import csc210.algorithm.client.Place;
 import csc210.algorithm.client.SandboxClient;
 import csc210.algorithm.client.SnapshotData;
 import csc210.algorithm.client.TopologyData;
 import csc210.algorithm.cost.CostModel;
 import csc210.algorithm.demand.DemandModel;
+import csc210.algorithm.demand.DemandSource;
 import csc210.algorithm.demand.StopSet;
 import csc210.algorithm.graph.Graph;
 import csc210.algorithm.routing.RouteBudget;
@@ -30,8 +30,24 @@ public final class WorldLoader {
 
     /** Reads the simulator's current state and builds the world from it. */
     public static World load(SandboxClient client) throws IOException, InterruptedException {
-        TopologyData topology = client.topology();
-        SnapshotData snapshot = client.snapshot();
+        return assemble(client.topology(), client.snapshot(), client::edges);
+    }
+
+    /** Where the one-way flags come from when the topology does not carry them. */
+    @FunctionalInterface
+    public interface EdgeDetails {
+        List<EdgeDetail> fetch() throws IOException, InterruptedException;
+    }
+
+    /**
+     * Builds the world from a topology and snapshot already in hand — the whole
+     * pipeline minus the reads, so saved fixtures go through exactly the code a
+     * live run does.
+     *
+     * @param edgeDetails asked only if the topology does not flag its own one-way streets
+     */
+    public static World assemble(TopologyData topology, SnapshotData snapshot, EdgeDetails edgeDetails)
+            throws IOException, InterruptedException {
         Graph graph = Graph.of(topology.nodes(), topology.edges());
 
         // DSTNS 2.0 says which edges are fabricated reverses on the topology
@@ -40,32 +56,27 @@ public final class WorldLoader {
         boolean fromTopology = graph.oneWayKnown();
         Set<Integer> oneWay = fromTopology
                 ? graph.syntheticReverseIds()
-                : EdgeDetail.syntheticReverseIds(client.edges());
+                : EdgeDetail.syntheticReverseIds(edgeDetails.fetch());
         CostModel costModel = CostModel.of(graph, snapshot, oneWay);
 
         StopSet stops = StopSet.of(graph);
-
-        // The simulator's own demand is preferred but never required: an older
-        // server has no such endpoint, and a failed read must not stop the
-        // network being designed. The reason is kept so the result can say so.
-        List<Place> places = null;
-        String placesNote = null;
-        try {
-            places = client.places("bus_stop");
-        } catch (IOException unavailable) {
-            placesNote = "places unavailable (" + firstLine(unavailable) + ")";
-        }
-
-        DemandModel demand = DemandModel.of(graph, snapshot, stops, places);
+        DemandModel demand = DemandModel.of(graph, snapshot, stops, topology.features());
         RouteBudget budget = RouteBudget.forStops(graph, demand.stopNodes());
         return new World(topology, snapshot, graph, costModel, stops, demand,
-                oneWay.size(), fromTopology, placesNote, budget);
+                oneWay.size(), fromTopology, demandNote(topology, snapshot, demand), budget);
     }
 
-    private static String firstLine(Exception failure) {
-        String message = failure.getMessage() == null ? failure.getClass().getSimpleName() : failure.getMessage();
-        int newline = message.indexOf('\n');
-        String line = newline < 0 ? message : message.substring(0, newline);
-        return line.length() > 120 ? line.substring(0, 117) + "..." : line;
+    /**
+     * Why the generator catchment was not used, when it was not: the server is
+     * older and sends no generators, or it sent some and none was near a stop.
+     */
+    private static String demandNote(TopologyData topology, SnapshotData snapshot, DemandModel demand) {
+        if (demand.source() == DemandSource.CATCHMENT) {
+            return null;
+        }
+        if (topology.features() == null || snapshot.demand() == null) {
+            return "no trip generators on this server (DSTNS before 2.0)";
+        }
+        return "the simulator's trip generators were all out of reach of every stop";
     }
 }

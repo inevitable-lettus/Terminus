@@ -18,6 +18,9 @@ import java.util.List;
  * @param rootNode id of the node DSTNS treats as the network's root
  * @param topologyRevision increments only if the topology itself changes,
  *        which it does not during a run (topology is immutable per run)
+ * @param features the mapped features demand is anchored to (DSTNS 2.0), or
+ *        {@code null} from an older server
+ * @param location the real city the world was cut from (DSTNS 2.0), or {@code null}
  */
 public record TopologyData(
         List<Node> nodes,
@@ -25,5 +28,14 @@ public record TopologyData(
         Bounds bounds,
         String graphHash,
         int rootNode,
-        long topologyRevision
-) {}
+        long topologyRevision,
+        List<Feature> features,
+        Location location
+) {
+
+    /** A topology with no features or location, as an older server sends it. */
+    public TopologyData(List<Node> nodes, List<Edge> edges, Bounds bounds, String graphHash,
+                        int rootNode, long topologyRevision) {
+        this(nodes, edges, bounds, graphHash, rootNode, topologyRevision, null, null);
+    }
+}

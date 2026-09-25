@@ -294,49 +294,4 @@ class SandboxClientTest {
             server.stop(0);
         }
     }
-
-    private static String placeJson(String id, int anchor, double multiplier) {
-        return "{\"id\":\"" + id + "\",\"name\":\"\",\"kind\":\"bus_stop\",\"position\":"
-                + "{\"lat\":52.5,\"lon\":13.4,\"x_m\":10.5,\"y_m\":-20.0},\"anchor_node\":" + anchor
-                + ",\"demand\":{\"multiplier\":" + multiplier + ",\"baseline\":1.0,\"factors\":[],\"radius_m\":400.0}}";
-    }
-
-    @Test
-    void placesArePagedAcrossTheServersLimitAndParsed() throws Exception {
-        AtomicInteger calls = new AtomicInteger();
-        java.util.List<String> queries = new java.util.concurrent.CopyOnWriteArrayList<>();
-        HttpServer server = server(s -> s.createContext("/api/v1/view/places", exchange -> {
-            queries.add(exchange.getRequestURI().getQuery());
-            int call = calls.getAndIncrement();
-            String items = call == 0
-                    ? placeJson("node/1", 4, 1.5) + "," + placeJson("node/2", 9, 2.0)
-                    : placeJson("node/3", 12, 1.0);
-            reply(exchange, 200, "{\"api_version\":\"1.0\",\"data\":{\"items\":[" + items
-                    + "],\"total\":3,\"offset\":0,\"limit\":2000,\"kind\":\"bus_stop\"}}");
-        }));
-        try {
-            List<Place> places = new SandboxClient(base(server)).places("bus_stop");
-            assertEquals(3, places.size());
-            assertEquals(4, places.get(0).anchorNode());
-            assertEquals(1.5, places.get(0).demand().multiplier());
-            assertEquals(400.0, places.get(0).demand().radiusM());
-            assertEquals(10.5, places.get(0).position().xM());
-            assertTrue(queries.get(0).contains("kind=bus_stop") && queries.get(0).contains("limit=2000"), queries.get(0));
-            assertTrue(queries.get(1).contains("offset=2"), queries.get(1));
-        } finally {
-            server.stop(0);
-        }
-    }
-
-    @Test
-    void placesThatStallBeforeTheDeclaredTotalFailLoudly() throws Exception {
-        HttpServer server = server(s -> s.createContext("/api/v1/view/places", exchange -> reply(exchange, 200,
-                "{\"api_version\":\"1.0\",\"data\":{\"items\":[],\"total\":5,\"offset\":0,\"limit\":2000}}")));
-        try {
-            IOException failure = assertThrows(IOException.class, () -> new SandboxClient(base(server)).places("bus_stop"));
-            assertTrue(failure.getMessage().contains("stalled"), failure.getMessage());
-        } finally {
-            server.stop(0);
-        }
-    }
 }

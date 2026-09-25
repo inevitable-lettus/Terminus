@@ -1,5 +1,6 @@
 package csc210.algorithm.cli;
 
+import csc210.algorithm.demand.DemandModel;
 import csc210.algorithm.demand.DemandSource;
 import csc210.algorithm.demand.StopSet;
 import csc210.algorithm.export.RouteExporter;
@@ -52,9 +53,9 @@ public final class Report {
                 world.oneWayFromTopology() ? "flagged by the topology" : "read from /view/edges"));
         text.append(String.format(Locale.ROOT, "  stops    %d flagged, %d after merging those within %.0f m%n",
                 world.stops().rawCount(), world.stops().count(), StopSet.MERGE_RADIUS_M));
-        text.append(String.format(Locale.ROOT, "  demand   %s%n", describe(world.demandModel().source())));
-        if (world.placesNote() != null) {
-            text.append("           ").append(world.placesNote()).append('\n');
+        text.append(String.format(Locale.ROOT, "  demand   %s%n", describe(world.demandModel())));
+        if (world.demandNote() != null) {
+            text.append("           ").append(world.demandNote()).append('\n');
         }
         text.append(String.format(Locale.ROOT, "  budget   %d min per line (%s), walk %.0f m (%s), up to %d lines (%s), target %.0f%%%n",
                 budget.maxRouteMillis() / 60_000L, options.minutes != null ? "set" : "default",
@@ -69,9 +70,11 @@ public final class Report {
         return text.toString();
     }
 
-    private static String describe(DemandSource source) {
-        return switch (source) {
-            case PLACES -> "PLACES — the simulator's own per-stop figure";
+    private static String describe(DemandModel demand) {
+        return switch (demand.source()) {
+            case CATCHMENT -> String.format(Locale.ROOT,
+                    "CATCHMENT — %d of %d active trip generators, each credited to its nearest stop",
+                    demand.generatorsAssigned(), demand.generatorsActive());
             case BUILDINGS -> "BUILDINGS — summed from nearby building junctions";
             case UNIFORM -> "UNIFORM — no demand data found, so every stop counts the same";
         };

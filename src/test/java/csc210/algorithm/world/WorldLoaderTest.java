@@ -56,7 +56,7 @@ class WorldLoaderTest {
     }
 
     @Test
-    void anOlderServerNeedsTheEdgesEndpointForOneWayStreetsAndHasNoPlaces() throws Exception {
+    void anOlderServerNeedsTheEdgesEndpointForOneWayStreetsAndHasNoGenerators() throws Exception {
         AtomicInteger edgeCalls = new AtomicInteger();
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/api/v1/view/topology", e -> reply(e, 200, resource("topology.json")));
@@ -65,7 +65,6 @@ class WorldLoaderTest {
             edgeCalls.incrementAndGet();
             reply(e, 200, resource("edges_1800.json"));
         });
-        server.createContext("/api/v1/view/places", e -> reply(e, 404, "{}".getBytes(StandardCharsets.UTF_8)));
         server.start();
         try {
             World world = WorldLoader.load(new SandboxClient("http://127.0.0.1:" + server.getAddress().getPort()));
@@ -75,8 +74,8 @@ class WorldLoaderTest {
             assertFalse(world.oneWayFromTopology());
             assertEquals(139, world.oneWayEdges());
             assertTrue(edgeCalls.get() > 0, "the flag was absent from the topology, so /view/edges had to be asked");
-            assertNotNull(world.placesNote(), "a missing places endpoint must be reported, not hidden");
-            assertTrue(world.placesNote().contains("404"), world.placesNote());
+            assertNotNull(world.demandNote(), "falling back must be reported, not hidden");
+            assertTrue(world.demandNote().contains("before 2.0"), world.demandNote());
             assertEquals(DemandSource.BUILDINGS, world.demandModel().source());
             assertTrue(world.stops().count() <= world.stops().rawCount());
             assertEquals(world.stops().count(), world.demandModel().stopCount());
@@ -87,36 +86,52 @@ class WorldLoaderTest {
     }
 
     @Test
-    void aTwoPointZeroServerIsNotAskedForEdgesAndItsPlacesAreUsed() throws Exception {
-        int stopNode = -1;
-        for (var node : Fixtures.topology().nodes()) {
-            if (node.busStop()) {
-                stopNode = node.id();
-                break;
-            }
-        }
-        final int anchored = stopNode;
-        String places = "{\"api_version\":\"1.0\",\"data\":{\"items\":[{\"id\":\"node/1\",\"name\":\"\",\"kind\":\"bus_stop\","
-                + "\"position\":{\"lat\":52.5,\"lon\":13.4,\"x_m\":0,\"y_m\":0},\"anchor_node\":" + anchored
-                + ",\"demand\":{\"multiplier\":2.5,\"baseline\":1.0,\"factors\":[],\"radius_m\":400.0}}],"
-                + "\"total\":1,\"offset\":0,\"limit\":2000,\"kind\":\"bus_stop\"}}";
-
+    void aLiveTwoPointZeroCaptureIsNotAskedForEdgesAndScoresStopsFromItsGenerators() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.createContext("/api/v1/view/topology", e -> reply(e, 200, topologyWithFlags()));
-        server.createContext("/api/v1/view/snapshot", e -> reply(e, 200, resource("snapshot_1800.json")));
+        server.createContext("/api/v1/view/topology", e -> reply(e, 200, Fixtures.bytes("v2/topology.json.gz")));
+        server.createContext("/api/v1/view/snapshot", e -> reply(e, 200, Fixtures.bytes("v2/snapshot_1800.json.gz")));
         server.createContext("/api/v1/view/edges", e -> reply(e, 500, "must not be called".getBytes(StandardCharsets.UTF_8)));
-        server.createContext("/api/v1/view/places", e -> reply(e, 200, places.getBytes(StandardCharsets.UTF_8)));
         server.start();
         try {
             World world = WorldLoader.load(new SandboxClient("http://127.0.0.1:" + server.getAddress().getPort()));
 
+            assertEquals(3000, world.graph().nodeCount());
+            assertEquals(6330, world.graph().edgeCount());
             assertTrue(world.oneWayFromTopology());
-            assertEquals(139, world.oneWayEdges());
-            assertEquals(null, world.placesNote());
-            assertEquals(DemandSource.PLACES, world.demandModel().source());
-            assertEquals(2.5, world.demandModel().demandAt(world.stops().representativeOf(anchored)), 1e-9);
+            assertEquals(566, world.oneWayEdges());
+            assertEquals(81, world.stops().rawCount());
+            assertEquals("Dar es Salaam", world.topology().location().city());
+
+            // The regression: reading the simulator's bus_stop places left 71 of 72
+            // stops on one baseline figure. The generators must actually rank them.
+            assertEquals(DemandSource.CATCHMENT, world.demandModel().source());
+            assertEquals(null, world.demandNote());
+            java.util.Set<Double> distinct = new java.util.HashSet<>();
+            int scored = 0;
+            for (int stop : world.demandModel().stopNodes()) {
+                double demand = world.demandModel().demandAt(stop);
+                distinct.add(demand);
+                if (demand > 0.0) {
+                    scored++;
+                }
+            }
+            assertTrue(distinct.size() > world.stops().count() / 2,
+                    "demand must separate the stops, not give most of them one figure: " + distinct.size());
+            assertTrue(scored > world.stops().count() / 2, "most stops have a generator nearby: " + scored);
+            assertTrue(world.demandModel().generatorsAssigned() <= world.demandModel().generatorsActive());
         } finally {
             server.stop(0);
         }
+    }
+
+    @Test
+    void demandFollowsTheClockBecauseTheGeneratorsDo() {
+        World morning = Fixtures.v2World0830();
+        World evening = Fixtures.v2World1800();
+
+        assertEquals(DemandSource.CATCHMENT, morning.demandModel().source());
+        assertTrue(morning.demandModel().generatorsActive() < evening.demandModel().generatorsActive(),
+                "fewer generators are open at 08:30 than at 18:00 in this capture");
+        assertTrue(morning.demandModel().totalDemand() != evening.demandModel().totalDemand());
     }
 }

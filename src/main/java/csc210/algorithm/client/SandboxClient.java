@@ -125,32 +125,6 @@ public final class SandboxClient {
     }
 
     /**
-     * Every place of one kind ({@code "bus_stop"}, say), paged until the server
-     * says it has sent them all. DSTNS 2.0 and later; an older server answers
-     * 404, which surfaces as an {@link IOException} for the caller to fall back on.
-     *
-     * @param kind the classifier's kind, or empty for every place
-     */
-    public java.util.List<Place> places(String kind) throws IOException, InterruptedException {
-        java.util.List<Place> all = new java.util.ArrayList<>();
-        String filter = kind == null || kind.isEmpty() ? "" : "&kind=" + kind;
-        int offset = 0;
-        while (true) {
-            Envelope envelope = get("/api/v1/view/places?offset=" + offset + "&limit=2000" + filter, Envelope.class);
-            PlacePage page = objectMapper.treeToValue(envelope.data(), PlacePage.class);
-            all.addAll(page.items());
-            offset += page.items().size();
-            if (offset >= page.total()) {
-                return all;
-            }
-            if (page.items().isEmpty()) {
-                throw new IOException("places pagination stalled: got an empty page at offset " + offset
-                        + " but the server's declared total is " + page.total());
-            }
-        }
-    }
-
-    /**
      * Waits until the simulator has a world to read: {@code READY}, {@code RUNNING}
      * or {@code PAUSED}. A start is acknowledged with 202 before the world exists —
      * on DSTNS 2.0 it may first have to download a city — so reading straight after
