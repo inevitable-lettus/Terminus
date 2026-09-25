@@ -580,4 +580,7 @@ Verified in the browser against the live 2.0 run: lines with moving buses,
 journeys with a glide to fit, the construction replay step by step, and A*'s
 18 settled stops against Dijkstra's 20 on the same question.
 
-241 Java tests and 12 dashboard tests, all green.
+241 Java tests and 12 dashboard tests, all green; 20 of 20 live tests against
+2.0. With terminal-to-terminal returns the live comparison now reads 5,700
+journeys, A* expanding 7.9% fewer vertices than Dijkstra (9.4% with the looping
+returns earlier today — a smaller transit graph leaves A* less to prune).
