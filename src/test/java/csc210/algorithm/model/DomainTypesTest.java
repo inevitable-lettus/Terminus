@@ -154,4 +154,15 @@ class DomainTypesTest {
         assertEquals(142.8, edge.lengthM());
         assertEquals(12.0, state.effectiveSpeedMps());
     }
+
+    /**
+     * A missing {@code reverse_twin} used to default to 0 — a real edge — so a
+     * return lookup silently landed on an unrelated road. Required now.
+     */
+    @Test
+    void anEdgeWithNoReverseTwinFieldIsRejectedRatherThanPointedAtEdgeZero() {
+        ObjectMapper mapper = SandboxJson.mapper();
+        assertThrows(MismatchedInputException.class, () -> mapper.readValue(
+                "{\"id\":3,\"from\":0,\"to\":1,\"length_m\":10.0,\"free_speed_mps\":5.0}", Edge.class));
+    }
 }

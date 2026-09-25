@@ -36,11 +36,20 @@ class MainTest {
     private static final class Stub implements AutoCloseable {
         final HttpServer server;
         final List<String> requests = new CopyOnWriteArrayList<>();
+        /** What {@code POST /playback/start} answers; a 202 unless a test says otherwise. */
+        volatile int startStatus = 202;
+        volatile String startBody = "{\"ok\":true}";
 
-        Stub(String lifecycle) throws IOException {
+        /**
+         * @param lifecycles what {@code /health} reports on successive polls; the
+         *        last one repeats, so a single value is a steady state
+         */
+        Stub(String... lifecycles) throws IOException {
+            java.util.concurrent.atomic.AtomicInteger poll = new java.util.concurrent.atomic.AtomicInteger();
             server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             server.createContext("/health", e -> reply(e, 200,
-                    "{\"ok\":true,\"product\":\"DSTNS\",\"lifecycle\":\"" + lifecycle + "\"}"));
+                    "{\"ok\":true,\"product\":\"DSTNS\",\"lifecycle\":\""
+                            + lifecycles[Math.min(poll.getAndIncrement(), lifecycles.length - 1)] + "\"}"));
             server.createContext("/api/v1/playback/status", e -> reply(e, 200,
                     "{\"run_id\":\"run_test\",\"global_seed\":\"0x2026\",\"clock\":{\"simulated_current_time\":\"18:00:00\"}}"));
             server.createContext("/api/v1/view/topology", e -> reply(e, 200, resource("topology.json")));
@@ -50,7 +59,11 @@ class MainTest {
             for (String path : new String[]{"pause", "seek", "stop", "start"}) {
                 server.createContext("/api/v1/playback/" + path, e -> {
                     requests.add("POST /playback/" + path);
-                    reply(e, path.equals("start") ? 202 : 200, "{\"ok\":true}");
+                    if (path.equals("start")) {
+                        reply(e, startStatus, startBody);
+                    } else {
+                        reply(e, 200, "{\"ok\":true}");
+                    }
                 });
             }
             server.start();
@@ -277,5 +290,100 @@ class MainTest {
             int lines = network.split("\n").length;
             assertTrue(lines > 5, network);
         }
+    }
+
+    // --- run states the command cannot or should not read silently ---------
+
+    @Test
+    void aRunInErrorIsRefusedWithWhatToDoAndNothingIsRead() throws Exception {
+        try (Stub stub = new Stub("ERROR")) {
+            csc210.algorithm.client.RunStateException thrown = assertThrows(
+                    csc210.algorithm.client.RunStateException.class,
+                    () -> run(stub, new ByteArrayOutputStream(), "network"));
+
+            assertTrue(thrown.getMessage().contains("ERROR") && thrown.getMessage().contains("--start"),
+                    thrown.getMessage());
+            assertEquals(Main.RUN_STATE, Main.exitCodeFor(thrown));
+            assertEquals(List.of(), stub.requests);
+        }
+    }
+
+    @Test
+    void aStoppedRunIsReadWithANoteSayingSo() throws Exception {
+        try (Stub stub = new Stub("STOPPED")) {
+            ByteArrayOutputStream notes = new ByteArrayOutputStream();
+            String text = run(stub, notes, "network");
+
+            assertTrue(text.contains("Lines"), text);
+            assertTrue(notes.toString(StandardCharsets.UTF_8).contains("STOPPED"), notes.toString(StandardCharsets.UTF_8));
+            assertEquals(List.of(), stub.requests);
+        }
+    }
+
+    @Test
+    void aRunThatIsStillStoppingIsWaitedOutRatherThanReadHalfway() throws Exception {
+        try (Stub stub = new Stub("STOPPING", "STOPPING", "PAUSED")) {
+            String text = run(stub, new ByteArrayOutputStream(), "network");
+
+            assertTrue(text.contains("Lines"), text);
+        }
+    }
+
+    @Test
+    void aStartTheSimulatorRefusesWith409SaysAnotherRunIsActive(@TempDir Path dir) throws Exception {
+        Path token = Files.writeString(dir.resolve("operator.token"), "secret\n");
+        try (Stub stub = new Stub("PAUSED")) {
+            stub.startStatus = 409;
+            stub.startBody = "{\"ok\":false,\"api_version\":\"1.0\",\"error\":{\"code\":\"LIFECYCLE_CONFLICT\","
+                    + "\"message\":\"a simulation is already active\"}}";
+
+            csc210.algorithm.client.RunStateException thrown = assertThrows(
+                    csc210.algorithm.client.RunStateException.class,
+                    () -> run(stub, new ByteArrayOutputStream(), "network", "--start", "--token-file", token.toString()));
+
+            assertTrue(thrown.getMessage().contains("LIFECYCLE_CONFLICT")
+                    && thrown.getMessage().contains("already active"), thrown.getMessage());
+            assertEquals(Main.RUN_STATE, Main.exitCodeFor(thrown));
+        }
+    }
+
+    // --- exit statuses ------------------------------------------------------
+
+    @Test
+    void exitStatusesSeparateTheFiveKindsOfFailure() {
+        assertEquals(Main.BAD_USAGE, Main.exitCodeFor(new csc210.algorithm.cli.UsageException("x")));
+        assertEquals(Main.RUN_STATE, Main.exitCodeFor(new csc210.algorithm.client.RunStateException("x")));
+        assertEquals(Main.RUN_STATE, Main.exitCodeFor(new csc210.algorithm.client.RunStartRefusedException("x")));
+        assertEquals(Main.RUN_STATE, Main.exitCodeFor(
+                new csc210.algorithm.client.SandboxHttpException("POST", "/p", 409, "LIFECYCLE_CONFLICT", "x")));
+        assertEquals(Main.SIMULATOR_UNAVAILABLE, Main.exitCodeFor(
+                new csc210.algorithm.client.SandboxHttpException("GET", "/p", 503, "MAP_FETCH_FAILED", "x")));
+        assertEquals(Main.SIMULATOR_UNAVAILABLE, Main.exitCodeFor(new java.net.ConnectException()));
+        assertEquals(Main.SIMULATOR_DATA_INVALID, Main.exitCodeFor(
+                new com.fasterxml.jackson.databind.JsonMappingException(null, "lengthM must be finite")));
+        assertEquals(Main.SIMULATOR_DATA_INVALID, Main.exitCodeFor(
+                new IllegalArgumentException("snapshot and topology are out of step")));
+        assertEquals(Main.INTERNAL_ERROR, Main.exitCodeFor(new NullPointerException()));
+        assertEquals(Main.INTERNAL_ERROR, Main.exitCodeFor(new IllegalStateException("R0 is not continuous")));
+    }
+
+    @Test
+    void badArgumentsAreUsageAndInconsistentSimulatorDataIsNot() {
+        IllegalArgumentException usage = assertThrows(IllegalArgumentException.class,
+                () -> Options.parse(new String[] {"network", "--minutes", "zero"}));
+        assertEquals(Main.BAD_USAGE, Main.exitCodeFor(usage));
+
+        IllegalArgumentException data = assertThrows(IllegalArgumentException.class,
+                () -> csc210.algorithm.graph.Graph.of(List.of(), List.of(
+                        new csc210.algorithm.model.Edge(0, 0, 1, -1, "residential", 1, 1.0, 1.0))));
+        assertEquals(Main.SIMULATOR_DATA_INVALID, Main.exitCodeFor(data));
+    }
+
+    @Test
+    void anUnreachableSimulatorIsNamedWithItsAddress() {
+        String message = Main.messageFor(new java.net.ConnectException(),
+                new String[] {"network", "--sandbox", "http://10.0.0.9:8090"});
+
+        assertTrue(message.contains("http://10.0.0.9:8090") && message.contains("./launcher"), message);
     }
 }

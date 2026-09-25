@@ -354,10 +354,10 @@ public final class Report {
         return String.format(Locale.ROOT, "%.5f, %.5f", node.position().lat(), node.position().lon());
     }
 
-    /** @throws IllegalArgumentException naming the valid range */
+    /** @throws UsageException naming the valid range */
     public static void requireJunction(Graph roads, int node, String which) {
         if (node < 0 || node >= roads.nodeCount()) {
-            throw new IllegalArgumentException(which + " must be a junction id in [0, "
+            throw new UsageException(which + " must be a junction id in [0, "
                     + roads.nodeCount() + "), got " + node + ". `./bus stops` lists real ones.");
         }
     }

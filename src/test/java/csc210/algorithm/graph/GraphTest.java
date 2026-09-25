@@ -141,4 +141,18 @@ class GraphTest {
         assertEquals(27.78, two.maxFreeSpeedMps());
         assertEquals(0.0, Graph.of(java.util.List.of(plainNode(0)), java.util.List.of()).maxFreeSpeedMps());
     }
+
+    @Test
+    void aReverseTwinThatIsNotAnEdgeIsRejectedWhenTheGraphIsBuilt() {
+        java.util.List<csc210.algorithm.model.Node> nodes = java.util.List.of(
+                new csc210.algorithm.model.Node(0, 0, new csc210.algorithm.model.Position(0, 0, 0, 0), 0, false, 0, false, 0, 0, 0, null, 0, 0),
+                new csc210.algorithm.model.Node(1, 1, new csc210.algorithm.model.Position(0, 0, 1, 0), 0, false, 0, false, 0, 0, 0, null, 0, 0));
+
+        IllegalArgumentException thrown = org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> Graph.of(nodes, java.util.List.of(new Edge(0, 0, 1, 7, "residential", 1, 1.0, 1.0))));
+        org.junit.jupiter.api.Assertions.assertTrue(thrown.getMessage().contains("reverseTwin"), thrown.getMessage());
+
+        // -1 is the honest "no reverse direction", and stays allowed.
+        assertEquals(1, Graph.of(nodes, java.util.List.of(new Edge(0, 0, 1, -1, "residential", 1, 1.0, 1.0))).edgeCount());
+    }
 }

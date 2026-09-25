@@ -274,7 +274,7 @@ class SandboxClientTest {
         HttpServer server = server(s -> s.createContext("/health", exchange -> reply(exchange, 200,
                 "{\"ok\":true,\"product\":\"x\",\"lifecycle\":\"ERROR\"}")));
         try {
-            IOException failure = assertThrows(IOException.class,
+            RunStateException failure = assertThrows(RunStateException.class,
                     () -> new SandboxClient(base(server)).awaitReady(Duration.ofSeconds(5), Duration.ofMillis(10)));
             assertTrue(failure.getMessage().contains("ERROR"), failure.getMessage());
         } finally {
@@ -290,6 +290,51 @@ class SandboxClientTest {
             IOException failure = assertThrows(IOException.class,
                     () -> new SandboxClient(base(server)).awaitReady(Duration.ofMillis(150), Duration.ofMillis(20)));
             assertTrue(failure.getMessage().contains("PREPARING"), failure.getMessage());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void aFailedRequestCarriesTheSimulatorsOwnErrorCode() throws Exception {
+        HttpServer server = server(s -> s.createContext("/api/v1/playback/seek", exchange -> reply(exchange, 409,
+                "{\"ok\":false,\"error\":{\"code\":\"LIFECYCLE_CONFLICT\",\"message\":\"stale run\"}}")));
+        try {
+            SandboxHttpException failure = assertThrows(SandboxHttpException.class,
+                    () -> new SandboxClient(base(server)).seek("18:00:00"));
+            assertEquals(409, failure.status());
+            assertEquals("LIFECYCLE_CONFLICT", failure.code());
+            assertTrue(failure.isLifecycleConflict());
+            assertTrue(failure.getMessage().contains("stale run"), failure.getMessage());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void awaitReadyRidesOutABusyServerInsteadOfGivingUpOnTheFirstFailure() throws Exception {
+        AtomicInteger polls = new AtomicInteger();
+        HttpServer server = server(s -> s.createContext("/health", exchange -> {
+            if (polls.getAndIncrement() < 2) {
+                reply(exchange, 503, "{\"ok\":false,\"error\":{\"code\":\"MAP_FETCH_FAILED\",\"message\":\"busy\"}}");
+            } else {
+                reply(exchange, 200, "{\"ok\":true,\"product\":\"x\",\"lifecycle\":\"READY\"}");
+            }
+        }));
+        try {
+            new SandboxClient(base(server)).awaitReady(Duration.ofSeconds(5), Duration.ofMillis(10));
+            assertTrue(polls.get() >= 3);
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void aBaseUrlBehindAPathPrefixKeepsItsPrefix() throws Exception {
+        HttpServer server = server(s -> s.createContext("/dstns/health", exchange -> reply(exchange, 200,
+                "{\"ok\":true,\"product\":\"x\",\"lifecycle\":\"PAUSED\"}")));
+        try {
+            assertEquals("PAUSED", new SandboxClient(base(server) + "/dstns").health().lifecycle());
         } finally {
             server.stop(0);
         }

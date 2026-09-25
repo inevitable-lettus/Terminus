@@ -35,7 +35,7 @@ public record Edge(
         @JsonProperty(required = true) int id,
         @JsonProperty(required = true) int from,
         @JsonProperty(required = true) int to,
-        int reverseTwin,
+        @JsonProperty(required = true) int reverseTwin,
         String roadClass,
         int lanes,
         @JsonProperty(required = true) double lengthM,

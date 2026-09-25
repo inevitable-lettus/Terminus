@@ -61,7 +61,9 @@ public final class SandboxClient {
 
     private SandboxClient(String baseUrl, HttpClient httpClient, ObjectMapper objectMapper,
                           Duration requestTimeout, String operatorToken) {
-        this.baseUri = URI.create(baseUrl);
+        // A trailing slash, and paths resolved without a leading one, so a base
+        // behind a proxy prefix (http://host/dstns) keeps its prefix.
+        this.baseUri = URI.create(baseUrl.endsWith("/") ? baseUrl : baseUrl + "/");
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
         this.requestTimeout = requestTimeout;
@@ -135,26 +137,65 @@ public final class SandboxClient {
      * request took effect, and a world is only worth reading once it is prepared.
      * The timeout is what stops that becoming an endless wait.
      *
-     * @throws IOException if the run enters {@code ERROR} or {@code COMPLETED}, or
-     *         nothing usable appears within {@code timeout}
+     * <p>A poll that fails because the server is busy — it stalls while it
+     * compiles a city or seeks — is retried until the deadline rather than
+     * taken as a verdict.
+     *
+     * @throws RunStateException if the run enters {@code ERROR}, {@code COMPLETED}
+     *         or {@code TERMINATING}
+     * @throws IOException if nothing usable appears within {@code timeout}
      */
     public void awaitReady(Duration timeout, Duration pollEvery) throws IOException, InterruptedException {
         long deadline = System.nanoTime() + timeout.toNanos();
         String last = "unknown";
         while (true) {
-            String lifecycle = health().lifecycle();
+            String lifecycle;
+            try {
+                lifecycle = health().lifecycle();
+            } catch (java.net.ConnectException | java.net.http.HttpTimeoutException | SandboxHttpException busy) {
+                // The server stalls while it compiles a city or seeks, and a single
+                // missed poll is not a verdict. Keep asking until the deadline.
+                if (System.nanoTime() >= deadline) {
+                    throw busy;
+                }
+                Thread.sleep(pollEvery.toMillis());
+                continue;
+            }
             last = lifecycle == null ? "unknown" : lifecycle;
             switch (last.toUpperCase(java.util.Locale.ROOT)) {
                 case "READY", "RUNNING", "PAUSED" -> {
                     return;
                 }
                 case "ERROR", "COMPLETED", "TERMINATING" ->
-                    throw new IOException("the simulator is " + last + ", so there is no world to read");
+                    throw new RunStateException("the simulator is " + last + ", so there is no world to read");
                 default -> { /* still preparing, or not yet started: keep waiting */ }
             }
             if (System.nanoTime() >= deadline) {
                 throw new IOException("the simulator was still " + last + " after "
                         + timeout.toSeconds() + " s; it may be downloading a map");
+            }
+            Thread.sleep(pollEvery.toMillis());
+        }
+    }
+
+    /**
+     * Waits until the run has left {@code state} (compared case-insensitively),
+     * and returns what it moved to. For the in-between states — {@code STOPPING},
+     * {@code SEEKING} — where the next request would otherwise be refused with 409.
+     *
+     * @throws IOException if it is still in {@code state} after {@code timeout}
+     */
+    public String awaitLeaving(String state, Duration timeout, Duration pollEvery)
+            throws IOException, InterruptedException {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        while (true) {
+            String lifecycle = health().lifecycle();
+            String now = lifecycle == null ? "" : lifecycle;
+            if (!now.equalsIgnoreCase(state)) {
+                return now;
+            }
+            if (System.nanoTime() >= deadline) {
+                throw new IOException("the simulator was still " + state + " after " + timeout.toSeconds() + " s");
             }
             Thread.sleep(pollEvery.toMillis());
         }
@@ -235,7 +276,7 @@ public final class SandboxClient {
      */
     private JsonNode send(String method, String path, String body, boolean startsRun)
             throws IOException, InterruptedException {
-        HttpRequest.Builder builder = HttpRequest.newBuilder(baseUri.resolve(path))
+        HttpRequest.Builder builder = HttpRequest.newBuilder(uri(path))
                 .header("Content-Type", "application/json")
                 .timeout(requestTimeout)
                 .method(method, HttpRequest.BodyPublishers.ofString(body));
@@ -252,20 +293,43 @@ public final class SandboxClient {
         // 202 Accepted, because the simulator acknowledges the request and prepares
         // the scenario rather than finishing the work inside the response.
         if (response.statusCode() / 100 != 2) {
-            throw new IOException(method + " " + path + " returned HTTP " + response.statusCode()
-                    + ": " + response.body());
+            throw failure(method, path, response);
         }
         return objectMapper.readTree(response.body());
     }
 
+    /** A non-success answer, with DSTNS's own error code and message pulled out of the body when it has them. */
+    private SandboxHttpException failure(String method, String path, HttpResponse<String> response) {
+        String code = null;
+        String detail = response.body();
+        try {
+            JsonNode error = objectMapper.readTree(response.body()).path("error");
+            if (error.isObject()) {
+                code = error.path("code").asText(null);
+                detail = error.path("message").asText(detail);
+            }
+        } catch (IOException notJson) {
+            // The body is not JSON; keep it as the detail.
+        }
+        if (detail != null && detail.length() > 300) {
+            detail = detail.substring(0, 297) + "...";
+        }
+        return new SandboxHttpException(method, path, response.statusCode(), code, detail);
+    }
+
+    /** {@code path} under the base URL, keeping any prefix the base has. */
+    private URI uri(String path) {
+        return baseUri.resolve(path.startsWith("/") ? path.substring(1) : path);
+    }
+
     private <T> T get(String path, Class<T> responseType) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder(baseUri.resolve(path))
+        HttpRequest request = HttpRequest.newBuilder(uri(path))
                 .timeout(requestTimeout)
                 .GET()
                 .build();
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() != 200) {
-            throw new IOException("GET " + path + " returned HTTP " + response.statusCode() + ": " + response.body());
+            throw failure("GET", path, response);
         }
         return objectMapper.readValue(response.body(), responseType);
     }

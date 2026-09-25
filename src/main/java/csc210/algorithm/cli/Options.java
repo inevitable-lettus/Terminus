@@ -45,6 +45,8 @@ public final class Options {
     public final int top;
     /** True when the deprecated {@code publish} spelling was used. */
     public final boolean usedPublishAlias;
+    /** Print the stack trace of an internal error, not just its one-line summary. */
+    public final boolean debug;
 
     private Options(Builder b) {
         this.mode = b.mode;
@@ -62,6 +64,7 @@ public final class Options {
         this.outDirectory = b.outDirectory;
         this.top = b.top;
         this.usedPublishAlias = b.usedPublishAlias;
+        this.debug = b.debug;
     }
 
     private static final class Builder {
@@ -71,6 +74,7 @@ public final class Options {
         boolean timeGiven;
         String seed = DEFAULT_SEED;
         boolean start;
+        boolean debug;
         int from = -1;
         int to = -1;
         String tokenFile;
@@ -103,13 +107,13 @@ public final class Options {
                 b.usedPublishAlias = true;
                 yield Mode.EXPORT;
             }
-            default -> throw new IllegalArgumentException("unknown command '" + args[0] + "'");
+            default -> throw new UsageException("unknown command '" + args[0] + "'");
         };
 
         int next = 1;
         if (b.mode == Mode.JOURNEY) {
             if (args.length < 3) {
-                throw new IllegalArgumentException("journey needs a FROM and a TO junction id");
+                throw new UsageException("journey needs a FROM and a TO junction id");
             }
             b.from = junction(args[1]);
             b.to = junction(args[2]);
@@ -128,21 +132,26 @@ public final class Options {
                 i += 1;
                 continue;
             }
+            if ("--debug".equals(flag)) {
+                b.debug = true;
+                i += 1;
+                continue;
+            }
             if (i + 1 >= args.length) {
-                throw new IllegalArgumentException("option " + flag + " needs a value");
+                throw new UsageException("option " + flag + " needs a value");
             }
             String value = args[i + 1];
             switch (flag) {
                 case "--time" -> {
                     if (!CLOCK.matcher(value).matches()) {
-                        throw new IllegalArgumentException("--time must look like HH:MM:SS, got '" + value + "'");
+                        throw new UsageException("--time must look like HH:MM:SS, got '" + value + "'");
                     }
                     b.time = value;
                     b.timeGiven = true;
                 }
                 case "--seed" -> {
                     if (value.isBlank()) {
-                        throw new IllegalArgumentException("--seed needs a value");
+                        throw new UsageException("--seed needs a value");
                     }
                     b.seed = value;
                     b.start = true;      // a seed only means something to a run we start
@@ -154,7 +163,7 @@ public final class Options {
                 case "--walk" -> b.walkMetres = nonNegativeDouble(flag, value);
                 case "--out" -> b.outDirectory = value;
                 case "--top" -> b.top = positiveInt(flag, value);
-                default -> throw new IllegalArgumentException("unknown option '" + flag + "'");
+                default -> throw new UsageException("unknown option '" + flag + "'");
             }
             i += 2;
         }
@@ -169,7 +178,7 @@ public final class Options {
         try {
             return Integer.parseInt(text);
         } catch (NumberFormatException notANumber) {
-            throw new IllegalArgumentException("'" + text + "' is not a junction id");
+            throw new UsageException("'" + text + "' is not a junction id");
         }
     }
 
@@ -182,7 +191,7 @@ public final class Options {
         } catch (NumberFormatException notANumber) {
             // fall through to the message below
         }
-        throw new IllegalArgumentException(flag + " must be a whole number above zero, got '" + text + "'");
+        throw new UsageException(flag + " must be a whole number above zero, got '" + text + "'");
     }
 
     private static double nonNegativeDouble(String flag, String text) {
@@ -194,7 +203,7 @@ public final class Options {
         } catch (NumberFormatException notANumber) {
             // fall through to the message below
         }
-        throw new IllegalArgumentException(flag + " must be a number of metres, zero or more, got '" + text + "'");
+        throw new UsageException(flag + " must be a number of metres, zero or more, got '" + text + "'");
     }
 
     public static String usage() {
@@ -226,6 +235,11 @@ public final class Options {
                   --start            stop the current run and start one of our own
                   --seed N           the seed to start with (implies --start)
                   --token-file PATH  read the token from a file; otherwise the
-                                     DSTNS_OPERATOR_TOKEN environment variable""";
+                                     DSTNS_OPERATOR_TOKEN environment variable
+
+                Exit status:
+                  0 done   1 internal error (--debug prints the trace)   2 bad usage
+                  3 simulator unreachable or failing   4 simulator data unreadable
+                  5 the run is in a state this cannot work with""";
     }
 }

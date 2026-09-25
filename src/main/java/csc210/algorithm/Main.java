@@ -4,8 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import csc210.algorithm.cli.Options;
 import csc210.algorithm.cli.Report;
 import csc210.algorithm.cli.RunInfo;
+import csc210.algorithm.cli.UsageException;
 import csc210.algorithm.client.RunStartRefusedException;
+import csc210.algorithm.client.RunStateException;
 import csc210.algorithm.client.SandboxClient;
+import csc210.algorithm.client.SandboxHttpException;
 import csc210.algorithm.export.RouteExporter;
 import csc210.algorithm.routing.RouteBudget;
 import csc210.algorithm.routing.RouteNetwork;
@@ -52,28 +55,90 @@ public final class Main {
 
     private Main() {}
 
+    /** Exit statuses, so a script can tell what went wrong without reading the text. */
+    static final int OK = 0;
+    static final int INTERNAL_ERROR = 1;
+    static final int BAD_USAGE = 2;
+    static final int SIMULATOR_UNAVAILABLE = 3;
+    static final int SIMULATOR_DATA_INVALID = 4;
+    static final int RUN_STATE = 5;
+
     public static void main(String[] args) {
         try {
             System.out.print(run(args, System.err));
-        } catch (IllegalArgumentException badUsage) {
-            System.err.println(badUsage.getMessage());
-            System.err.println();
-            System.err.println("Try: ./bus help");
-            System.exit(2);
-        } catch (IllegalStateException | RunStartRefusedException cannotProceed) {
-            // Not a fault and not bad usage: the situation is one the message explains.
-            System.err.println(cannotProceed.getMessage());
-            System.exit(1);
-        } catch (IOException | InterruptedException failed) {
-            // A refused connection arrives as a ConnectException carrying no
-            // message at all, so falling back to the type keeps the line useful.
-            String reason = failed.getMessage() == null
-                    ? failed.getClass().getSimpleName()
-                    : failed.getMessage();
-            System.err.println("Could not read the simulator: " + reason);
-            System.err.println("Is it running? Start it with ./launcher in the sandbox repo.");
-            System.exit(1);
+        } catch (Throwable failure) {
+            int status = exitCodeFor(failure);
+            System.err.println(messageFor(failure, args));
+            if (status == BAD_USAGE) {
+                System.err.println();
+                System.err.println("Try: ./bus help");
+            } else if (status == INTERNAL_ERROR) {
+                if (java.util.Arrays.asList(args).contains("--debug")) {
+                    failure.printStackTrace();
+                } else {
+                    System.err.println("(run again with --debug for the stack trace)");
+                }
+            }
+            System.exit(status);
         }
+    }
+
+    /**
+     * Which of the five kinds of failure {@code failure} is. Order matters: the
+     * specific types are subclasses of the general ones below them.
+     */
+    static int exitCodeFor(Throwable failure) {
+        if (failure instanceof UsageException) {
+            return BAD_USAGE;
+        }
+        if (failure instanceof RunStartRefusedException || failure instanceof RunStateException) {
+            return RUN_STATE;
+        }
+        if (failure instanceof SandboxHttpException answered) {
+            return answered.isLifecycleConflict() ? RUN_STATE : SIMULATOR_UNAVAILABLE;
+        }
+        // Jackson's parse and mapping failures, including a record constructor
+        // rejecting a value (a NaN length, say), are IOExceptions too — but the
+        // simulator answered, and what it sent is the problem.
+        if (failure instanceof com.fasterxml.jackson.core.JsonProcessingException) {
+            return SIMULATOR_DATA_INVALID;
+        }
+        if (failure instanceof IOException) {
+            return SIMULATOR_UNAVAILABLE;
+        }
+        // Graph, CostModel and DemandModel reject inconsistent simulator data
+        // with IllegalArgumentException; bad usage was caught above.
+        if (failure instanceof IllegalArgumentException) {
+            return SIMULATOR_DATA_INVALID;
+        }
+        return INTERNAL_ERROR;
+    }
+
+    /** One line, in words that say what to do next. */
+    static String messageFor(Throwable failure, String[] args) {
+        String detail = failure.getMessage() == null ? failure.getClass().getSimpleName() : failure.getMessage();
+        return switch (exitCodeFor(failure)) {
+            case BAD_USAGE, RUN_STATE -> detail;
+            case SIMULATOR_UNAVAILABLE -> failure instanceof SandboxHttpException
+                    ? "The simulator answered with an error: " + detail
+                    : "Could not reach the simulator at " + sandboxUrl(args) + ": " + detail
+                            + "\nIs it running? Start it with ./launcher in the sandbox repo.";
+            case SIMULATOR_DATA_INVALID -> "The simulator sent data this module cannot use: " + firstLine(detail);
+            default -> "Internal error: " + failure.getClass().getSimpleName() + ": " + detail;
+        };
+    }
+
+    private static String sandboxUrl(String[] args) {
+        try {
+            return Options.parse(args).sandboxUrl;
+        } catch (RuntimeException unparseable) {
+            return Options.DEFAULT_SANDBOX;
+        }
+    }
+
+    private static String firstLine(String text) {
+        int newline = text.indexOf('\n');
+        return newline < 0 ? text : text.substring(0, newline);
     }
 
     /** The whole program as one call, so a test can drive it without a process. */
@@ -158,7 +223,7 @@ public final class Main {
             try {
                 return Files.readString(Path.of(options.tokenFile)).strip();
             } catch (IOException unreadable) {
-                throw new IllegalArgumentException("cannot read the token file '" + options.tokenFile + "': "
+                throw new UsageException("cannot read the token file '" + options.tokenFile + "': "
                         + unreadable.getMessage());
             }
         }
@@ -178,7 +243,15 @@ public final class Main {
         String lifecycle = client.health().lifecycle();
         String upper = lifecycle == null ? "" : lifecycle.toUpperCase(Locale.ROOT);
         if (upper.isEmpty() || upper.equals("IDLE") || upper.equals("BOOTING")) {
-            throw new IllegalStateException(noRun(options, lifecycle));
+            throw new RunStateException(noRun(options, lifecycle));
+        }
+        if (upper.equals("ERROR") || upper.equals("TERMINATING")) {
+            throw new RunStateException("The simulator's run is " + lifecycle + ", so there is no world to read.\n"
+                    + "Start a new run in the simulator's own CLI or UI, or pass --start with the operator token.");
+        }
+        if (upper.equals("STOPPING")) {
+            String settled = client.awaitLeaving("STOPPING", ATTACH_TIMEOUT, POLL);
+            upper = settled.toUpperCase(Locale.ROOT);
         }
         if (upper.equals("PREPARING") || upper.equals("SEEKING")) {
             client.awaitReady(ATTACH_TIMEOUT, POLL);
@@ -188,12 +261,16 @@ public final class Main {
 
         if (options.timeGiven) {
             // Explicitly asked to look at another moment: pause so the read holds
-            // still, then move the clock. Both are open to any client.
+            // still, then move the clock. Both are open to any client, and a seek
+            // brings a STOPPED run back to PAUSED at that moment.
             client.pausePlayback();
             client.seek(options.time);
         } else if (upper.equals("RUNNING")) {
             notes.println("Warning: the run is RUNNING, not PAUSED — its clock is moving while this reads it, "
                     + "so the answer describes a moment that has already passed. Pause it, or pass --time.");
+        } else if (upper.equals("STOPPED") || upper.equals("COMPLETED")) {
+            notes.println("Note: the run is " + upper + "; this reads the state it was left in. "
+                    + "Pass --time to read it at a chosen moment instead.");
         }
         return describeRun(client, true, options.seed);
     }
@@ -202,7 +279,7 @@ public final class Main {
     private static RunInfo startOwnRun(SandboxClient client, Options options)
             throws IOException, InterruptedException {
         if (!client.hasOperatorToken()) {
-            throw new IllegalStateException(
+            throw new RunStateException(
                     "--start needs the simulator's operator token, and none was given. Set DSTNS_OPERATOR_TOKEN "
                             + "or pass --token-file (the simulator writes its token to logs/operator.token). "
                             + "Nothing has been stopped.");
@@ -211,14 +288,23 @@ public final class Main {
         // to go first. That is exactly why the token is checked above.
         try {
             client.stopPlayback();
-        } catch (IOException nothingWasRunning) {
-            // That is the state we wanted anyway.
+        } catch (SandboxHttpException answered) {
+            // The simulator answered and objected — typically there was nothing
+            // to stop. A failure to reach it at all is not caught: nothing after
+            // this could work either.
         }
+        client.awaitLeaving("STOPPING", ATTACH_TIMEOUT, POLL);
         try {
             client.startPlayback(options.seed, "00:00:00", 600);
         } catch (RunStartRefusedException refused) {
             throw new RunStartRefusedException(refused.getMessage()
                     + ". The previous run had already been stopped, so start one in the simulator's own CLI or UI.");
+        } catch (SandboxHttpException answered) {
+            if (answered.isLifecycleConflict()) {
+                throw new RunStateException("The simulator would not start a new run (" + answered.getMessage()
+                        + "). Another run may still be active; stop it in the simulator's own CLI or UI.");
+            }
+            throw answered;
         }
         client.awaitReady(START_TIMEOUT, POLL);
         client.pausePlayback();

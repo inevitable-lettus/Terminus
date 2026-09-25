@@ -53,6 +53,11 @@ public final class Graph {
             }
             requireInRange(edge.from(), n, "edge.from()");
             requireInRange(edge.to(), n, "edge.to()");
+            // -1 is how a map with no reverse direction says so; anything else
+            // must be a real edge, or a lookup through it indexes past the array.
+            if (edge.reverseTwin() != -1) {
+                requireInRange(edge.reverseTwin(), m, "edge.reverseTwin()");
+            }
             edges[edge.id()] = edge;
         }
 
