@@ -102,7 +102,10 @@ public final class JourneyPlanner {
      * @param aimed A* with this planner's heuristic if true; the same search with
      *        a zero guess — Dijkstra — if false. Both find the same cost; the
      *        difference is how much of the graph each has to settle to be sure.
-     * @param listener told each transit vertex as it is settled, or {@code null}
+     * @param listener told each vertex as it is settled — as the <em>road
+     *        junction</em> it stands at, not the internal transit vertex, since
+     *        the spliced-in endpoints exist only inside this call; or {@code null}.
+     *        A stop served by two lines is two vertices, so it can be reported twice.
      */
     public Itinerary plan(int originNode, int destinationNode, boolean aimed,
                           csc210.algorithm.search.SearchListener listener) {
@@ -150,8 +153,10 @@ public final class JourneyPlanner {
         AStar.Heuristic guess = aimed
                 ? TransitHeuristic.towards(extended.graph(), extended.targetVertex(), distance, roadGraph)::estimateMillis
                 : AStar.zeroHeuristic();
+        csc210.algorithm.search.SearchListener atJunctions = listener == null ? null
+                : (vertex, g, h) -> listener.onSettle(extended.graph().vertex(vertex).roadNode(), g, h);
         TransitPath path = new AStar(extended.graph())
-                .find(extended.sourceVertex(), extended.targetVertex(), guess, listener);
+                .find(extended.sourceVertex(), extended.targetVertex(), guess, atJunctions);
 
         if (!path.found()) {
             return walkableWithoutABus

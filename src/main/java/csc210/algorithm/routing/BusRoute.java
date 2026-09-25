@@ -45,15 +45,15 @@ public record BusRoute(
     }
 
     /**
-     * The same line driven back: through the outbound stops in reverse order,
-     * along its own shortest road path between each pair.
+     * The same line driven back: from the last outbound stop to the first, on
+     * its own shortest road path, calling at the stops it passes.
      *
      * <p><strong>Not the outbound path read backwards.</strong> That was the
      * first model, and it fails on real maps: a dual carriageway is two one-way
      * ways a few metres apart, so a line that follows one side can never retrace
      * itself, yet a bus comes back on the other side every day. Routed on its own,
-     * the return takes whatever roads actually lead back and still calls at every
-     * stop the outbound does.
+     * the return takes whatever roads actually lead back, and calls at the stops
+     * on that side.
      *
      * @param nodes node-by-node traversal from the last outbound stop to the first
      * @param edges edge ids traversed, one shorter than {@code nodes}

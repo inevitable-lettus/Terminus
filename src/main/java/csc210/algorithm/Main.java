@@ -13,6 +13,8 @@ import csc210.algorithm.export.RouteExporter;
 import csc210.algorithm.routing.RouteBudget;
 import csc210.algorithm.routing.RouteNetwork;
 import csc210.algorithm.routing.RouteNetworkBuilder;
+import csc210.algorithm.serve.ApiServer;
+import csc210.algorithm.serve.PlannedCity;
 import csc210.algorithm.world.World;
 import csc210.algorithm.world.WorldLoader;
 
@@ -147,6 +149,12 @@ public final class Main {
         if (options.mode == Options.Mode.HELP) {
             return help(options);
         }
+        if (options.mode == Options.Mode.SERVE) {
+            ApiServer server = startServing(options, notes);
+            Runtime.getRuntime().addShutdownHook(new Thread(server::close));
+            server.awaitClose();
+            return "";
+        }
         if (options.usedPublishAlias) {
             notes.println("Note: `publish` is now `export` — the simulator no longer accepts routes, "
                     + "so the network is written to files instead.");
@@ -172,8 +180,63 @@ public final class Main {
                             world.demandModel().source().name(), world.graph().nodeCount(),
                             world.graph().edgeCount(), world.stops().count()),
                     Path.of(options.outDirectory));
+            if (options.bundle) {
+                Path bundle = csc210.algorithm.serve.Bundle.write(PlannedCity.plan(world, run, budget, "bundle"),
+                        Path.of(options.outDirectory).resolve("dashboard"));
+                notes.println("Dashboard bundle written to " + bundle
+                        + " — copy it into dashboard/public/bundle to view it offline.");
+            }
+        }
+        if (options.json && options.mode != Options.Mode.EXPORT) {
+            return json(options, PlannedCity.plan(world, run, budget, "live"));
         }
         return render(options, run, world, budget, network, written);
+    }
+
+    /**
+     * Reads the simulator, plans it, and starts serving — everything
+     * {@code ./bus serve} does short of waiting, so a test can drive it and stop it.
+     */
+    static ApiServer startServing(Options options, PrintStream notes) throws IOException, InterruptedException {
+        SandboxClient client = new SandboxClient(options.sandboxUrl).withOperatorToken(resolveToken(options));
+        RunInfo run = options.start ? startOwnRun(client, options) : attachToRun(client, options, notes);
+        World world = WorldLoader.load(client);
+        RouteBudget budget = applyOverrides(world.budget(), options);
+        notes.print(Report.header(run, world, budget, options));
+
+        ApiServer.Reloader reloader = time -> {
+            if (time != null) {
+                client.pausePlayback();
+                client.seek(time);
+            }
+            World fresh = WorldLoader.load(client);
+            return PlannedCity.plan(fresh, describeRun(client, true, options.seed),
+                    applyOverrides(fresh.budget(), options), "live");
+        };
+        Path dashboard = Path.of(options.dashboard);
+        ApiServer server = ApiServer.start(options.host, options.port,
+                PlannedCity.plan(world, run, budget, "live"), reloader, dashboard, options.sandboxUrl);
+        String base = "http://" + options.host + ":" + server.port();
+        notes.println();
+        notes.println("Serving on " + base + "  (Ctrl-C to stop)");
+        notes.println(Files.isDirectory(dashboard)
+                ? "  dashboard  " + base + "/"
+                : "  dashboard  not built — `npm install && npm run dev` in dashboard/, then open http://localhost:5174");
+        notes.println("  API        " + base + "/api/network, /api/journey?from=&to=, /api/v1/routes/query");
+        return server;
+    }
+
+    /** {@code --json}: the command's answer in the serve API's own shapes. */
+    private static String json(Options options, PlannedCity city) throws IOException {
+        Object answer = switch (options.mode) {
+            case NETWORK -> city.networkView();
+            case STOPS -> city.worldView().stops();
+            case JOURNEY -> city.journeyView(options.from, options.to,
+                    Math.round(options.boardWaitMinutes * 60_000.0));
+            default -> throw new IllegalStateException("no JSON form for " + options.mode);
+        };
+        return csc210.algorithm.client.SandboxJson.mapper().writerWithDefaultPrettyPrinter()
+                .writeValueAsString(answer) + "\n";
     }
 
     /** Everything after the reads: the text for one command. No I/O, so tests can call it. */
@@ -186,7 +249,7 @@ public final class Main {
             case JOURNEY -> header + "\n" + Report.journey(world, network, options.from, options.to, run.time(),
                     options.boardWaitMinutes);
             case EXPORT -> header + "\n" + Report.exported(written) + "\n" + Report.network(world, network, budget);
-            case HELP -> Options.usage();
+            case SERVE, HELP -> Options.usage();
         };
     }
 

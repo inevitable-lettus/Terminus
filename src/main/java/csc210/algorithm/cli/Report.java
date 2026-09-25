@@ -151,7 +151,7 @@ public final class Report {
     }
 
     /** Why the builder stopped, in the words that say what to change. */
-    static String stopReason(RouteNetwork network, RouteBudget budget, World world) {
+    public static String stopReason(RouteNetwork network, RouteBudget budget, World world) {
         double target = budget.targetCoverage();
         if (network.totalDemand() > 0.0 && network.coverage() >= target) {
             return String.format(Locale.ROOT, "stopped because the %.0f%% coverage target was met", target * 100.0);
@@ -172,7 +172,7 @@ public final class Report {
     }
 
     /** Stop node ids served by more than one line, ascending. */
-    static List<Integer> interchangeStops(RouteNetwork network) {
+    public static List<Integer> interchangeStops(RouteNetwork network) {
         Map<Integer, Integer> lines = new TreeMap<>();
         for (BusRoute route : network.routes()) {
             for (int stop : route.stops()) {
@@ -193,7 +193,7 @@ public final class Report {
      * link as usable in either direction. One piece means a rider can get from any
      * served stop to any other; more means some pairs have no journey at all.
      */
-    static int pieces(TransitGraph transit) {
+    public static int pieces(TransitGraph transit) {
         int n = transit.vertexCount();
         int[] parent = new int[n];
         for (int i = 0; i < n; i++) {
@@ -329,7 +329,7 @@ public final class Report {
         return text.toString();
     }
 
-    private static String instruction(Itinerary.Leg leg) {
+    public static String instruction(Itinerary.Leg leg) {
         return switch (leg.kind()) {
             case ACCESS -> String.format(Locale.ROOT, "Walk from junction %d to stop %d", leg.fromNode(), leg.toNode());
             case RIDE -> String.format(Locale.ROOT, "Ride R%d, stop %d -> stop %d (%d stop%s)", leg.routeId(),

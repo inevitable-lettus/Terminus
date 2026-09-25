@@ -338,6 +338,14 @@ class RouteNetworkBuilderTest {
         }
         assertEquals(network.routeCount(), bothWays,
                 "a line only reaches for stops it can come back from, so every line runs both ways");
+        for (BusRoute route : network.routes()) {
+            // Regression: a return routed through the outbound stops in reverse
+            // circled one block four times. Terminal to terminal, a return is a
+            // shortest path, so it never passes the same junction twice.
+            int[] back = route.back().nodes();
+            assertEquals(back.length, java.util.Arrays.stream(back).distinct().count(),
+                    route.label() + "'s return passes a junction twice");
+        }
     }
 
     /**

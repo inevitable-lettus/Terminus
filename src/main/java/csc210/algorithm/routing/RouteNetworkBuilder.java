@@ -255,53 +255,43 @@ public final class RouteNetworkBuilder {
     }
 
     /**
-     * The return service: from the last outbound stop back to the first,
-     * calling at every outbound stop in reverse order, each hop on its own
-     * shortest road path. {@code null} if some hop has no road at all — then
-     * the line really is one-way, and is reported as such.
+     * The return service: from the last outbound stop back to the first, on its
+     * own shortest road path, calling at every stop it passes. {@code null} if
+     * no road leads back — then the line really is one-way, and is reported so.
+     *
+     * <p><strong>Terminal to terminal, not through the outbound stops in reverse.</strong>
+     * Calling at every outbound stop in reverse order was tried first, and on a
+     * real city it loops: the outbound stops sit on one carriageway of a
+     * one-way pair, and visiting them backwards means circling the block to
+     * reach each one — one line's return went round the same block four times,
+     * 608 junctions against 254 outbound. A real return runs down the other
+     * carriageway and calls at the stops on that side, which is what this does.
+     * A rider going back between two outbound stops walks across the street to
+     * the opposite stop, which the passenger network already prices.
      *
      * <p>The return is not held to the time budget: the budget decides how far
      * the line reaches, and the way back is whatever the roads make it. Nor does
      * it add coverage — a stop is covered by the line that was built to reach it —
-     * though a stop it passes on the way is still a stop it calls at.
+     * though a stop it passes is still a stop it calls at.
      */
     private BusRoute.Return planReturn(int[] outboundOccurrences) {
-        List<Integer> calls = new ArrayList<>();
-        for (int i = outboundOccurrences.length - 1; i >= 0; i--) {
-            int stop = outboundOccurrences[i];
-            if (calls.isEmpty() || calls.get(calls.size() - 1) != stop) {
-                calls.add(stop);
-            }
+        int from = outboundOccurrences[outboundOccurrences.length - 1];
+        int to = outboundOccurrences[0];
+        ShortestPathTree back = dijkstra.from(from, to);
+        if (from == to || !back.isReachable(to)) {
+            return null;
         }
-
-        List<Integer> nodes = new ArrayList<>();
-        List<Integer> edges = new ArrayList<>();
-        nodes.add(calls.get(0));
-        long millis = 0L;
-        for (int i = 0; i + 1 < calls.size(); i++) {
-            int to = calls.get(i + 1);
-            ShortestPathTree hop = dijkstra.from(calls.get(i), to);
-            if (!hop.isReachable(to)) {
-                return null;
-            }
-            int[] hopNodes = hop.pathTo(to);
-            int[] hopEdges = hop.edgePathTo(to);
-            for (int j = 1; j < hopNodes.length; j++) {
-                nodes.add(hopNodes[j]);
-                edges.add(hopEdges[j - 1]);
-            }
-            millis += hop.costTo(to);
-        }
-
+        int[] nodes = back.pathTo(to);
         List<Integer> occurrences = new ArrayList<>();
         List<Integer> positions = new ArrayList<>();
-        for (int position = 0; position < nodes.size(); position++) {
-            if (isStop[nodes.get(position)]) {
-                occurrences.add(nodes.get(position));
+        for (int position = 0; position < nodes.length; position++) {
+            if (isStop[nodes[position]]) {
+                occurrences.add(nodes[position]);
                 positions.add(position);
             }
         }
-        return new BusRoute.Return(toArray(nodes), toArray(edges), millis, toArray(occurrences), toArray(positions));
+        return new BusRoute.Return(nodes, back.edgePathTo(to), back.costTo(to), toArray(occurrences),
+                toArray(positions));
     }
 
     /** Demand that would become newly covered by driving this path, walk-radius included. */

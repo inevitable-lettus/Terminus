@@ -67,7 +67,7 @@ class RouteExporterTest {
     }
 
     @Test
-    void theReturnCallsAtEveryOutboundStopInReverseOrder() {
+    void theReturnRunsFromTheLastStopBackToTheFirst() {
         for (BusRoute route : network.routes()) {
             if (!route.runsBothWays()) {
                 continue;
@@ -76,16 +76,6 @@ class RouteExporterTest {
             int[] back = route.back().nodes();
             assertEquals(forward[forward.length - 1], back[0], "the return starts where the outbound ended");
             assertEquals(forward[0], back[back.length - 1], "the return must finish where the line started");
-
-            int[] outboundCalls = route.stopOccurrences();
-            int[] returnCalls = route.back().stopOccurrences();
-            int next = 0;
-            for (int i = outboundCalls.length - 1; i >= 0 && next < returnCalls.length; i--) {
-                while (next < returnCalls.length && returnCalls[next] != outboundCalls[i]) {
-                    next++;
-                }
-                assertTrue(next < returnCalls.length, route.label() + " return skips stop " + outboundCalls[i]);
-            }
         }
     }
 

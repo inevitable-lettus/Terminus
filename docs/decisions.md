@@ -379,12 +379,18 @@ counting it three times makes clustered stops look busier than they are.
 Rejected: fetching `/view/places` for positions — 17,867 places over nine pages,
 when the topology already carries them.
 
-**The return is routed on its own, through the outbound stops in reverse.** With
-the return modelled as the outbound path read backwards, every line on a real
-city came out one-way, because lines follow dual carriageways. Rejected: allowing
-one-way lines and leaving it there — a bus network nobody can ride home on is not
-a network. Rejected: routing the return only between the two terminals — it would
-skip the stops passengers boarded at.
+**The return is routed on its own, terminal to terminal.** With the return
+modelled as the outbound path read backwards, every line on a real city came out
+one-way, because lines follow dual carriageways. Rejected: allowing one-way lines
+and leaving it there — a bus network nobody can ride home on is not a network.
+Tried and rejected: routing the return back *through the outbound stops in
+reverse*. On a real city it loops — the outbound stops sit on one carriageway,
+and visiting them backwards means circling the block for each one; R2's return
+went round the same block four times, 608 junctions against 254 outbound. The
+return now takes the shortest path from the last stop to the first and calls at
+the stops on its own side, as a real return does; a rider going back between two
+outbound stops walks across to the opposite stop, which the passenger network
+already prices.
 
 **A line only reaches for stops it can come back from.** Strongly connected
 components of the drivable road graph (Kosaraju, iterative) mark which junctions

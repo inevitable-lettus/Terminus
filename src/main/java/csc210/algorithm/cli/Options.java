@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
  */
 public final class Options {
 
-    public enum Mode { NETWORK, STOPS, JOURNEY, EXPORT, HELP }
+    public enum Mode { NETWORK, STOPS, JOURNEY, EXPORT, SERVE, HELP }
 
     public static final String DEFAULT_SANDBOX = "http://127.0.0.1:8090";
     public static final String DEFAULT_TIME = "18:00:00";
@@ -49,6 +49,15 @@ public final class Options {
     public final boolean usedPublishAlias;
     /** Print the stack trace of an internal error, not just its one-line summary. */
     public final boolean debug;
+    /** network, stops, journey: print JSON — the same shapes the serve API sends — instead of text. */
+    public final boolean json;
+    /** export: also write the dashboard's static bundle to {@code OUT/dashboard/}. */
+    public final boolean bundle;
+    /** serve: where to listen. */
+    public final String host;
+    public final int port;
+    /** serve: the built dashboard to serve at {@code /}. */
+    public final String dashboard;
 
     private Options(Builder b) {
         this.mode = b.mode;
@@ -68,6 +77,11 @@ public final class Options {
         this.top = b.top;
         this.usedPublishAlias = b.usedPublishAlias;
         this.debug = b.debug;
+        this.json = b.json;
+        this.bundle = b.bundle;
+        this.host = b.host;
+        this.port = b.port;
+        this.dashboard = b.dashboard;
     }
 
     private static final class Builder {
@@ -78,6 +92,11 @@ public final class Options {
         String seed = DEFAULT_SEED;
         boolean start;
         boolean debug;
+        boolean json;
+        boolean bundle;
+        String host = "127.0.0.1";
+        int port = 8080;
+        String dashboard = "dashboard/dist";
         int from = -1;
         int to = -1;
         String tokenFile;
@@ -107,6 +126,7 @@ public final class Options {
             case "stops" -> Mode.STOPS;
             case "journey" -> Mode.JOURNEY;
             case "export" -> Mode.EXPORT;
+            case "serve" -> Mode.SERVE;
             case "publish" -> {
                 b.usedPublishAlias = true;
                 yield Mode.EXPORT;
@@ -141,6 +161,16 @@ public final class Options {
                 i += 1;
                 continue;
             }
+            if ("--json".equals(flag)) {
+                b.json = true;
+                i += 1;
+                continue;
+            }
+            if ("--bundle".equals(flag)) {
+                b.bundle = true;
+                i += 1;
+                continue;
+            }
             if (i + 1 >= args.length) {
                 throw new UsageException("option " + flag + " needs a value");
             }
@@ -166,6 +196,9 @@ public final class Options {
                 case "--routes" -> b.routes = positiveInt(flag, value);
                 case "--walk" -> b.walkMetres = nonNegativeDouble(flag, value);
                 case "--board-wait" -> b.boardWaitMinutes = nonNegativeDouble(flag, value, "minutes");
+                case "--port" -> b.port = port(value);
+                case "--host" -> b.host = value;
+                case "--dashboard" -> b.dashboard = value;
                 case "--out" -> b.outDirectory = value;
                 case "--top" -> b.top = positiveInt(flag, value);
                 default -> throw new UsageException("unknown option '" + flag + "'");
@@ -203,6 +236,18 @@ public final class Options {
         return nonNegativeDouble(flag, text, "metres");
     }
 
+    private static int port(String text) {
+        try {
+            int port = Integer.parseInt(text);
+            if (port >= 0 && port <= 65535) {
+                return port;
+            }
+        } catch (NumberFormatException notANumber) {
+            // fall through
+        }
+        throw new UsageException("--port must be 0 to 65535, got '" + text + "'");
+    }
+
     private static double nonNegativeDouble(String flag, String text, String unit) {
         try {
             double value = Double.parseDouble(text);
@@ -224,6 +269,7 @@ public final class Options {
                   stops              the busiest stops, and which lines serve them
                   journey FROM TO    one passenger journey between two junction ids
                   export             write the network to out/ as JSON and GeoJSON
+                  serve              the planned city over HTTP, and the dashboard
                   help               this text
 
                 Each command reads the simulation that is already running and leaves
@@ -240,6 +286,11 @@ public final class Options {
                   --top N            stops: how many to list (default 15)
                   --board-wait MIN   journey: minutes to wait for the first bus
                                      (default 0 — the simulator publishes no timetable)
+                  --json             network, stops, journey: print JSON instead of text
+                  --bundle           export: also write the dashboard's offline data
+                  --port N           serve: where to listen (default 8080)
+                  --host ADDR        serve: which address (default 127.0.0.1)
+                  --dashboard DIR    serve: the built dashboard (default dashboard/dist)
                   --out DIR          export: where to write (default ./out)
 
                 Starting a run from here (needs the simulator's operator token):

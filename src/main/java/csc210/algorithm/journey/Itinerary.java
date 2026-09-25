@@ -41,8 +41,19 @@ public record Itinerary(
      *        when this leg is on foot or is a wait
      * @param stopsRidden how many stops are covered, for a {@code RIDE}; zero otherwise
      * @param millis what this leg costs
+     * @param calls for a {@code RIDE}, every stop the bus calls at from boarding to
+     *        alighting, both ends included — the stops the search actually rode
+     *        through, which is what a drawing of the ride must follow; otherwise
+     *        just the two ends
      */
-    public record Leg(TransitLink.Kind kind, int fromNode, int toNode, int routeId, int stopsRidden, long millis) {}
+    public record Leg(TransitLink.Kind kind, int fromNode, int toNode, int routeId, int stopsRidden, long millis,
+                      List<Integer> calls) {
+
+        /** A leg that is not a ride: its calls are its two ends. */
+        public Leg(TransitLink.Kind kind, int fromNode, int toNode, int routeId, int stopsRidden, long millis) {
+            this(kind, fromNode, toNode, routeId, stopsRidden, millis, List.of(fromNode, toNode));
+        }
+    }
 
     /** The answer when there is no journey at all. */
     public static Itinerary notFound(int verticesExpanded) {
@@ -84,15 +95,19 @@ public record Itinerary(
             long millis = 0L;
             int stops = 0;
             int last = link.to();
+            List<Integer> calls = new ArrayList<>();
+            calls.add(fromNode);
             while (i < links.size()
                     && links.get(i).kind() == TransitLink.Kind.RIDE
                     && links.get(i).routeId() == route) {
                 millis += links.get(i).millis();
                 last = links.get(i).to();
+                calls.add(roadNodeOf.applyAsInt(last));
                 stops++;
                 i++;
             }
-            legs.add(new Leg(TransitLink.Kind.RIDE, fromNode, roadNodeOf.applyAsInt(last), route, stops, millis));
+            legs.add(new Leg(TransitLink.Kind.RIDE, fromNode, roadNodeOf.applyAsInt(last), route, stops, millis,
+                    List.copyOf(calls)));
         }
         return new Itinerary(List.copyOf(legs), totalMillis, transfers, verticesExpanded, true);
     }

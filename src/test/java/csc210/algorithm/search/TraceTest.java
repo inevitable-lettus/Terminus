@@ -10,8 +10,6 @@ import csc210.algorithm.transit.TransitGraph;
 import csc210.algorithm.world.World;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashSet;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -67,10 +65,11 @@ class TraceTest {
                 assertEquals(d.verticesExpanded(), blind.settledCount());
                 assertTrue(aimed.settledCount() <= blind.settledCount(), "A* never settles more than Dijkstra here");
 
-                Set<Integer> distinct = new HashSet<>();
                 long[] costs = blind.costs();
+                assertEquals(origin, blind.vertices()[0], "the search starts where the passenger stands");
                 for (int i = 0; i < costs.length; i++) {
-                    assertTrue(distinct.add(blind.vertices()[i]), "a vertex is settled once");
+                    assertTrue(blind.vertices()[i] >= 0 && blind.vertices()[i] < WORLD.graph().nodeCount(),
+                            "settled vertices are reported as road junctions");
                     if (i > 0) {
                         assertTrue(costs[i] >= costs[i - 1], "Dijkstra settles in cost order");
                     }
