@@ -5,10 +5,21 @@
 #   ./bus stops              the busiest stops, and which lines serve them
 #   ./bus journey FROM TO    one passenger journey between two junctions
 #   ./bus export             write the network to out/ as JSON and GeoJSON
+#   ./bus serve              the local API and dashboard
 #   ./bus help               every option
 #
-# Builds first if the sources changed (a no-op otherwise), then runs.
+# Builds first if any source is newer than the last build, then runs. The
+# freshness check is a file-time comparison, so an unchanged checkout skips
+# Gradle entirely instead of paying its start-up on every call.
 set -e
 cd "$(dirname "$0")"
-./gradlew -q installDist
-exec build/install/csc210-algorithm/bin/csc210-algorithm "$@"
+launcher=build/install/csc210-algorithm/bin/csc210-algorithm
+jar=build/install/csc210-algorithm/lib/csc210-algorithm.jar
+if [ ! -x "$launcher" ] || [ ! -f "$jar" ] \
+   || [ -n "$(find src/main build.gradle settings.gradle -newer "$jar" -print 2>/dev/null | head -n 1)" ]; then
+    ./gradlew -q installDist
+    # Gradle leaves an unchanged jar untouched, so mark it checked; otherwise a
+    # source that was only touched would send every later call back to Gradle.
+    touch "$jar"
+fi
+exec "$launcher" "$@"

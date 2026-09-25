@@ -89,14 +89,12 @@ public final class SandboxClient {
     }
 
     public TopologyData topology() throws IOException, InterruptedException {
-        Envelope envelope = get("/api/v1/view/topology", Envelope.class);
-        return objectMapper.treeToValue(envelope.data(), TopologyData.class);
+        return getData("/api/v1/view/topology", TopologyData.class);
     }
 
     /** Live edge/node state at the current instant of virtual time. */
     public SnapshotData snapshot() throws IOException, InterruptedException {
-        Envelope envelope = get("/api/v1/view/snapshot", Envelope.class);
-        return objectMapper.treeToValue(envelope.data(), SnapshotData.class);
+        return getData("/api/v1/view/snapshot", SnapshotData.class);
     }
 
     /**
@@ -108,8 +106,7 @@ public final class SandboxClient {
         java.util.List<EdgeDetail> all = new java.util.ArrayList<>();
         int offset = 0;
         while (true) {
-            Envelope envelope = get("/api/v1/view/edges?offset=" + offset + "&limit=1000", Envelope.class);
-            EdgePage page = objectMapper.treeToValue(envelope.data(), EdgePage.class);
+            EdgePage page = getData("/api/v1/view/edges?offset=" + offset + "&limit=1000", EdgePage.class);
             all.addAll(page.items());
             offset += page.items().size();
             if (offset >= page.total()) {
@@ -300,10 +297,14 @@ public final class SandboxClient {
 
     /** A non-success answer, with DSTNS's own error code and message pulled out of the body when it has them. */
     private SandboxHttpException failure(String method, String path, HttpResponse<String> response) {
+        return failure(method, path, response.statusCode(), response.body());
+    }
+
+    private SandboxHttpException failure(String method, String path, int status, String body) {
         String code = null;
-        String detail = response.body();
+        String detail = body;
         try {
-            JsonNode error = objectMapper.readTree(response.body()).path("error");
+            JsonNode error = objectMapper.readTree(body).path("error");
             if (error.isObject()) {
                 code = error.path("code").asText(null);
                 detail = error.path("message").asText(detail);
@@ -314,12 +315,38 @@ public final class SandboxClient {
         if (detail != null && detail.length() > 300) {
             detail = detail.substring(0, 297) + "...";
         }
-        return new SandboxHttpException(method, path, response.statusCode(), code, detail);
+        return new SandboxHttpException(method, path, status, code, detail);
     }
 
     /** {@code path} under the base URL, keeping any prefix the base has. */
     private URI uri(String path) {
         return baseUri.resolve(path.startsWith("/") ? path.substring(1) : path);
+    }
+
+    /**
+     * The {@code data} of an enveloped response, streamed from the socket into
+     * {@code dataType} with no intermediate text or tree — see {@link Payload}.
+     */
+    private <T> T getData(String path, Class<T> dataType) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder(uri(path))
+                .timeout(requestTimeout)
+                .GET()
+                .build();
+        HttpResponse<java.io.InputStream> response =
+                httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        try (java.io.InputStream body = response.body()) {
+            if (response.statusCode() != 200) {
+                String text = new String(body.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                throw failure("GET", path, response.statusCode(), text);
+            }
+            com.fasterxml.jackson.databind.JavaType type =
+                    objectMapper.getTypeFactory().constructParametricType(Payload.class, dataType);
+            Payload<T> payload = objectMapper.readValue(body, type);
+            if (payload.data() == null) {
+                throw new IOException("GET " + path + " returned no data");
+            }
+            return payload.data();
+        }
     }
 
     private <T> T get(String path, Class<T> responseType) throws IOException, InterruptedException {

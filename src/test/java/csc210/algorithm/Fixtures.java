@@ -1,7 +1,6 @@
 package csc210.algorithm;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import csc210.algorithm.client.Envelope;
 import csc210.algorithm.client.SandboxJson;
 import csc210.algorithm.client.SnapshotData;
 import csc210.algorithm.client.TopologyData;
@@ -166,8 +165,10 @@ public final class Fixtures {
 
     private static <T> T read(String resource, Class<T> payloadType) {
         try (InputStream in = open(resource)) {
-            Envelope envelope = MAPPER.readValue(in, Envelope.class);
-            return MAPPER.treeToValue(envelope.data(), payloadType);
+            com.fasterxml.jackson.databind.JavaType type = MAPPER.getTypeFactory()
+                    .constructParametricType(csc210.algorithm.client.Payload.class, payloadType);
+            csc210.algorithm.client.Payload<T> payload = MAPPER.readValue(in, type);
+            return payload.data();
         } catch (IOException e) {
             throw new UncheckedIOException("could not read fixture " + resource, e);
         }
