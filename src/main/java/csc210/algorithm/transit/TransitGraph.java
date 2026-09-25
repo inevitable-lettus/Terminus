@@ -34,12 +34,16 @@ import java.util.Map;
  * <p>Walk edges join (stop, route) pairs at <em>different</em> stops close
  * enough to walk between, so a passenger can cross the street to a better line.
  *
- * <p><strong>Both directions, priced separately.</strong> Each line can be
- * ridden either way, but the two directions are separate ride links, each
- * priced from its own road edges, and a return link is left out wherever any
- * road on it cannot be driven that way — a closed road, or the fabricated
- * reverse of a one-way street, which the cost model excludes. A passenger is
- * never routed backwards along a line no bus could drive.
+ * <p><strong>Both directions, only where a bus runs both ways.</strong> A
+ * line's outbound stops are joined by ride links priced from the outbound
+ * road edges. Return links exist only if the line has a return service
+ * ({@link BusRoute#runsBothWays()}), and they are priced from the return's own
+ * road path, which on a dual carriageway is a different road from the
+ * outbound one. A passenger is never put on a bus that does not run.
+ *
+ * <p>Both directions of one line share a vertex per stop, so a rider can stay
+ * on "R0" through a terminus without paying a transfer. That is never cheaper
+ * than getting off earlier, so it does not distort a shortest journey.
  *
  * <p><strong>Honest simplifications.</strong> The transfer wait is a
  * flat five minutes rather than derived from a timetable, because DSTNS does
@@ -118,7 +122,7 @@ public final class TransitGraph {
         Map<Integer, List<Integer>> atStop = new HashMap<>();
 
         for (BusRoute route : network.routes()) {
-            for (int stop : route.stops()) {
+            for (int stop : callsOf(route)) {
                 long key = key(stop, route.id());
                 if (vertexIndex.containsKey(key)) {
                     continue;
@@ -137,27 +141,15 @@ public final class TransitGraph {
 
         // Ride edges: consecutive stop *occurrences* along one line (repeats
         // included), each priced against the exact slice of road edges the
-        // bus drives between them. Forward and return are priced and
-        // validated independently: a route may revisit a stop, and a road
-        // open in one direction is not guaranteed open in the other.
+        // bus drives between them. The return, where there is one, is priced
+        // from its own edges, never from the outbound ones reversed.
         for (BusRoute route : network.routes()) {
-            int[] occurrences = route.stopOccurrences();
-            int[] positions = route.stopOccurrencePositions();
-            for (int i = 0; i + 1 < occurrences.length; i++) {
-                int fromStop = occurrences[i];
-                int toStop = occurrences[i + 1];
-                int fromPos = positions[i];
-                int toPos = positions[i + 1];
-                int from = vertexIndex.get(key(fromStop, route.id()));
-                int to = vertexIndex.get(key(toStop, route.id()));
-
-                long forwardMillis = segmentMillis(route, fromPos, toPos, rideMillis);
-                outgoing.get(from).add(new TransitLink(from, to, forwardMillis, TransitLink.Kind.RIDE, route.id()));
-
-                Long reverseMillis = reverseSegmentMillis(route, roadGraph, fromPos, toPos, rideMillis);
-                if (reverseMillis != null) {
-                    outgoing.get(to).add(new TransitLink(to, from, reverseMillis, TransitLink.Kind.RIDE, route.id()));
-                }
+            addRides(outgoing, vertexIndex, route.id(), route.edges(), route.stopOccurrences(),
+                    route.stopOccurrencePositions(), rideMillis);
+            if (route.runsBothWays()) {
+                BusRoute.Return back = route.back();
+                addRides(outgoing, vertexIndex, route.id(), back.edges(), back.stopOccurrences(),
+                        back.stopOccurrencePositions(), rideMillis);
             }
         }
 
@@ -215,38 +207,37 @@ public final class TransitGraph {
                 verticesAtStop, walkingRadiusM);
     }
 
-    /**
-     * Driving time along one line between two of its consecutive stop
-     * occurrences, given their exact positions in {@link BusRoute#nodes()}
-     * — unambiguous even when the line revisits a stop.
-     */
-    private static long segmentMillis(BusRoute route, int fromPos, int toPos,
-                                      csc210.algorithm.cost.CostModel rideMillis) {
-        long millis = 0L;
-        for (int i = fromPos; i < toPos; i++) {
-            millis += rideMillis.costMillis(route.edges()[i]);
+    /** Every stop a line calls at, outbound first, then any the return alone passes. */
+    private static int[] callsOf(BusRoute route) {
+        if (!route.runsBothWays()) {
+            return route.stops();
         }
-        return millis;
+        java.util.LinkedHashSet<Integer> calls = new java.util.LinkedHashSet<>();
+        for (int stop : route.stops()) {
+            calls.add(stop);
+        }
+        for (int stop : route.back().stopOccurrences()) {
+            calls.add(stop);
+        }
+        return calls.stream().mapToInt(Integer::intValue).toArray();
     }
 
-    /**
-     * Driving time for the <em>return</em> leg of a segment, or
-     * {@code null} if any road edge the return trip would need is closed.
-     * The forward and return directions do not share a cost: each is priced
-     * from its own edges, walked via {@link csc210.algorithm.model.Edge#reverseTwin()}.
-     */
-    private static Long reverseSegmentMillis(BusRoute route, Graph roadGraph, int fromPos, int toPos,
-                                             csc210.algorithm.cost.CostModel rideMillis) {
-        long millis = 0L;
-        for (int i = toPos - 1; i >= fromPos; i--) {
-            int forwardEdgeId = route.edges()[i];
-            int reverseEdgeId = roadGraph.edge(forwardEdgeId).reverseTwin();
-            if (!rideMillis.isTraversable(reverseEdgeId)) {
-                return null;
+    /** One ride link per pair of consecutive stop visits along one direction of one line. */
+    private static void addRides(List<List<TransitLink>> outgoing, Map<Long, Integer> vertexIndex, int routeId,
+                                 int[] edges, int[] occurrences, int[] positions,
+                                 csc210.algorithm.cost.CostModel rideMillis) {
+        for (int i = 0; i + 1 < occurrences.length; i++) {
+            int from = vertexIndex.get(key(occurrences[i], routeId));
+            int to = vertexIndex.get(key(occurrences[i + 1], routeId));
+            if (from == to) {
+                continue;
             }
-            millis += rideMillis.costMillis(reverseEdgeId);
+            long millis = 0L;
+            for (int e = positions[i]; e < positions[i + 1]; e++) {
+                millis += rideMillis.costMillis(edges[e]);
+            }
+            outgoing.get(from).add(new TransitLink(from, to, millis, TransitLink.Kind.RIDE, routeId));
         }
-        return millis;
     }
 
     /**

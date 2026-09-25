@@ -133,22 +133,28 @@ public final class RouteExporter {
             one.set("edges", ints(route.edges()));
             one.put("travel_millis", route.travelMillis());
             one.put("demand_covered", round(route.demandCovered(), 6));
-            if (canBeDrivenBack(route)) {
-                int[] back = returnNodes(route);
-                requireContinuous(back, route.label() + " return");
+            if (route.runsBothWays()) {
+                BusRoute.Return back = route.back();
+                requireContinuous(back.nodes(), route.label() + " return");
                 one.put("both_ways", true);
-                one.set("return_nodes", ints(back));
+                one.set("return_nodes", ints(back.nodes()));
+                one.set("return_edges", ints(back.edges()));
+                one.put("return_travel_millis", back.travelMillis());
             } else {
                 one.put("both_ways", false);
                 one.putNull("return_nodes");
+                one.putNull("return_edges");
+                one.putNull("return_travel_millis");
             }
         }
         return MAPPER.writeValueAsString(root) + "\n";
     }
 
     /**
-     * The lines as GeoJSON: one {@code LineString} per route and one {@code Point}
-     * per stop served, in {@code [longitude, latitude]} order as the format requires.
+     * The lines as GeoJSON: one {@code LineString} per direction a bus runs
+     * ({@code "direction"} is {@code "outbound"} or {@code "return"}) and one
+     * {@code Point} per stop called at, in {@code [longitude, latitude]} order as
+     * the format requires.
      */
     public String toGeoJson(RouteNetwork network) throws IOException {
         ObjectNode root = MAPPER.createObjectNode();
@@ -164,15 +170,32 @@ public final class RouteExporter {
             properties.put("kind", "route");
             properties.put("label", route.label());
             properties.put("stops", route.stopCount());
+            properties.put("direction", "outbound");
             properties.put("travel_minutes", round(route.travelMillis() / 60_000.0, 2));
-            properties.put("both_ways", canBeDrivenBack(route));
-            ObjectNode geometry = feature.putObject("geometry");
-            geometry.put("type", "LineString");
-            ArrayNode coordinates = geometry.putArray("coordinates");
-            for (int node : route.nodes()) {
-                coordinates.add(coordinate(roadGraph.node(node).position()));
-            }
+            properties.put("both_ways", route.runsBothWays());
+            feature.set("geometry", lineString(route.nodes()));
+            java.util.Set<Integer> calls = new java.util.TreeSet<>();
             for (int stop : route.stops()) {
+                calls.add(stop);
+            }
+            if (route.runsBothWays()) {
+                BusRoute.Return back = route.back();
+                requireContinuous(back.nodes(), route.label() + " return");
+                ObjectNode returning = features.addObject();
+                returning.put("type", "Feature");
+                ObjectNode returnProperties = returning.putObject("properties");
+                returnProperties.put("kind", "route");
+                returnProperties.put("label", route.label());
+                returnProperties.put("stops", back.stopOccurrences().length);
+                returnProperties.put("direction", "return");
+                returnProperties.put("travel_minutes", round(back.travelMillis() / 60_000.0, 2));
+                returnProperties.put("both_ways", true);
+                returning.set("geometry", lineString(back.nodes()));
+                for (int stop : back.stopOccurrences()) {
+                    calls.add(stop);
+                }
+            }
+            for (int stop : calls) {
                 linesAtStop.computeIfAbsent(stop, ignored -> new ArrayList<>()).add(route.label());
             }
         }
@@ -191,15 +214,25 @@ public final class RouteExporter {
         return MAPPER.writeValueAsString(root) + "\n";
     }
 
-    /** Labels of the lines in {@code network} that can only be driven one way. */
+    /** Labels of the lines in {@code network} with no return service. */
     public List<String> oneWayLines(RouteNetwork network) {
         List<String> labels = new ArrayList<>();
         for (BusRoute route : network.routes()) {
-            if (!canBeDrivenBack(route)) {
+            if (!route.runsBothWays()) {
                 labels.add(route.label());
             }
         }
         return labels;
+    }
+
+    private ObjectNode lineString(int[] nodes) {
+        ObjectNode geometry = MAPPER.createObjectNode();
+        geometry.put("type", "LineString");
+        ArrayNode coordinates = geometry.putArray("coordinates");
+        for (int node : nodes) {
+            coordinates.add(coordinate(roadGraph.node(node).position()));
+        }
+        return geometry;
     }
 
     private static ArrayNode coordinate(Position position) {
@@ -220,62 +253,6 @@ public final class RouteExporter {
     private static double round(double value, int places) {
         double scale = Math.pow(10, places);
         return Math.round(value * scale) / scale;
-    }
-
-    /**
-     * Whether every segment of {@code route} has a reverse twin that traffic may
-     * actually use.
-     *
-     * <p>The twin's <em>existence</em> is not enough. DSTNS fabricates a reverse
-     * for every one-way street, so the id is always there; only the cost model
-     * knows whether it is a road or a fiction.
-     */
-    public boolean canBeDrivenBack(BusRoute route) {
-        for (int edgeId : route.edges()) {
-            int twin = roadGraph.edge(edgeId).reverseTwin();
-            if (twin < 0 || twin >= roadGraph.edgeCount()) {
-                return false;
-            }
-            if (costModel != null && !costModel.isTraversable(twin)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * The same line driven the other way.
-     *
-     * <p>A bus line runs in both directions; the builder emits one, so the
-     * return path is the node list read backwards. Whether that path can be
-     * driven at all is a property of the map rather than a law, so it is
-     * checked rather than assumed — twice over, because DSTNS gives a one-way
-     * street a reverse twin that exists as an id but not as a road. A line that
-     * cannot retrace itself is a real answer, not a bug.
-     *
-     * <p>Use {@link #canBeDrivenBack} to ask without provoking an exception.
-     *
-     * @throws IllegalStateException if any segment has no usable reverse twin
-     */
-    public int[] returnNodes(BusRoute route) {
-        int[] forward = route.nodes();
-        for (int edgeId : route.edges()) {
-            int twin = roadGraph.edge(edgeId).reverseTwin();
-            if (twin < 0 || twin >= roadGraph.edgeCount()) {
-                throw new IllegalStateException("edge " + edgeId + " on " + route.label()
-                        + " has no reverse twin, so this line cannot be driven back along its own path");
-            }
-            if (costModel != null && !costModel.isTraversable(twin)) {
-                throw new IllegalStateException("edge " + edgeId + " on " + route.label()
-                        + " is one-way — its reverse twin " + twin + " is not a road traffic may use, "
-                        + "so this line cannot be driven back along its own path");
-            }
-        }
-        int[] back = new int[forward.length];
-        for (int i = 0; i < forward.length; i++) {
-            back[i] = forward[forward.length - 1 - i];
-        }
-        return back;
     }
 
     /**

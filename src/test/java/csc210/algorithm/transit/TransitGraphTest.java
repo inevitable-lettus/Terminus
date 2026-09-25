@@ -1,10 +1,7 @@
 package csc210.algorithm.transit;
 
 import csc210.algorithm.Fixtures;
-import csc210.algorithm.client.SnapshotData;
-import csc210.algorithm.client.TopologyData;
 import csc210.algorithm.cost.CostModel;
-import csc210.algorithm.demand.DemandModel;
 import csc210.algorithm.graph.Graph;
 import csc210.algorithm.model.Edge;
 import csc210.algorithm.model.Node;
@@ -35,26 +32,36 @@ class TransitGraphTest {
     private static Graph roadGraph;
     private static RouteNetwork network;
     private static TransitGraph transitGraph;
-    private static TransitGraph narrowWalkGraph;
 
+    /**
+     * Built on the DSTNS 2.0 capture, the real city: six lines with interchanges
+     * between them. The Berlin fixture is now served by a single line, which
+     * leaves nothing to change between.
+     */
     @BeforeAll
     static void build() {
-        TopologyData topology = Fixtures.topology();
-        SnapshotData snapshot = Fixtures.snapshotAt1800();
-        roadGraph = Graph.of(topology.nodes(), topology.edges());
-        CostModel costModel = CostModel.of(roadGraph, snapshot, Fixtures.oneWayEdgeIdsAt1800());
-        DemandModel demandModel = DemandModel.of(roadGraph, snapshot);
-        RouteBudget budget = RouteBudget.defaults();
-        network = new RouteNetworkBuilder(roadGraph, costModel, demandModel, budget).build();
+        csc210.algorithm.world.World world = Fixtures.v2World1800();
+        roadGraph = world.graph();
+        CostModel costModel = world.costModel();
+        RouteBudget budget = world.budget();
+        network = new RouteNetworkBuilder(roadGraph, costModel, world.demandModel(), budget).build();
         transitGraph = TransitGraph.of(roadGraph, network, costModel);
-        narrowWalkGraph = TransitGraph.of(roadGraph, network, costModel, budget.walkingRadiusM());
     }
 
     @Test
     void oneVertexPerStopPerLine() {
         int expected = 0;
         for (var route : network.routes()) {
-            expected += route.stopCount();
+            java.util.Set<Integer> calls = new java.util.HashSet<>();
+            for (int stop : route.stops()) {
+                calls.add(stop);
+            }
+            if (route.runsBothWays()) {
+                for (int stop : route.back().stopOccurrences()) {
+                    calls.add(stop);
+                }
+            }
+            expected += calls.size();
         }
         assertEquals(expected, transitGraph.vertexCount());
 
@@ -151,17 +158,35 @@ class TransitGraphTest {
 
     /**
      * Why the interchange walk radius is 400 m and not the route builder's
-     * 250 m. At 250 m line R1 shares no stop with any other line and 16 of the
-     * 61 vertices are cut off — a passenger boarding R1 could never leave it.
-     * Asserted so the reason for the two separate radii stays visible.
+     * coverage radius. Two lines that share no stop, their nearest stops 300 m
+     * apart: at a 150 m walk a rider boarding one can never reach the other; at
+     * 400 m they can. Measured on the synthetic grid this module started on (16
+     * of 61 vertices cut off at 250 m), and kept as a hand-built case because a
+     * real map with shared stops no longer shows it.
      */
     @Test
-    void aNarrowInterchangeWalkDisconnectsTheNetwork() {
-        assertTrue(reachableFromFirstVertex(narrowWalkGraph) < narrowWalkGraph.vertexCount(),
-                "the 250 m graph is expected to be split; if this passes the two radii could be merged");
-        System.out.printf("at a %.0f m interchange walk only %d of %d vertices are reachable%n",
-                narrowWalkGraph.walkingRadiusM(), reachableFromFirstVertex(narrowWalkGraph),
-                narrowWalkGraph.vertexCount());
+    void aNarrowInterchangeWalkDisconnectsLinesThatShareNoStop() {
+        List<Node> nodes = List.of(stopNode(0, 0.0), stopNode(1, 100.0), stopNode(2, 400.0), stopNode(3, 500.0));
+        List<Edge> edges = List.of(
+                new Edge(0, 0, 1, 1, "residential", 1, 100.0, 10.0),
+                new Edge(1, 1, 0, 0, "residential", 1, 100.0, 10.0),
+                new Edge(2, 2, 3, 3, "residential", 1, 100.0, 10.0),
+                new Edge(3, 3, 2, 2, "residential", 1, 100.0, 10.0));
+        Graph g = Graph.of(nodes, edges);
+        CostModel c = CostModel.ofCosts(new long[] {10_000L, 10_000L, 10_000L, 10_000L});
+        BusRoute left = new BusRoute(0, new int[] {0, 1}, new int[] {0, 1}, new int[] {0}, 10_000L, 0.0,
+                new int[] {0, 1}, new int[] {0, 1});
+        BusRoute right = new BusRoute(1, new int[] {2, 3}, new int[] {2, 3}, new int[] {2}, 10_000L, 0.0,
+                new int[] {2, 3}, new int[] {0, 1});
+        RouteNetwork twoLines = new RouteNetwork(List.of(left, right), new int[] {0, 1, 2, 3}, 0.0, 0.0);
+
+        TransitGraph narrow = TransitGraph.of(g, twoLines, c, 150.0);
+        TransitGraph wide = TransitGraph.of(g, twoLines, c, TransitGraph.DEFAULT_INTERCHANGE_WALK_M);
+
+        assertTrue(reachableFromFirstVertex(narrow) < narrow.vertexCount(),
+                "at 150 m the two lines are islands");
+        assertEquals(wide.vertexCount(), reachableFromFirstVertex(wide),
+                "at 400 m a rider can walk between them");
     }
 
     /** A passenger must be able to get from anywhere on the network to anywhere else. */
@@ -174,32 +199,70 @@ class TransitGraphTest {
     }
 
     /**
-     * Regression: the ride-edge loop used to add both directions of a
-     * segment at the forward cost, without checking whether the reverse
-     * road was even open. Here A→B is open (1000ms) and B→A is closed;
-     * passengers must be offered the forward ride but never the reverse one.
+     * Regression: a reverse ride used to be offered on any segment whose own
+     * roads could be driven back, even when the line as a whole had no return
+     * service and was exported and reported as one-way. Here every road is
+     * two-way, but the line runs A→B→C only; a rider at C must not be carried to A.
      */
     @Test
-    void noReverseRideIsOfferedWhenTheReturnRoadIsClosed() {
-        List<Node> nodes = List.of(
-                stopNode(0, 0.0),
-                stopNode(1, 10.0));
-        List<Edge> edges = List.of(
-                new Edge(0, 0, 1, 1, "residential", 1, 10.0, 10.0),
-                new Edge(1, 1, 0, 0, "residential", 1, 10.0, 10.0));
-        Graph g = Graph.of(nodes, edges);
-        CostModel c = CostModel.ofCosts(new long[] {1000L, -1L}); // edge 1 (B->A) closed
+    void aLineWithNoReturnServiceOffersNoReverseRideAnywhere() {
+        Graph g = threeStopsInARow();
+        CostModel c = CostModel.ofCosts(new long[] {1000L, 1000L, 1000L, 1000L});
+        BusRoute outboundOnly = new BusRoute(0, new int[] {0, 1, 2}, new int[] {0, 1, 2}, new int[] {0, 2},
+                2000L, 0.0, new int[] {0, 1, 2}, new int[] {0, 1, 2});
 
-        BusRoute route = new BusRoute(0, new int[] {0, 1}, new int[] {0, 1}, new int[] {0}, 1000L, 0.0,
-                new int[] {0, 1}, new int[] {0, 1});
-        RouteNetwork oneRouteNetwork = new RouteNetwork(List.of(route), new int[] {0, 1}, 0.0, 0.0);
+        TransitGraph transit = TransitGraph.of(g, new RouteNetwork(List.of(outboundOnly), new int[] {0, 1, 2}, 0.0, 0.0), c, 0.0);
+        int atA = transit.verticesAt(0)[0];
+        int atB = transit.verticesAt(1)[0];
+        int atC = transit.verticesAt(2)[0];
 
-        TransitGraph transit = TransitGraph.of(g, oneRouteNetwork, c, 0.0);
+        assertTrue(hasRideLink(transit, atA, atB));
+        assertTrue(hasRideLink(transit, atB, atC));
+        assertFalse(hasRideLink(transit, atC, atB), "no bus runs C->B");
+        assertFalse(hasRideLink(transit, atB, atA), "no bus runs B->A");
+    }
+
+    /**
+     * The return is priced from its own roads — on a dual carriageway a
+     * different road from the outbound one — never from the outbound roads
+     * reversed.
+     */
+    @Test
+    void aReturnServiceIsPricedFromItsOwnRoads() {
+        Graph g = threeStopsInARow();
+        // Outbound 0->1->2 costs 1000 per hop; the return 2->1->0 is slower, 3000 per hop.
+        CostModel c = CostModel.ofCosts(new long[] {1000L, 3000L, 1000L, 3000L});
+        BusRoute.Return back = new BusRoute.Return(new int[] {2, 1, 0}, new int[] {3, 1}, 6000L,
+                new int[] {2, 1, 0}, new int[] {0, 1, 2});
+        BusRoute both = new BusRoute(0, new int[] {0, 1, 2}, new int[] {0, 1, 2}, new int[] {0, 2},
+                2000L, 0.0, new int[] {0, 1, 2}, new int[] {0, 1, 2}, back);
+
+        TransitGraph transit = TransitGraph.of(g, new RouteNetwork(List.of(both), new int[] {0, 1, 2}, 0.0, 0.0), c, 0.0);
         int atA = transit.verticesAt(0)[0];
         int atB = transit.verticesAt(1)[0];
 
-        assertTrue(hasRideLink(transit, atA, atB), "forward ride A->B must still exist");
-        assertFalse(hasRideLink(transit, atB, atA), "no ride may be offered through a closed road");
+        assertEquals(1000L, rideMillis(transit, atA, atB));
+        assertEquals(3000L, rideMillis(transit, atB, atA));
+    }
+
+    /** Stops 0, 1, 2 ten metres apart; edges 0:0->1, 1:1->0, 2:1->2, 3:2->1. */
+    private static Graph threeStopsInARow() {
+        List<Node> nodes = List.of(stopNode(0, 0.0), stopNode(1, 10.0), stopNode(2, 20.0));
+        List<Edge> edges = List.of(
+                new Edge(0, 0, 1, 1, "residential", 1, 10.0, 10.0),
+                new Edge(1, 1, 0, 0, "residential", 1, 10.0, 10.0),
+                new Edge(2, 1, 2, 3, "residential", 1, 10.0, 10.0),
+                new Edge(3, 2, 1, 2, "residential", 1, 10.0, 10.0));
+        return Graph.of(nodes, edges);
+    }
+
+    private static long rideMillis(TransitGraph graph, int from, int to) {
+        for (TransitLink link : graph.outgoing(from)) {
+            if (link.to() == to && link.kind() == TransitLink.Kind.RIDE) {
+                return link.millis();
+            }
+        }
+        throw new AssertionError("no ride " + from + " -> " + to);
     }
 
     private static Node stopNode(int id, double xM) {

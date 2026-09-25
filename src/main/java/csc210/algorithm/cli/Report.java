@@ -1,7 +1,6 @@
 package csc210.algorithm.cli;
 
 import csc210.algorithm.demand.DemandModel;
-import csc210.algorithm.demand.DemandSource;
 import csc210.algorithm.demand.StopSet;
 import csc210.algorithm.export.RouteExporter;
 import csc210.algorithm.graph.Graph;
@@ -53,6 +52,19 @@ public final class Report {
                 world.oneWayFromTopology() ? "flagged by the topology" : "read from /view/edges"));
         text.append(String.format(Locale.ROOT, "  stops    %d flagged, %d after merging those within %.0f m%n",
                 world.stops().rawCount(), world.stops().count(), StopSet.MERGE_RADIUS_M));
+        int stuck = 0;
+        csc210.algorithm.graph.StrongComponents both =
+                csc210.algorithm.graph.StrongComponents.of(world.graph(), world.costModel());
+        for (int stop : world.stops().representatives()) {
+            if (!both.inLargest(stop)) {
+                stuck++;
+            }
+        }
+        if (stuck > 0) {
+            text.append(String.format(Locale.ROOT,
+                    "           %d of them in one-way pockets off the main road network, "
+                            + "where no line can call and come back%n", stuck));
+        }
         text.append(String.format(Locale.ROOT, "  demand   %s%n", describe(world.demandModel())));
         if (world.demandNote() != null) {
             text.append("           ").append(world.demandNote()).append('\n');
@@ -102,15 +114,16 @@ public final class Report {
             return text.toString();
         }
 
-        RouteExporter oneWay = new RouteExporter(world.graph(), world.costModel());
         text.append("Lines\n");
-        text.append("  line  stops  minutes   demand  share  first -> last   direction\n");
+        text.append("  line  stops  minutes   demand  share  first -> last   back\n");
         for (BusRoute route : network.routes()) {
             int[] stops = route.stops();
             text.append(String.format(Locale.ROOT, "  %-5s %5d %8.1f %8.2f %5.1f%%  %5d -> %-5d  %s%n",
                     route.label(), route.stopCount(), route.travelMillis() / 60_000.0, route.demandCovered(),
                     share(route.demandCovered(), network.totalDemand()), stops[0], stops[stops.length - 1],
-                    oneWay.canBeDrivenBack(route) ? "both ways" : "one way (a one-way street)"));
+                    route.runsBothWays()
+                            ? String.format(Locale.ROOT, "%.1f min", route.back().travelMillis() / 60_000.0)
+                            : "none (no road leads back)"));
         }
 
         int stopsTotal = world.demandModel().stopCount();
@@ -356,9 +369,10 @@ public final class Report {
         text.append(String.format(Locale.ROOT, "Wrote %d line%s to:%n  %s%n  %s%n", written.routes(),
                 written.routes() == 1 ? "" : "s", written.json(), written.geojson()));
         if (!written.oneWayLines().isEmpty()) {
-            text.append(String.format(Locale.ROOT, "  %s cannot be driven back along %s own path (one-way streets), "
+            text.append(String.format(Locale.ROOT, "  %s %s no road back through %s stops, "
                             + "so %s written outbound only.%n",
                     String.join(", ", written.oneWayLines()),
+                    written.oneWayLines().size() == 1 ? "has" : "have",
                     written.oneWayLines().size() == 1 ? "its" : "their",
                     written.oneWayLines().size() == 1 ? "it is" : "they are"));
         }

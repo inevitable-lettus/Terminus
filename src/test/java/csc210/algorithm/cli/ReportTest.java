@@ -103,7 +103,8 @@ class ReportTest {
 
     @Test
     void whenTheCapIsHitTheReasonSaysSoAndNamesTheFlagThatRaisesIt() {
-        RouteBudget capped = budget.withMaxRoutes(1);
+        // A full-coverage target, so one line cannot meet it and the cap is what stops the builder.
+        RouteBudget capped = new RouteBudget(budget.maxRouteMillis(), 1, 1.0, budget.walkingRadiusM());
         RouteNetwork one = build(capped);
 
         String reason = Report.stopReason(one, capped, world);
@@ -247,7 +248,7 @@ class ReportTest {
                 3, List.of("R1")));
 
         assertTrue(text.contains("Wrote 3 lines"), text);
-        assertTrue(text.contains("R1 cannot be driven back along its own path"), text);
+        assertTrue(text.contains("R1 has no road back through its stops"), text);
         assertTrue(text.contains("same bytes"), text);
         assertFalse(Report.exported(new RouteExporter.Written(Path.of("a"), Path.of("b"), 1, List.of()))
                 .contains("cannot be driven back"));

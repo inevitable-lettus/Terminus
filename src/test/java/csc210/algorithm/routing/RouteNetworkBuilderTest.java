@@ -307,4 +307,36 @@ class RouteNetworkBuilderTest {
         }
         return -1;
     }
+
+    /**
+     * Regression, from the first live run against DSTNS 2.0: with the return
+     * modelled as the outbound path read backwards, all 6 lines on the real
+     * city came out one-way, because they follow dual carriageways — two
+     * one-way ways a few metres apart. Routed on its own, the return uses the
+     * other carriageway; and a line only reaches for stops in its hub's strongly
+     * connected component, so none ends in a pocket it cannot drive out of.
+     */
+    @Test
+    void onARealCityWithDualCarriagewaysLinesStillGetAReturnService() {
+        csc210.algorithm.world.World world = Fixtures.v2World1800();
+        RouteNetwork network = new RouteNetworkBuilder(world.graph(), world.costModel(), world.demandModel(),
+                world.budget()).build();
+
+        assertTrue(network.routeCount() > 0);
+        int bothWays = 0;
+        for (BusRoute route : network.routes()) {
+            if (route.runsBothWays()) {
+                bothWays++;
+                int[] back = route.back().nodes();
+                assertEquals(route.nodes()[route.nodes().length - 1], back[0]);
+                assertEquals(route.nodes()[0], back[back.length - 1]);
+                for (int edge : route.back().edges()) {
+                    assertTrue(world.costModel().isTraversable(edge),
+                            route.label() + "'s return drives edge " + edge + ", which no bus may use");
+                }
+            }
+        }
+        assertEquals(network.routeCount(), bothWays,
+                "a line only reaches for stops it can come back from, so every line runs both ways");
+    }
 }

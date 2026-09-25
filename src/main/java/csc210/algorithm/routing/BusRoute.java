@@ -23,6 +23,8 @@ package csc210.algorithm.routing;
  *        into {@code edges}) of each entry in {@code stopOccurrences}, so
  *        the exact edge slice between two consecutive visits can be summed
  *        without searching for it
+ * @param back the return service, or {@code null} if no road leads back
+ *        through the line's stops — see {@link Return}
  */
 public record BusRoute(
         int id,
@@ -32,11 +34,43 @@ public record BusRoute(
         long travelMillis,
         double demandCovered,
         int[] stopOccurrences,
-        int[] stopOccurrencePositions
+        int[] stopOccurrencePositions,
+        Return back
 ) {
+
+    /** A line with no return service. */
+    public BusRoute(int id, int[] stops, int[] nodes, int[] edges, long travelMillis, double demandCovered,
+                    int[] stopOccurrences, int[] stopOccurrencePositions) {
+        this(id, stops, nodes, edges, travelMillis, demandCovered, stopOccurrences, stopOccurrencePositions, null);
+    }
+
+    /**
+     * The same line driven back: through the outbound stops in reverse order,
+     * along its own shortest road path between each pair.
+     *
+     * <p><strong>Not the outbound path read backwards.</strong> That was the
+     * first model, and it fails on real maps: a dual carriageway is two one-way
+     * ways a few metres apart, so a line that follows one side can never retrace
+     * itself, yet a bus comes back on the other side every day. Routed on its own,
+     * the return takes whatever roads actually lead back and still calls at every
+     * stop the outbound does.
+     *
+     * @param nodes node-by-node traversal from the last outbound stop to the first
+     * @param edges edge ids traversed, one shorter than {@code nodes}
+     * @param travelMillis time to drive the return end to end
+     * @param stopOccurrences every stop visit in return travel order, repeats included
+     * @param stopOccurrencePositions index into {@code nodes} of each visit
+     */
+    public record Return(int[] nodes, int[] edges, long travelMillis, int[] stopOccurrences,
+                         int[] stopOccurrencePositions) {}
 
     public int stopCount() {
         return stops.length;
+    }
+
+    /** Whether a bus runs this line in both directions. */
+    public boolean runsBothWays() {
+        return back != null;
     }
 
     /** Label for {@code POST /control/transit/route} and for printing. */

@@ -57,23 +57,35 @@ class RouteExporterTest {
     }
 
     @Test
-    void everyReturnLegIsAlsoAContinuousTraversal() {
+    void everyReturnLegIsAlsoAContinuousTraversalOfRoadsTrafficMayUse() {
         for (BusRoute route : network.routes()) {
-            assertTrue(exporter.isContinuous(exporter.returnNodes(route)),
-                    route.label() + " cannot be driven back along its own path");
+            if (route.runsBothWays()) {
+                assertTrue(checked.isContinuous(route.back().nodes()),
+                        route.label() + "'s return has a gap or uses a road no bus may drive");
+            }
         }
     }
 
     @Test
-    void theReturnLegIsTheOutboundPathReadBackwards() {
+    void theReturnCallsAtEveryOutboundStopInReverseOrder() {
         for (BusRoute route : network.routes()) {
-            int[] forward = route.nodes();
-            int[] back = exporter.returnNodes(route);
-            assertEquals(forward.length, back.length);
-            for (int i = 0; i < forward.length; i++) {
-                assertEquals(forward[forward.length - 1 - i], back[i]);
+            if (!route.runsBothWays()) {
+                continue;
             }
-            assertEquals(forward[0], back[back.length - 1], "the return leg must finish where the line started");
+            int[] forward = route.nodes();
+            int[] back = route.back().nodes();
+            assertEquals(forward[forward.length - 1], back[0], "the return starts where the outbound ended");
+            assertEquals(forward[0], back[back.length - 1], "the return must finish where the line started");
+
+            int[] outboundCalls = route.stopOccurrences();
+            int[] returnCalls = route.back().stopOccurrences();
+            int next = 0;
+            for (int i = outboundCalls.length - 1; i >= 0 && next < returnCalls.length; i--) {
+                while (next < returnCalls.length && returnCalls[next] != outboundCalls[i]) {
+                    next++;
+                }
+                assertTrue(next < returnCalls.length, route.label() + " return skips stop " + outboundCalls[i]);
+            }
         }
     }
 
@@ -144,7 +156,7 @@ class RouteExporterTest {
         for (int i = 0; i < network.routeCount(); i++) {
             BusRoute route = network.routes().get(i);
             var written = root.get("routes").get(i);
-            boolean back = checked.canBeDrivenBack(route);
+            boolean back = route.runsBothWays();
             assertEquals(back, written.get("both_ways").asBoolean());
             assertEquals(back, !written.get("return_nodes").isNull());
         }

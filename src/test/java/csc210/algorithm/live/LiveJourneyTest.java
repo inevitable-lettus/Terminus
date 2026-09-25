@@ -125,8 +125,8 @@ class LiveJourneyTest {
 
         for (BusRoute route : live.network().routes()) {
             exporter.requireContinuous(route.nodes(), route.label() + " outbound");
-            if (exporter.canBeDrivenBack(route)) {
-                exporter.requireContinuous(exporter.returnNodes(route), route.label() + " return");
+            if (route.runsBothWays()) {
+                exporter.requireContinuous(route.back().nodes(), route.label() + " return");
             }
         }
         // Publishing to the simulator is retired in DSTNS 2.0 (HTTP 410), so the

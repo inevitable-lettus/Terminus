@@ -3,6 +3,7 @@ package csc210.algorithm.routing;
 import csc210.algorithm.cost.CostModel;
 import csc210.algorithm.demand.DemandModel;
 import csc210.algorithm.graph.Graph;
+import csc210.algorithm.graph.StrongComponents;
 import csc210.algorithm.search.Dijkstra;
 import csc210.algorithm.search.ShortestPathTree;
 
@@ -68,12 +69,19 @@ public final class RouteNetworkBuilder {
     /** Hubs a route could not be grown from — never retried, so the loop always terminates. */
     private final boolean[] excludedHubs;
 
+    /**
+     * Which junctions can be driven between both ways. A line only reaches for
+     * stops in its hub's component, so every line it builds can come back.
+     */
+    private final StrongComponents components;
+
     public RouteNetworkBuilder(Graph graph, CostModel costModel, DemandModel demandModel, RouteBudget budget) {
         this.graph = graph;
         this.costModel = costModel;
         this.demandModel = demandModel;
         this.budget = budget;
         this.dijkstra = new Dijkstra(graph, costModel);
+        this.components = StrongComponents.of(graph, costModel);
         this.isStop = new boolean[graph.nodeCount()];
         this.covered = new boolean[graph.nodeCount()];
         this.excludedHubs = new boolean[graph.nodeCount()];
@@ -155,7 +163,8 @@ public final class RouteNetworkBuilder {
 
             for (int candidate : demandModel.stopNodes()) {
                 if (covered[candidate] || claimed.contains(candidate)
-                        || !tree.isReachable(candidate) || candidate == current) {
+                        || !tree.isReachable(candidate) || candidate == current
+                        || !components.mutuallyReachable(hub, candidate)) {
                     continue;
                 }
                 long extraMillis = tree.costTo(candidate);
@@ -219,8 +228,60 @@ public final class RouteNetworkBuilder {
             covered[node] = true;
         }
 
+        int[] occurrences = toArray(stopOccurrences);
         return new BusRoute(routeId, toArray(servedStops), toArray(nodes), toArray(edges),
-                elapsedMillis, demandCovered, toArray(stopOccurrences), toArray(stopOccurrencePositions));
+                elapsedMillis, demandCovered, occurrences, toArray(stopOccurrencePositions),
+                planReturn(occurrences));
+    }
+
+    /**
+     * The return service: from the last outbound stop back to the first,
+     * calling at every outbound stop in reverse order, each hop on its own
+     * shortest road path. {@code null} if some hop has no road at all — then
+     * the line really is one-way, and is reported as such.
+     *
+     * <p>The return is not held to the time budget: the budget decides how far
+     * the line reaches, and the way back is whatever the roads make it. Nor does
+     * it add coverage — a stop is covered by the line that was built to reach it —
+     * though a stop it passes on the way is still a stop it calls at.
+     */
+    private BusRoute.Return planReturn(int[] outboundOccurrences) {
+        List<Integer> calls = new ArrayList<>();
+        for (int i = outboundOccurrences.length - 1; i >= 0; i--) {
+            int stop = outboundOccurrences[i];
+            if (calls.isEmpty() || calls.get(calls.size() - 1) != stop) {
+                calls.add(stop);
+            }
+        }
+
+        List<Integer> nodes = new ArrayList<>();
+        List<Integer> edges = new ArrayList<>();
+        nodes.add(calls.get(0));
+        long millis = 0L;
+        for (int i = 0; i + 1 < calls.size(); i++) {
+            int to = calls.get(i + 1);
+            ShortestPathTree hop = dijkstra.from(calls.get(i), to);
+            if (!hop.isReachable(to)) {
+                return null;
+            }
+            int[] hopNodes = hop.pathTo(to);
+            int[] hopEdges = hop.edgePathTo(to);
+            for (int j = 1; j < hopNodes.length; j++) {
+                nodes.add(hopNodes[j]);
+                edges.add(hopEdges[j - 1]);
+            }
+            millis += hop.costTo(to);
+        }
+
+        List<Integer> occurrences = new ArrayList<>();
+        List<Integer> positions = new ArrayList<>();
+        for (int position = 0; position < nodes.size(); position++) {
+            if (isStop[nodes.get(position)]) {
+                occurrences.add(nodes.get(position));
+                positions.add(position);
+            }
+        }
+        return new BusRoute.Return(toArray(nodes), toArray(edges), millis, toArray(occurrences), toArray(positions));
     }
 
     /** Demand that would become newly covered by driving this path, walk-radius included. */
