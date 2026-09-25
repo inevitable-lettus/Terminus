@@ -279,12 +279,19 @@ public final class Report {
      * @throws IllegalArgumentException if either junction is not on the map
      */
     public static String journey(World world, RouteNetwork network, int from, int to, String time) {
+        return journey(world, network, from, to, time, 0.0);
+    }
+
+    /** As above, with {@code boardWaitMinutes} of waiting for the first bus. */
+    public static String journey(World world, RouteNetwork network, int from, int to, String time,
+                                 double boardWaitMinutes) {
         Graph roads = world.graph();
         requireJunction(roads, from, "FROM");
         requireJunction(roads, to, "TO");
 
         TransitGraph transit = TransitGraph.of(roads, network, world.costModel());
-        Itinerary itinerary = JourneyPlanner.of(roads, transit).plan(from, to);
+        Itinerary itinerary = JourneyPlanner.of(roads, transit)
+                .withBoardWait(Math.round(boardWaitMinutes * 60_000.0)).plan(from, to);
 
         double straight = TransitGraph.straightLineMetres(roads.node(from).position(), roads.node(to).position());
         StringBuilder text = new StringBuilder();
@@ -331,6 +338,7 @@ public final class Report {
             case WALK -> String.format(Locale.ROOT, "Walk from stop %d to stop %d and wait", leg.fromNode(), leg.toNode());
             case EGRESS -> String.format(Locale.ROOT, "Walk from stop %d to junction %d", leg.fromNode(), leg.toNode());
             case WALK_DIRECT -> String.format(Locale.ROOT, "Walk the whole way, junction %d to %d", leg.fromNode(), leg.toNode());
+            case WAIT -> String.format(Locale.ROOT, "Wait at stop %d for the first bus", leg.fromNode());
         };
     }
 

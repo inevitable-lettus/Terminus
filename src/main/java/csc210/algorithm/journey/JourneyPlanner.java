@@ -32,13 +32,34 @@ public final class JourneyPlanner {
     private final TransitGraph transit;
     private final StopAccessIndex access;
     private final TransitHeuristic.Distance distance;
+    private final long boardWaitMillis;
 
     public JourneyPlanner(Graph roadGraph, TransitGraph transit, StopAccessIndex access,
                           TransitHeuristic.Distance distance) {
+        this(roadGraph, transit, access, distance, 0L);
+    }
+
+    private JourneyPlanner(Graph roadGraph, TransitGraph transit, StopAccessIndex access,
+                           TransitHeuristic.Distance distance, long boardWaitMillis) {
         this.roadGraph = roadGraph;
         this.transit = transit;
         this.access = access;
         this.distance = distance;
+        this.boardWaitMillis = boardWaitMillis;
+    }
+
+    /**
+     * The same planner, with {@code millis} of waiting added before the first
+     * bus. Zero by default: DSTNS publishes no headways, so any figure here is
+     * a stand-in the user chooses, not something the simulator says. A wait
+     * makes the bus dearer and never the walk, so it can tip a short journey
+     * over to walking — which is exactly what a real wait does.
+     */
+    public JourneyPlanner withBoardWait(long millis) {
+        if (millis < 0) {
+            throw new IllegalArgumentException("a boarding wait cannot be negative, got " + millis);
+        }
+        return new JourneyPlanner(roadGraph, transit, access, distance, millis);
     }
 
     /**
@@ -82,22 +103,31 @@ public final class JourneyPlanner {
         // Walking the whole way is compared as a candidate answer rather than
         // wired in as a graph edge. It needs no search — it is one number — and
         // adding an origin-to-destination edge would let the search "discover"
-        // it as though it were a transit option, which it is not. Bounded by the
-        // same radius as every other walk in the module: beyond that a passenger
-        // is assumed to want a bus, which is also what keeps "unreachable" a
-        // meaningful answer instead of every query returning a two-hour trudge.
+        // it as though it were a transit option, which it is not.
+        //
+        // Two rules, for two situations. Where a bus journey exists, walking
+        // beats it at any distance if it is quicker — offering a 21-minute bus
+        // ride over an 11-minute walk is just wrong. Where none exists, walking
+        // is offered only within the walking radius, which is what keeps
+        // "unreachable" a meaningful answer instead of a two-hour trudge.
         double directMetres = TransitGraph.straightLineMetres(origin, destination);
-        Long directWalkMillis = directMetres <= access.radiusM()
-                ? StopAccessIndex.walkMillis(directMetres)
-                : null;
+        long directWalkMillis = StopAccessIndex.walkMillis(directMetres);
+        boolean walkableWithoutABus = directMetres <= access.radiusM();
 
         long[] boardMillis = costsFrom(originNode);
         long[] alightMillis = costsFrom(destinationNode);
+        if (boardWaitMillis > 0) {
+            for (int v = 0; v < boardMillis.length; v++) {
+                if (boardMillis[v] >= 0) {
+                    boardMillis[v] += boardWaitMillis;
+                }
+            }
+        }
 
         if (!anyReachable(boardMillis) || !anyReachable(alightMillis)) {
-            return directWalkMillis == null
-                    ? Itinerary.notFound(0)
-                    : walkTheWholeWay(originNode, destinationNode, directWalkMillis, 0);
+            return walkableWithoutABus
+                    ? walkTheWholeWay(originNode, destinationNode, directWalkMillis, 0)
+                    : Itinerary.notFound(0);
         }
 
         TransitGraph.Extended extended = transit.withEndpoints(
@@ -110,15 +140,16 @@ public final class JourneyPlanner {
                 .find(extended.sourceVertex(), extended.targetVertex(), heuristic::estimateMillis);
 
         if (!path.found()) {
-            return directWalkMillis == null
-                    ? Itinerary.notFound(path.verticesExpanded())
-                    : walkTheWholeWay(originNode, destinationNode, directWalkMillis, path.verticesExpanded());
+            return walkableWithoutABus
+                    ? walkTheWholeWay(originNode, destinationNode, directWalkMillis, path.verticesExpanded())
+                    : Itinerary.notFound(path.verticesExpanded());
         }
-        if (directWalkMillis != null && directWalkMillis < path.totalMillis()) {
+        if (directWalkMillis < path.totalMillis()) {
             return walkTheWholeWay(originNode, destinationNode, directWalkMillis, path.verticesExpanded());
         }
-        return Itinerary.of(path.links(), path.totalMillis(), path.verticesExpanded(),
+        Itinerary byBus = Itinerary.of(path.links(), path.totalMillis(), path.verticesExpanded(),
                 vertex -> extended.graph().vertex(vertex).roadNode());
+        return boardWaitMillis > 0 ? byBus.withBoardWaitSplitOut(boardWaitMillis) : byBus;
     }
 
     /**

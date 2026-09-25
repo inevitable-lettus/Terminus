@@ -41,6 +41,8 @@ public final class Options {
     public final Integer minutes;
     public final Integer routes;
     public final Double walkMetres;
+    /** journey: minutes a passenger waits for the first bus; 0 unless asked, since DSTNS publishes no headways. */
+    public final double boardWaitMinutes;
     public final String outDirectory;
     public final int top;
     /** True when the deprecated {@code publish} spelling was used. */
@@ -61,6 +63,7 @@ public final class Options {
         this.minutes = b.minutes;
         this.routes = b.routes;
         this.walkMetres = b.walkMetres;
+        this.boardWaitMinutes = b.boardWaitMinutes;
         this.outDirectory = b.outDirectory;
         this.top = b.top;
         this.usedPublishAlias = b.usedPublishAlias;
@@ -81,6 +84,7 @@ public final class Options {
         Integer minutes;
         Integer routes;
         Double walkMetres;
+        double boardWaitMinutes;
         String outDirectory = "out";
         int top = 15;
         boolean usedPublishAlias;
@@ -161,6 +165,7 @@ public final class Options {
                 case "--minutes" -> b.minutes = positiveInt(flag, value);
                 case "--routes" -> b.routes = positiveInt(flag, value);
                 case "--walk" -> b.walkMetres = nonNegativeDouble(flag, value);
+                case "--board-wait" -> b.boardWaitMinutes = nonNegativeDouble(flag, value, "minutes");
                 case "--out" -> b.outDirectory = value;
                 case "--top" -> b.top = positiveInt(flag, value);
                 default -> throw new UsageException("unknown option '" + flag + "'");
@@ -195,6 +200,10 @@ public final class Options {
     }
 
     private static double nonNegativeDouble(String flag, String text) {
+        return nonNegativeDouble(flag, text, "metres");
+    }
+
+    private static double nonNegativeDouble(String flag, String text, String unit) {
         try {
             double value = Double.parseDouble(text);
             if (Double.isFinite(value) && value >= 0.0) {
@@ -203,7 +212,7 @@ public final class Options {
         } catch (NumberFormatException notANumber) {
             // fall through to the message below
         }
-        throw new UsageException(flag + " must be a number of metres, zero or more, got '" + text + "'");
+        throw new UsageException(flag + " must be a number of " + unit + ", zero or more, got '" + text + "'");
     }
 
     public static String usage() {
@@ -229,6 +238,8 @@ public final class Options {
                   --walk METRES      how far a passenger will walk to a stop
                                      (these three default to values derived from the map)
                   --top N            stops: how many to list (default 15)
+                  --board-wait MIN   journey: minutes to wait for the first bus
+                                     (default 0 — the simulator publishes no timetable)
                   --out DIR          export: where to write (default ./out)
 
                 Starting a run from here (needs the simulator's operator token):

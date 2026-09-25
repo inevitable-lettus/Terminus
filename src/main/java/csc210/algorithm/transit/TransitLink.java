@@ -23,7 +23,13 @@ public record TransitLink(int from, int to, long millis, Kind kind, int routeId)
         /** Walking from the last stop alighted at to where the journey ends. */
         EGRESS,
         /** Walking the entire way, because no bus journey beats it. */
-        WALK_DIRECT
+        WALK_DIRECT,
+        /**
+         * Waiting at the first stop for the bus. Never a link in the transit
+         * graph — it appears only in an {@link csc210.algorithm.journey.Itinerary},
+         * split out of the walk to the first stop when a boarding wait is asked for.
+         */
+        WAIT
     }
 
     /**

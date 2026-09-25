@@ -382,4 +382,80 @@ class JourneyPlannerTest {
                 full.coveredStops(), full.demandCovered(), full.totalDemand());
         return TransitGraph.of(graph, oneLine, costModel);
     }
+
+    // ---- quality of life, on the DSTNS 2.0 city ----------------------------
+
+    private static JourneyPlanner v2Planner() {
+        csc210.algorithm.world.World world = Fixtures.v2World1800();
+        RouteNetwork network = new RouteNetworkBuilder(world.graph(), world.costModel(), world.demandModel(),
+                world.budget()).build();
+        return JourneyPlanner.of(world.graph(), TransitGraph.of(world.graph(), network, world.costModel()));
+    }
+
+    /**
+     * Regression: walking the whole way used to be considered only within 400 m,
+     * so beyond that a slow bus journey was offered even when walking was quicker
+     * — junction 66 to 207 on the old map came back as 21.5 minutes by bus against
+     * about 11 on foot. A bus answer must never cost more than walking straight
+     * there, at any distance.
+     */
+    @Test
+    void noJourneyIsEverSlowerThanWalkingStraightThereAtAnyDistance() {
+        csc210.algorithm.world.World world = Fixtures.v2World1800();
+        JourneyPlanner v2 = v2Planner();
+        int beyondTheRadius = 0;
+        for (int origin = 0; origin < world.graph().nodeCount(); origin += 97) {
+            for (int destination = 0; destination < world.graph().nodeCount(); destination += 89) {
+                Itinerary answer = v2.plan(origin, destination);
+                if (!answer.found() || origin == destination) {
+                    continue;
+                }
+                double metres = TransitGraph.straightLineMetres(world.graph().node(origin).position(),
+                        world.graph().node(destination).position());
+                if (metres > 400.0) {
+                    beyondTheRadius++;
+                }
+                assertTrue(answer.totalMillis() <= StopAccessIndex.walkMillis(metres),
+                        origin + " -> " + destination + ": " + answer.totalMinutes() + " min against a "
+                                + StopAccessIndex.walkMillis(metres) / 60_000.0 + " min walk");
+            }
+        }
+        assertTrue(beyondTheRadius > 100, "the sample must reach well past the walking radius");
+    }
+
+    @Test
+    void aBoardingWaitIsItsOwnLegAndAddsExactlyItsLengthToTheJourney() {
+        csc210.algorithm.world.World world = Fixtures.v2World1800();
+        JourneyPlanner v2 = v2Planner();
+        for (int origin = 0; origin < world.graph().nodeCount(); origin += 131) {
+            for (int destination = 1; destination < world.graph().nodeCount(); destination += 127) {
+                Itinerary noWait = v2.plan(origin, destination);
+                if (!noWait.found() || noWait.legs().stream().noneMatch(l -> l.kind() == TransitLink.Kind.RIDE)) {
+                    continue;
+                }
+                Itinerary withWait = v2.withBoardWait(60_000L).plan(origin, destination);
+                if (withWait.legs().stream().noneMatch(l -> l.kind() == TransitLink.Kind.RIDE)) {
+                    continue; // a minute's wait tipped it over to walking, which is allowed
+                }
+                assertEquals(1, withWait.legs().stream().filter(l -> l.kind() == TransitLink.Kind.WAIT).count());
+                assertTrue(withWait.totalMillis() <= noWait.totalMillis() + 60_000L);
+                assertEquals(withWait.totalMillis(), withWait.legs().stream().mapToLong(Itinerary.Leg::millis).sum(),
+                        "the legs must still account for the whole journey");
+                assertTrue(withWait.describe().contains("for the first bus"), withWait.describe());
+                return;
+            }
+        }
+        throw new AssertionError("no bus journey found to test the wait on");
+    }
+
+    @Test
+    void anImpossiblyLongWaitMakesWalkingTheAnswerWheneverABusWasUsed() {
+        csc210.algorithm.world.World world = Fixtures.v2World1800();
+        JourneyPlanner patient = v2Planner().withBoardWait(24 * 3_600_000L);
+        Itinerary answer = patient.plan(0, world.graph().nodeCount() - 1);
+        if (answer.found()) {
+            assertTrue(answer.legs().stream().noneMatch(l -> l.kind() == TransitLink.Kind.RIDE),
+                    "nobody waits a day for a bus they could walk past: " + answer.describe());
+        }
+    }
 }

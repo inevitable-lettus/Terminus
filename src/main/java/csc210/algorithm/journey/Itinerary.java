@@ -97,6 +97,28 @@ public record Itinerary(
         return new Itinerary(List.copyOf(legs), totalMillis, transfers, verticesExpanded, true);
     }
 
+    /**
+     * The same journey with the boarding wait shown as its own leg. The search
+     * priced it into the walk to the first stop; a rider reads "walk, then wait"
+     * as two things, so the first access leg is split in two and the total is
+     * unchanged.
+     */
+    Itinerary withBoardWaitSplitOut(long waitMillis) {
+        List<Leg> split = new ArrayList<>();
+        boolean done = false;
+        for (Leg leg : legs) {
+            if (!done && leg.kind() == TransitLink.Kind.ACCESS) {
+                split.add(new Leg(TransitLink.Kind.ACCESS, leg.fromNode(), leg.toNode(), leg.routeId(), 0,
+                        leg.millis() - waitMillis));
+                split.add(new Leg(TransitLink.Kind.WAIT, leg.toNode(), leg.toNode(), leg.routeId(), 0, waitMillis));
+                done = true;
+            } else {
+                split.add(leg);
+            }
+        }
+        return new Itinerary(List.copyOf(split), totalMillis, transfers, verticesExpanded, found);
+    }
+
     /** Minutes, rounded to one decimal — how every printed figure in this module is phrased. */
     public double totalMinutes() {
         return totalMillis / 60_000.0;
@@ -127,6 +149,7 @@ public record Itinerary(
                         leg.fromNode(), leg.toNode(), minutes);
                 case WALK_DIRECT -> String.format("Walk the whole way, junction %d to junction %d (%.1f min)",
                         leg.fromNode(), leg.toNode(), minutes);
+                case WAIT -> String.format("Wait at stop %d for the first bus (%.1f min)", leg.fromNode(), minutes);
             };
             text.append(line).append('\n');
         }

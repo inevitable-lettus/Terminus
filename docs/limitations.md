@@ -98,15 +98,14 @@ currently asserts the flag is present.
 **The transfer wait is a flat five minutes.** The sandbox publishes no timetable
 or headway, so there is nothing to derive a real wait from.
 
-**Walking the whole way is only offered for short trips.** The planner compares
-a bus journey against walking directly only when the two junctions are within the
-stop-access radius. For longer trips it returns the best bus journey even when
-walking would be quicker: junction 66 to 207 comes back as 21.5 minutes with two
-changes, against roughly 11 minutes on foot. That is a real defect in the answer,
-not a modelling nicety.
-
-**The first boarding is free.** The initial wait is not modelled, so a journey's
-cost is in-vehicle plus transfer time, not door-to-door time.
+**The first boarding is free unless asked otherwise.** With no timetable there is
+no wait to derive, so the default is none, and a journey's cost is in-vehicle
+plus transfer time. `--board-wait MIN` adds a chosen wait before the first bus,
+shown as its own leg; it is a stand-in the user picks, not a figure the simulator
+gives. *(Fixed 2026-09-25: walking the whole way used to be compared only within
+400 m, so junction 66 to 207 came back as 21.5 minutes by bus against about 11 on
+foot. A bus answer now never costs more than walking straight there, at any
+distance.)*
 
 **Searches run against a frozen snapshot.** They answer "what was best at 18:00",
 not "what is best right now".
@@ -129,7 +128,7 @@ brute-force comparison and the Dijkstra-versus-A* agreement.
 
 **The default suite runs against saved fixtures.** That is the right default — a
 test that needs another service running is a bad test. A separate live suite
-(`./gradlew liveTest`, 21 tests) now covers the end-to-end path against a running
+(`./gradlew liveTest`, 20 tests) now covers the end-to-end path against a running
 simulator, including a real road closure. What it deliberately does not assert is
 exact numbers: the simulator's rate-limited speeds settle differently depending on
 how the clock reached 18:00, so live results differ slightly from the fixtures and
@@ -143,16 +142,13 @@ tests are gone: DSTNS 2.0 retired the endpoint, and the rule is now checked
 locally before export. That evidence stands as history and can no longer be
 re-run.
 
-**The wait for the first bus is not modelled, and it now shows.** Boarding is
-free, so a one-block bus ride can beat a one-block walk. That was always a
-stated simplification of the transit graph; door-to-door queries are where it
-becomes visible, because a passenger asking for a short hop may be told to take
-a bus that in reality they would wait five minutes for. The planner does
-guarantee an answer is never *worse* than walking when walking is possible.
+**The wait for the first bus is zero by default, and it shows.** A one-block bus
+ride can beat a one-block walk. Pass `--board-wait` to see the answer with a
+realistic wait; the planner guarantees an answer is never *worse* than walking.
 
-**A passenger is assumed to walk at most 400 m in one go.** That bounds the
-access walk, the egress walk, and the whole-way walk alike. Beyond it a
-destination with no stop nearby is reported unreachable, which is a modelling
+**A passenger is assumed to walk at most 400 m to or from a stop.** That bounds
+the access and egress walks, and walking the whole way when no bus serves the
+trip. Beyond it a destination with no stop nearby is reported unreachable, which is a modelling
 choice rather than a fact about the world — a real person would walk further
 rather than not travel. It is what keeps "unreachable" a meaningful answer
 instead of every query returning a two-hour trudge.
