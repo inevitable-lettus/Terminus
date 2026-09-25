@@ -70,7 +70,7 @@ Errors use the simulator's own envelope, `{"ok": false, "error": {"code", "messa
 
 ## The offline bundle
 
-`./bus export --bundle` writes `out/dashboard/{world,network,build,journeys}.json`,
+`./bus export --bundle` writes `out/bundle/{world,network,build,journeys}.json`,
 the same JSON the server sends (a test compares them), plus eight worked
-journeys with both searches' traces. Copied into `dashboard/public/bundle/`,
-it lets the dashboard run with no simulator and no server.
+journeys with both searches' traces. With `--out dashboard/public` it lands in
+`dashboard/public/bundle/`, where the dashboard finds it with no simulator and no server.

@@ -182,9 +182,9 @@ public final class Main {
                     Path.of(options.outDirectory));
             if (options.bundle) {
                 Path bundle = csc210.algorithm.serve.Bundle.write(PlannedCity.plan(world, run, budget, "bundle"),
-                        Path.of(options.outDirectory).resolve("dashboard"));
+                        Path.of(options.outDirectory).resolve("bundle"));
                 notes.println("Dashboard bundle written to " + bundle
-                        + " — copy it into dashboard/public/bundle to view it offline.");
+                        + " (with --out dashboard/public, the dashboard finds it offline).");
             }
         }
         if (options.json && options.mode != Options.Mode.EXPORT) {

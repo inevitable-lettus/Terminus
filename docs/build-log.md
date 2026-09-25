@@ -544,3 +544,40 @@ served stop. A\* agrees with Dijkstra on all 6,642 journeys tested and expands
 
 **Numbers, offline.** 225 tests, up from 207, all green; 20 live tests, all green
 against 2.0. The 2.0 captures are committed as fixtures, gzipped.
+
+## 2026-09-25, later — serve, the dashboard, and what building them found
+
+**Measured before optimising.** On the 3000-junction 2.0 map a network builds in
+about 15 ms and a journey takes about 0.03 ms, so the planned algorithmic
+speed-ups (a spatial grid, allocation-free adjacency) were left out: they would
+save microseconds. The time was elsewhere. Reads now stream from the socket into
+records instead of text, then a tree, then records (topology 468 → 349 ms), and
+`./bus` skips Gradle when nothing changed (0.93 → 0.61 s for a no-op command).
+
+**Journeys.** Walking the whole way now beats a slower bus at any distance, not
+only within 400 m, which fixes the long-standing junction 66 → 207 answer.
+`--board-wait` adds an optional first wait, shown as its own leg.
+
+**Watchable algorithms.** `SearchListener` and `BuildListener` let the searches
+and the builder be recorded without changing what they do; tests prove the
+watched and unwatched runs identical.
+
+**`./bus serve`** answers the dashboard and the ticketing portal's frozen
+`POST /api/v1/routes/query` from one planned city in memory. Building it found
+two more defects:
+
+- **The return loops.** A return routed through the outbound stops in reverse
+  circled one block four times on the real city (608 junctions against 254
+  outbound). Returns now run terminal to terminal.
+- **The drawn ride and the priced ride differ.** A ride could hop between
+  passes of a line that revisits a stop, so a drawn ride did not match the
+  priced one. Legs now carry the stops actually ridden through. A test holds
+  that every drawn ride's road costs equal its priced time exactly.
+
+**The dashboard** (`dashboard/`, Vite + React + Canvas2D) draws both algorithms
+in the DSTNS UI's style, live from `./bus serve` or offline from a bundle.
+Verified in the browser against the live 2.0 run: lines with moving buses,
+journeys with a glide to fit, the construction replay step by step, and A*'s
+18 settled stops against Dijkstra's 20 on the same question.
+
+241 Java tests and 12 dashboard tests, all green.

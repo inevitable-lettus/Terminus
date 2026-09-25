@@ -97,7 +97,7 @@ Algorithm module detail, with numbers:
 The algorithm module needs JDK 21. The Gradle wrapper is committed, so Gradle itself does not need installing.
 
 ```bash
-./gradlew test       # 225 tests against saved sandbox responses; needs nothing running
+./gradlew test       # 241 tests against saved sandbox responses; needs nothing running
 ./gradlew liveTest   # integration tests against a running sandbox
 ./gradlew build      # compile and test
 ```
@@ -113,6 +113,7 @@ Start a run in the simulator first — DSTNS 2.0 only lets its operator do that,
 ./bus stops              # the busiest stops, and which lines serve them
 ./bus journey 5 217      # one passenger journey between two junction ids
 ./bus export             # write the network to out/ as JSON and GeoJSON
+./bus serve              # the local API and the dashboard, on http://127.0.0.1:8080
 ./bus help               # every option
 ```
 
@@ -124,7 +125,14 @@ Start a run in the simulator first — DSTNS 2.0 only lets its operator do that,
 | `--minutes N`, `--routes N`, `--walk METRES` | override the budget, which is otherwise derived from the map |
 | `--top N` | `stops`: how many to list |
 | `--out DIR` | `export`: where to write |
+| `--board-wait MIN` | `journey`: minutes to wait for the first bus (0 by default; the simulator publishes no timetable) |
+| `--json` | `network`, `stops`, `journey`: print the serve API's JSON instead of text |
+| `--bundle` | `export`: also write the dashboard's offline data to `OUT/bundle/` |
+| `--port N`, `--host ADDR` | `serve`: where to listen |
 | `--start`, `--seed N` | stop the current run and start our own; needs the operator token (`DSTNS_OPERATOR_TOKEN`, or `--token-file PATH`) |
+| `--debug` | print the stack trace of an internal error |
+
+Exit statuses: `0` done, `1` internal error, `2` bad usage, `3` simulator unreachable or failing, `4` simulator data unreadable, `5` the run is in a state the command cannot work with.
 
 Every report opens with what it stands on — the run, the map, how many stops after merging duplicates, where the demand came from and the budget in force — because a coverage figure means little without them. It then says *why* the builder stopped (target met, line cap hit, or nothing reachable left) and whether riders can move between the lines. A journey prints as numbered instructions with a running clock:
 
@@ -142,6 +150,23 @@ Journey  junction 5 -> junction 56  at 18:00:00
 
 That output is from the saved Berlin fixtures; the durations depend on the road speeds at the virtual time asked for. For presenting the simulator and this together, follow [docs/demo.md](docs/demo.md).
 
+### The dashboard
+
+`dashboard/` draws what the two algorithms produce, in the DSTNS operator UI's style: the lines Algorithm 1
+built with buses running round them, stops sized by the demand they draw, a journey from Algorithm 2 with its
+rides and walks, and two replays — the greedy builder choosing hub after extension, and A* against Dijkstra
+settling stops on the same question. It needs Node 20+.
+
+```bash
+./bus serve --time 18:00:00                    # with the simulator running
+cd dashboard && npm install && npm run build   # once; ./bus serve then serves it at http://127.0.0.1:8080
+cd dashboard && npm run dev                    # or develop it at http://localhost:5174 against ./bus serve
+```
+
+With no simulator, `./bus export --bundle --out dashboard/public` saves the city and eight worked journeys,
+and the dashboard opens offline from them. The API it reads — which also answers the ticketing portal's
+`POST /api/v1/routes/query` — is described in [docs/serve-api.md](docs/serve-api.md).
+
 ### Repository structure
 
 ```text
@@ -150,6 +175,7 @@ That output is from the saved Berlin fixtures; the durations depend on the road 
 ├── DESIGN.md          — design of the algorithm module and why it is built this way
 ├── docs/              — algorithm reference, decision log, build log, testing, plan, limitations
 ├── context/           — team-facing project context (meeting notes, team decisions)
+├── dashboard/         — the visual dashboard (Vite, React, Canvas2D)
 ├── src/main/java/     — the algorithm module
 ├── src/test/java/     — tests
 ├── src/test/resources/fixtures/ — saved sandbox responses used by the tests

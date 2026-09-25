@@ -7,7 +7,7 @@ Two suites, and they answer different questions.
 | Default | `./gradlew test` | No | Is the algorithm correct? |
 | Live | `./gradlew liveTest` | Yes | Does it actually work against the real thing? |
 
-`./gradlew test` runs 225 tests against saved copies of real sandbox responses
+`./gradlew test` runs 241 tests against saved copies of real sandbox responses
 — the Berlin captures from DSTNS `5f75fa5` and the Dar es Salaam captures from
 DSTNS 2.0 (`fixtures/v2/`, gzipped) — and small hand-built graphs, and passes
 with no simulator running. `./gradlew liveTest` runs the integration tests against a
@@ -44,7 +44,7 @@ moves.
 
 ## The default suite — is the algorithm correct?
 
-225 tests across twenty-two classes.
+241 tests across twenty-four classes.
 
 | Class | Tests | What it establishes |
 |---|---|---|
@@ -289,7 +289,7 @@ comment saying why these are not all 200.
 ## Running everything
 
 ```bash
-./gradlew test                  # 225 tests, no simulator needed
+./gradlew test                  # 241 tests, no simulator needed
 # start a run in the simulator's own CLI, then:
 ./gradlew liveTest              # against the live simulator
 ```

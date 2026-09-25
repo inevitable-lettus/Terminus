@@ -156,7 +156,7 @@ event lands, and it has not been measured.
 ## Act 4 — the evidence
 
 ```bash
-./gradlew test       # 225 tests, saved sandbox responses, nothing needs to run
+./gradlew test       # 241 tests, saved sandbox responses, nothing needs to run
 ./gradlew liveTest   # against the running simulator; see docs/testing.md
 ```
 
