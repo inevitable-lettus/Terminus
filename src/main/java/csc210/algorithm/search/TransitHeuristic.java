@@ -66,8 +66,9 @@ public final class TransitHeuristic {
      * is tighter and still admissible, so it expands fewer vertices than theirs
      * would on the same graph.
      *
-     * <p>It is a floor, not the value used: {@link #towards} takes the larger of
-     * this and the fastest edge actually on the map. Admissibility needs the
+     * <p>It is a floor, not the value used: {@link #towards} takes the largest of
+     * this, the fastest edge limit on the map, and the fastest link the transit
+     * graph actually has. Admissibility needs the
      * divisor to be at least as fast as anything that moves, and a real-city
      * extract can carry a road class configured faster than this. Trusting the
      * constant would let A* quietly return a path that is not the cheapest.
@@ -109,8 +110,44 @@ public final class TransitHeuristic {
                     "this map has edges that are not axis-aligned, so Manhattan distance can "
                             + "overestimate and would break A*'s optimality guarantee");
         }
-        double maxSpeed = Math.max(MAX_SPEED_MPS, roadGraph.maxFreeSpeedMps());
+        double maxSpeed = Math.max(Math.max(MAX_SPEED_MPS, roadGraph.maxFreeSpeedMps()),
+                fastestLink(graph, distance));
         return new TransitHeuristic(graph, distance, graph.vertex(goalVertex).position(), maxSpeed);
+    }
+
+    /**
+     * The fastest any link of {@code graph} actually moves, measured the way the
+     * heuristic measures distance: {@code distance(from, to) / millis}, in m/s.
+     *
+     * <p>This is what makes the guess safe whatever the costs say. If the divisor
+     * is at least this, then for every link {@code h(from) - h(to) <= millis}
+     * by the triangle inequality, so the heuristic is consistent — and so
+     * admissible — edge by edge, with no assumption about where the costs came
+     * from. The configured limits alone are not enough: DSTNS 2.0 lets an
+     * operator speed a road past its limit, and the cost model follows the live
+     * speed. A link with zero cost over a positive distance would need an
+     * infinite divisor; the guess is then zero everywhere, which is plain Dijkstra.
+     */
+    private static double fastestLink(TransitGraph graph, Distance distance) {
+        double fastest = 0.0;
+        for (int v = 0; v < graph.vertexCount(); v++) {
+            Position from = graph.vertex(v).position();
+            for (csc210.algorithm.transit.TransitLink link : graph.outgoing(v)) {
+                Position to = graph.vertex(link.to()).position();
+                double metres = switch (distance) {
+                    case EUCLIDEAN -> Math.hypot(from.xM() - to.xM(), from.yM() - to.yM());
+                    case MANHATTAN -> Math.abs(from.xM() - to.xM()) + Math.abs(from.yM() - to.yM());
+                };
+                if (metres <= 0.0) {
+                    continue;
+                }
+                if (link.millis() <= 0L) {
+                    return Double.POSITIVE_INFINITY;
+                }
+                fastest = Math.max(fastest, metres / (link.millis() / 1000.0));
+            }
+        }
+        return fastest;
     }
 
     /** Milliseconds A* should assume are still to come, at best, from {@code vertex}. */
