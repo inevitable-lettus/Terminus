@@ -53,29 +53,36 @@ audience can see both halves are looking at the same simulation.
 ```
 ```text
 DSTNS world
-  run      run_ab12  seed 0x2026  time 18:00:00  (attached; clock untouched)
-  map      279 junctions, 612 roads, graph 92237c35208c
-  one-way  139 roads excluded (read from /view/edges)
-  stops    8 flagged, 8 after merging those within 60 m
-  demand   BUILDINGS — summed from nearby building junctions
-  budget   8 min per line (default), walk 121 m (derived), up to 3 lines (derived), target 90%
+  run      run_ef7d6f6676c5  seed 0x00000000000000000000000000002026  time 18:00:00  (attached; clock untouched)
+  map      3000 junctions, 6330 roads, graph 59116c6827ff
+  one-way  566 roads excluded (flagged by the topology)
+  stops    81 flagged, 72 after merging those within 60 m
+           11 of them in one-way pockets off the main road network, where no line can call and come back
+  demand   CATCHMENT — 2940 of 3246 active trip generators, each credited to its nearest stop
+  budget   8 min per line (default), walk 75 m (derived), up to 6 lines (derived), target 90%
 
 Lines
-  line  stops  minutes   demand  share  first -> last   direction
-  R0        6      2.7    16.77  74.8%      5 -> 54     one way (a one-way street)
-  R1        2      0.9     5.64  25.2%     32 -> 56     one way (a one-way street)
+  line  stops  minutes   demand  share  first -> last   back
+  R0       11      7.3  2324.08  47.6%    224 -> 1348   11.3 min
+  R1       13      7.7  1232.16  25.2%   2470 -> 1682   10.9 min
+  R2       14      7.5   426.82   8.7%    656 -> 803    16.3 min
+  R3        8      7.7   206.51   4.2%   2288 -> 1704   9.4 min
+  R4        9      7.3   194.48   4.0%    377 -> 1575   9.7 min
+  R5       13      7.6    76.87   1.6%   1397 -> 2045   18.3 min
 
 Summary
-  2 lines cover 100.0% of demand (8 of 8 stops within reach)
+  6 lines cover 91.3% of demand (55 of 72 stops within reach)
   stopped because the 90% coverage target was met
-  interchanges: none — no stop is served by more than one line
+  interchanges: 11 stops served by more than one line (34, 161, 170, 265, 1101, 1156, 1241, 1244, ...)
   passenger network: connected — a rider can reach any served stop from any other
 ```
 
-Read the header aloud, because it is the honesty of the result. **[2.0]** On a
-live run, look at the `demand` line: `PLACES` means the simulator's own figure was
-used; `BUILDINGS` or `UNIFORM` means it was not, and the `places unavailable`
-note under it says why.
+Read the header aloud, because it is the honesty of the result. This is live
+DSTNS 2.0 (Dar es Salaam, seed `0x2026`). The `demand` line: `CATCHMENT` means the
+simulator's own trip generators were used, each credited to its nearest stop;
+`BUILDINGS` or `UNIFORM` means they were not, and the note under it says why. The
+line under `stops` counts the stops no bus can serve both ways, and the `back`
+column is each line's return service.
 
 Say what built it: greedy demand-covering construction, with our own Dijkstra on
 our own indexed binary heap as the subroutine. Say what it is not: designing an
@@ -149,7 +156,7 @@ event lands, and it has not been measured.
 ## Act 4 — the evidence
 
 ```bash
-./gradlew test       # 207 tests, saved sandbox responses, nothing needs to run
+./gradlew test       # 225 tests, saved sandbox responses, nothing needs to run
 ./gradlew liveTest   # against the running simulator; see docs/testing.md
 ```
 

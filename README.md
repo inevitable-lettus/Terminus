@@ -77,26 +77,27 @@ A closed road is excluded from the search entirely rather than given a large wei
 |---|---|
 | Explore & plan | Done |
 | Simulation sandbox (Varun) | Working. DSTNS 2.0 (`dstns-v2`) picks a real city from 181 by seed and downloads its OpenStreetMap extract; runs are started by the operator through the simulator's own CLI. The older `5f75fa5` (Berlin Mitte, 279 junctions, 612 road segments) is what the saved test fixtures were captured from |
-| Algorithm module (Garv) | **Both algorithms built, integrated, and tested; adapted to DSTNS 2.0 from its source, not yet run against it.** 207 offline tests green. The live suite and the 2.0 fixtures are the next thing to run. The research component is outstanding |
+| Algorithm module (Garv) | **Both algorithms built, integrated, and tested; verified live against DSTNS 2.0 on 2026-09-25.** 225 offline tests and 20 live tests green. The research component is outstanding |
 | Passenger-facing app | Research phase |
 
 Algorithm module detail, with numbers:
 
 - Graph ingestion, cost model, indexed binary heap, Dijkstra, Algorithm 1, transit graph, Algorithm 2 — all built and under test.
 - A passenger can ask for a journey between **any two junctions**, not just bus stops: the walk to a stop and the walk from one are priced as real edges, and the answer comes back as readable legs.
-- At the 18:00 demand peak the route builder produces **2 routes covering 100% of demand** on the current map. (On the synthetic grid the sandbox served until `5f75fa5` it was 4 routes covering 94.8%.)
-- A* agrees with Dijkstra on **every journey cost** — 56 journeys on the current map — while expanding **6.8% fewer** vertices. On the old grid the saving was 15.9%: Manhattan distance was admissible there, and on real roads the heuristic falls back to the looser Euclidean bound.
-- **One-way streets are respected.** The sandbox gives every street a reverse direction on `/view/topology`, including one-way streets, and flags the fabricated ones only on `/view/edges`. Those 139 edges are kept out of every search.
-- Routes are **written to files**, `routes.json` and `routes.geojson`, in both directions where the road allows and outbound only where a line uses a one-way street. Publishing them back to the simulator is gone: DSTNS 2.0 retired that endpoint (HTTP 410).
-- **Built for any city, not one map.** Duplicate stops are merged, demand is read from the simulator's own per-stop figure where it has one and falls back to buildings and then to uniform, and the route budget and the A* speed bound are derived from the map instead of being constants tuned to Berlin.
-- Outstanding: a live run against DSTNS 2.0 (the code was written from its source), the weighted-A* research deliverable.
+- Live on DSTNS 2.0 (Dar es Salaam, 3000 junctions, seed `0x2026`), at the 18:00 demand peak the route builder produces **6 lines covering 91.3% of demand**, every one with a return service. (On the 279-junction Berlin fixture: 1 line, 90.8%. On the synthetic grid served until `5f75fa5`: 4 routes, 94.8%.)
+- A* agrees with Dijkstra on **every journey cost** — 6,642 live journeys on 2.0 — while expanding **9.4% fewer** vertices. On the old grid the saving was 15.9%: Manhattan distance was admissible there, and on real roads the heuristic uses the looser Euclidean bound.
+- **One-way streets are respected**, from the topology's own `synthetic_reverse` flags (566 fabricated reverses on the 2.0 capture), or `/view/edges` on an older server.
+- **Every line comes back.** The return is routed on its own through the outbound stops in reverse — real cities model dual carriageways as two one-way ways — and a line only reaches for stops in its hub's strongly connected component, so it can always return. Stops in one-way pockets at the district's edge are counted and left unserved.
+- **Demand from the simulator's trip generators**: every active school, office, shop and so on, credited to its nearest stop within its radius; buildings and then uniform are the fallbacks for older servers.
+- Routes are **written to files**, `routes.json` and `routes.geojson`, with each line's return. Publishing them back to the simulator is gone: DSTNS 2.0 retired that endpoint (HTTP 410).
+- Outstanding: the weighted-A* research deliverable.
 
 ### Running it
 
 The algorithm module needs JDK 21. The Gradle wrapper is committed, so Gradle itself does not need installing.
 
 ```bash
-./gradlew test       # 207 tests against saved sandbox responses; needs nothing running
+./gradlew test       # 225 tests against saved sandbox responses; needs nothing running
 ./gradlew liveTest   # integration tests against a running sandbox
 ./gradlew build      # compile and test
 ```

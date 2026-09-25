@@ -20,10 +20,11 @@ needs the operator token on DSTNS 2.0 (below).
 |---|---|
 | `POST /control/transit/route` returns **410** `TRANSIT_API_RETIRED` ("not part of the supported API") | Publishing is removed. Lines are written to `routes.json` and `routes.geojson` instead (see [decisions.md](decisions.md#dstns-20)). |
 | `POST /playback/start` and `/prepare` return **403** `CLI_START_REQUIRED` unless header `X-DSTNS-Operator` matches the server's token (`DSTNS_OPERATOR_TOKEN`, or the file `logs/operator.token`) | The client sends the header on those two requests only. Without a token, `./bus` reads the run already going and refuses `--start` **before** stopping anything. |
-| `start` is asynchronous, and the lifecycle passes through `PREPARING` while a city is downloaded (`BOOTING, IDLE, PREPARING, READY, RUNNING, PAUSED, SEEKING, STOPPING, STOPPED, COMPLETED, ERROR, TERMINATING`) | `awaitReady` polls `/health` (case-insensitively) until `READY`, `RUNNING` or `PAUSED`, and fails on `ERROR`. |
+| `start` is asynchronous, and the lifecycle passes through `PREPARING` while a city is downloaded (`BOOTING, IDLE, PREPARING, READY, RUNNING, PAUSED, SEEKING, STOPPING, STOPPED, COMPLETED, ERROR, TERMINATING`) | `awaitReady` polls `/health` (case-insensitively) until `READY`, `RUNNING` or `PAUSED`, fails on `ERROR`, and rides out a busy server. *Verified live: about 11 s in `PREPARING` for a cached city.* |
+| `seek` and `stop` are synchronous; `stop` is idempotent; a seek on a `STOPPED` run brings it back to `PAUSED` | Nothing waits after a seek. Attach reads a `STOPPED` run with a note and refuses `ERROR`. The server stalls for about 1.5 s during a seek, and a poll can time out then. *Verified live.* |
 | The world is a real city chosen by seed (`urban-crfg-v3`: 181 cities, then a district), so the map differs per seed | Nothing about the map is assumed: stop merging, the route budget and the heuristic speed are all derived from it. |
 | `/view/topology` edges carry `synthetic_reverse` (and `name`, `tags`) | Read into `Edge.syntheticReverse`, a nullable `Boolean`: `null` means the server did not say (5f75fa5), and then `/view/edges` is asked instead. |
-| New `GET /view/places?kind=&offset=&limit=` (limit clamps silently at 2000) and `GET /view/stops` (= `places?kind=bus_stop`) | Paged until `total`. `demand.multiplier` is the per-stop demand; see below. |
+| New `GET /view/places` and `GET /view/stops` (= `places?kind=bus_stop`) | **Not read.** Live, `bus_stop` places are 11 stations against 81 flagged stops — not a demand field over the stops. Demand comes from the snapshot's `demand` list (every generator's live `multiplier`, `radius_m`, `active`) joined to the topology's `features` for position. *Verified live 2026-09-25.* |
 | `GET /view/topology` node `bus_stop` is the raw OSM-tagged nodes plus the simulator's own placed stops; **only the places are thinned** | Flagged stops within 60 m are merged into one before anything is designed. |
 | `PUT /control/edges/{id}` kept; `POST /control/edges/{id}/override` added | No change needed. |
 | Playback `seek`, `pause`, `stop` are not gated | Used as before. |
@@ -49,7 +50,7 @@ no stop has one the demand falls back to buildings, then to uniform.
 | `POST /api/v1/playback/pause` | Freeze the clock, so a snapshot is reproducible |
 | `POST /api/v1/playback/seek` | Move the clock to a chosen virtual time |
 | `PUT /api/v1/control/edges/{id}` | Close a road, or apply a manual speed or capacity override |
-| `GET /api/v1/view/places?kind=bus_stop` | **[2.0]** The simulator's own per-stop demand |
+| `GET /health` | Lifecycle, polled while a run prepares or stops |
 | `GET /api/v1/playback/status` | The run's id, seed and clock, for the header of every report |
 | `POST /api/v1/control/transit/route` | Was: publish a bus route back for display. **Retired in 2.0 (410)** and no longer called |
 
@@ -127,7 +128,7 @@ This module excludes them from the cost model (`EdgeDetail.syntheticReverseIds`)
   graph builder validates this at construction and refuses a topology that
   violates it rather than building a corrupted structure.
 - **Reverse-twin invariant.** For every edge `i`, the reverse twin of its reverse
-  twin is `i`. Asserted across all 436 edges in the test suite.
+  twin is `i`. Asserted across every edge of both fixture maps in the test suite.
 - **Determinism.** The same seed and the same virtual time produce the same edge
   speeds. Fixtures are captured with the clock paused so they are reproducible.
 - **Unknown fields are tolerated.** The contract belongs to DSTNS, so a field

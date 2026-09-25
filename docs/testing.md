@@ -7,9 +7,10 @@ Two suites, and they answer different questions.
 | Default | `./gradlew test` | No | Is the algorithm correct? |
 | Live | `./gradlew liveTest` | Yes | Does it actually work against the real thing? |
 
-`./gradlew test` runs 207 tests against saved copies of real sandbox responses
-(captured from DSTNS `5f75fa5`) and small hand-built graphs, and passes with no
-simulator running. `./gradlew liveTest` runs the integration tests against a
+`./gradlew test` runs 225 tests against saved copies of real sandbox responses
+— the Berlin captures from DSTNS `5f75fa5` and the Dar es Salaam captures from
+DSTNS 2.0 (`fixtures/v2/`, gzipped) — and small hand-built graphs, and passes
+with no simulator running. `./gradlew liveTest` runs the integration tests against a
 running simulator. The live tests are tagged, and the default
 suite excludes that tag, so nobody is ever blocked by a container they do not
 have running.
@@ -43,7 +44,7 @@ moves.
 
 ## The default suite — is the algorithm correct?
 
-207 tests across twenty-two classes.
+225 tests across twenty-two classes.
 
 | Class | Tests | What it establishes |
 |---|---|---|
@@ -148,7 +149,9 @@ Against a simulator somewhere else, pass its address:
 ### Pinning the simulator to a known state
 
 Every live test starts from the same place, or the numbers would move under it.
-Three things are pinned, in `LiveSandbox`:
+With a token, `LiveSandbox` starts **one** run per suite and every test seeks
+within it — restarting a real city costs tens of seconds, and it took the suite
+from about a minute to eight. Three things are pinned:
 
 1. **The seed** (`0x2026`), which fixes the random draws the simulator makes.
 2. **The virtual time** (18:00, the demand peak the network is designed for).
@@ -208,8 +211,8 @@ network, answer journeys.
 
 ### `LiveJourneyTest` — can a passenger actually use it?
 
-Ten tests covering the door-to-door layer, publishing, and the ways a query is
-allowed to fail.
+Nine tests covering the door-to-door layer, drivable return services, and the
+ways a query is allowed to fail.
 
 - **A journey between two junctions is answered on live data**, and its legs are
   printed, so a live run leaves evidence a person can read rather than only a
@@ -286,7 +289,7 @@ comment saying why these are not all 200.
 ## Running everything
 
 ```bash
-./gradlew test                  # 207 tests, no simulator needed
+./gradlew test                  # 225 tests, no simulator needed
 # start a run in the simulator's own CLI, then:
 ./gradlew liveTest              # against the live simulator
 ```
@@ -300,25 +303,29 @@ the map.
 
 ## Recapturing fixtures from DSTNS 2.0
 
-The saved fixtures are from `5f75fa5`. Nothing offline has seen a 2.0 response
-yet, and that is the largest gap in this module's evidence. With a run going and
-paused at 18:00, from the repository root:
+**Captured 2026-09-25** from `origin/dstns-v2` `bc6e517`, seed `0x2026` (Dar es
+Salaam, 3000 junctions, 6330 edges), clock paused: topology, snapshots at 08:30
+and 18:00, `/view/bus-stops`, health and status, in `src/test/resources/fixtures/v2/`.
+They are gzipped and trimmed only where nothing reads them — edge `tags`, per-edge
+`demand_causes`, the news stack, and every topology feature no demand entry
+refers to — which takes 43 MB down to about 0.8 MB. `Fixtures.bytes(...)`
+decompresses them for stub servers.
+
+What the capture answered, against the checklist the source reading left:
+
+1. Every edge carries `synthetic_reverse` — yes, 566 true.
+2. Stop places anchor on flagged stops — **no**: 11 places, 1 anchored on a
+   flagged junction. Demand moved to the trip generators as a result.
+3. 81 flagged stops, 72 after merging within 60 m.
+4. Positions are `{lat, lon, x_m, y_m}` — yes.
+
+To recapture a different seed or time, with a run paused where you want it:
 
 ```bash
 B=http://127.0.0.1:8090/api/v1
-curl -s $B/view/topology            > src/test/resources/fixtures/v2/topology.json
-curl -s $B/view/snapshot            > src/test/resources/fixtures/v2/snapshot_1800.json
-curl -s "$B/view/places?kind=bus_stop&limit=2000" > src/test/resources/fixtures/v2/places_bus_stop.json
-curl -s $B/playback/status          > src/test/resources/fixtures/v2/status.json
+curl -s $B/view/topology  > topology.json
+curl -s $B/view/snapshot  > snapshot_1800.json
 ```
 
-Note the seed and the city (`/system/map-status`) in the commit message. Then
-check, in this order, before writing any new test against them:
-
-1. Does every edge in `topology.json` carry `synthetic_reverse`?
-2. Does each stop place's `anchor_node` fall on a node whose `bus_stop` is true?
-   If not, the module falls back to 1.0 per stop for those — worth knowing.
-3. How many nodes are flagged `bus_stop`, and how many survive merging?
-4. Is `data.items[].position` in the shape `{lat, lon, x_m, y_m}`?
-
-Each of these is an assumption the 2.0 code makes from reading the source.
+then trim and gzip as above, and note the seed and city
+(`/system/map-status`) in the commit message.

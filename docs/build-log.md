@@ -508,3 +508,39 @@ hand-built data.
 places payload, the stop anchors and the lifecycle strings are readings of source.
 [limitations.md](limitations.md) lists each and what happens if it is wrong.
 
+
+## 2026-09-25 — the first live run against DSTNS 2.0
+
+**What happened.** DSTNS 2.0 (`origin/dstns-v2` `bc6e517`) was built from source
+in a scratch worktree and run with an operator token. `./bus network --seed
+0x2026` worked end to end on the first try — Dar es Salaam, 3000 junctions, 6330
+roads, 72 stops after merging — and the live suite passed 16 of 20. The four
+failures were tests pinned to the Berlin map. The run itself exposed two real
+defects that no offline test could have: every stop on one demand figure, and no
+line with a return.
+
+**What it found, and what each became.**
+
+| Found live | Now |
+|---|---|
+| 11 `bus_stop` places, 1 on a flagged stop: 71 of 72 stops at baseline | `CATCHMENT` demand from 3,246 active generators; 2,940 within reach of a stop |
+| All 6 lines one-way: they follow dual carriageways | the return routed on its own through the outbound stops in reverse |
+| 13 of 81 stops in one-way pockets at the district's edge | `StrongComponents`; a line reaches only for stops it can come back from |
+| Reverse rides offered on one-way lines | return rides only from a real return service |
+| Seek is synchronous; stop is idempotent; a seek revives a STOPPED run | attach waits out STOPPING, notes STOPPED, refuses ERROR |
+| The suite restarted a real city per test: 7 min 53 s | one run per suite: 1 min 9 s |
+
+The review of the same code also fixed:
+- **Exit statuses** that called bad simulator data "bad usage".
+- **Unchecked reverse twins.** A missing `reverse_twin` silently meant edge 0.
+- **Stops beside the hub** that could never be driven to.
+- **The heuristic divisor**, which did not cover a sped-up road.
+
+**Numbers, live at 18:00.** 6 lines, every one both ways, 91.3% of demand
+(stopped at the 90% target); every one of the 3000 junctions within 400 m of a
+served stop. A\* agrees with Dijkstra on all 6,642 journeys tested and expands
+9.4% fewer vertices. Before the fixes the same map gave 6 lines, all one-way,
+67.3% of a demand figure that ranked nothing.
+
+**Numbers, offline.** 225 tests, up from 207, all green; 20 live tests, all green
+against 2.0. The 2.0 captures are committed as fixtures, gzipped.

@@ -1,5 +1,7 @@
 # Plan — finishing the bus route algorithm
 
+> **Update, 2026-09-25.** Verified live against DSTNS 2.0 — see [build-log.md](build-log.md). Next: the Phase 6 research deliverable.
+>
 > **Update, 2026-09-21 — DSTNS 2.0.** `origin/dstns-v2` retires route publishing
 > (Phase B.3), gates run start behind an operator token, and serves a real city
 > chosen by seed, which also answers D.1: the larger map is now the normal case,

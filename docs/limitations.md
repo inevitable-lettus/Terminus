@@ -2,29 +2,37 @@
 
 Written before anyone asks. Knowing where a result is weak is part of the result.
 
-## DSTNS 2.0 — the biggest open gap
+## DSTNS 2.0 — verified live on 2026-09-25
 
-The module has been adapted to DSTNS 2.0 (`dstns-v2`) **from its source code, not
-from a live run**, so every 2.0-specific behaviour is a reading, not an
-observation. The offline suite has not seen a 2.0 response and the live suite has
-not run against one; fixtures were deliberately not hand-written, because that
-would encode what was *expected* rather than what is sent. The specific bets, each
-written to degrade rather than fail if wrong:
+The module was adapted to DSTNS 2.0 from source on 2026-09-21 and first run
+against a live 2.0 (`origin/dstns-v2` `bc6e517`, built from source, seed `0x2026`,
+Dar es Salaam) on 2026-09-25. The live suite passes 20/20 and the offline suite
+now carries real 2.0 captures (`src/test/resources/fixtures/v2/`). Two of the
+source-reading bets were wrong, and both are fixed rather than tolerated — see
+the [build log](build-log.md):
 
-- that `/view/places` has the shape the source suggests, and that a stop place's
-  `anchor_node` lands on a junction the topology flags as a stop — if not, those
-  stops count 1.0 and the demand source falls back to buildings, then uniform;
-- that the lifecycle strings are as documented (compared case-insensitively);
-- that real-city extracts tag few buildings on road junctions, which is why the
-  demand chain exists at all.
+- **The `bus_stop` places were not a demand field.** Only 11 exist against 81
+  flagged stops, one anchored on a flagged junction, so 71 of 72 stops scored the
+  same baseline. Demand now comes from the simulator's trip generators (`CATCHMENT`).
+- **Reading the outbound path backwards gave no line a return.** Real maps model
+  dual carriageways as paired one-way ways; the return is now routed on its own.
 
-Two limits of the new demand source, stated now rather than found later. The
-simulator's per-stop figure is a *relative intensity* (1.0 unmodulated, capped at
-3.0), not a passenger count, and every stop starts from 1.0 — so "coverage" on
-`PLACES` is closer to a share of stops, weighted a little, than to a share of
-passengers. And when the source is `UNIFORM`, the network is designed purely for
-reach, which says nothing about where people are. Both are why the report header
-names the demand source.
+What remains a reading, not an observation: `COMPLETED` (a run that played to the
+end of its day) was never reached live, and the handling of it is by analogy with
+`STOPPED`, which was.
+
+**Demand is relative, not a head count.** A generator's multiplier is an
+intensity (around 1.0–3.0), and a stop's demand is the sum over the generators
+whose nearest stop it is. "Coverage" is therefore a share of generator pull
+within reach, not of passengers. When the source falls back to `UNIFORM`, the
+network is designed purely for reach. The report header names the source either way.
+
+**Some stops cannot be served both ways, and are left unserved.** A district is
+cut out of a larger city, so one-way streets run off its edge: on the 2.0
+capture 13 of 81 stops sit in pockets a bus can enter and never leave, or leave
+and never re-enter. A line only reaches for stops it can come back from, so those
+stops stay uncovered. The header counts them. Serving them with a one-way loop is
+possible and not built.
 
 **Lines can no longer be shown in the simulator.** The publishing endpoint is
 retired, so the algorithm's output reaches a map only through `routes.geojson` in
@@ -47,9 +55,9 @@ from reality than a count of real shops and schools would be.
 optimal at 18:00 is not optimal at 08:30, and the demand table in the
 [build log](build-log.md) shows how far the picture moves across a day.
 
-**The map is real, but tiny — on `5f75fa5`.** *(2.0 serves a different, larger
-district per seed, which this module has not yet seen; this paragraph describes
-the map the saved fixtures are from.)* Since DSTNS `5f75fa5` it is an OpenStreetMap
+**The Berlin fixtures are real, but tiny.** *(DSTNS 2.0 serves a larger district
+per seed — 3000 junctions on the 2.0 capture — and that is now the normal case;
+this paragraph describes the pre-2.0 regression fixtures.)* Since DSTNS `5f75fa5` it is an OpenStreetMap
 extract of Berlin Mitte: 279 junctions, 612 directed road segments, 8 bus stops,
 901 m by 947 m. The farthest two junctions are 951 m apart, so for most pairs
 walking is competitive with any bus, and a network of two lines covers all of the
@@ -172,13 +180,10 @@ shortest-path algorithms **across different network sizes**. Outstanding pieces:
   wall-clock timing with warm-up runs discarded, peak queue size.
 - The weighted A* sweep, `f = g + ε·h`, with its bounded-suboptimality guarantee
   that the returned path is never worse than ε times optimal.
-- A second, larger network. The repository ships `real_network.osm.xml`
-  (8.6 MB, real road topology), which would give grid-versus-real and
-  small-versus-large in one sweep. It has not been tested for load time or
-  whether it loads at all, and **no endpoint for loading it has been found** —
-  the claim that it is "loadable through the playback API" is an assumption
-  nobody has checked against a running server. That has to be established before
-  the larger-map comparison can be planned, not assumed while planning it.
+- Networks of different sizes. DSTNS 2.0 answers this: every seed is a real
+  city, and a start accepts `map.district_nodes` (200–50000), so the same city
+  can be served at several sizes. The 279-junction Berlin fixture and the
+  3000-junction 2.0 capture are already two points.
 
 The module is at least ready for that map in one respect: `JourneyPlanner` picks
 its heuristic by asking whether the map is axis-aligned rather than assuming it,

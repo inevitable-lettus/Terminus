@@ -363,3 +363,54 @@ the larger of that constant and the fastest edge present.
 No fixture was recaptured, because there is no live 2.0 to capture from yet.
 Rejected: hand-writing a "2.0 fixture" — it would encode what I *expect* the
 server to send, which is the assumption under test.
+
+## The first live 2.0 run (2026-09-25)
+
+Decided after running against a live DSTNS 2.0 (`bc6e517`, built from source,
+seed `0x2026`, Dar es Salaam). Each overturns or sharpens a 2026-09-21 bet.
+
+**Demand from the trip generators, each credited to its nearest stop.** The
+`bus_stop` places turned out to be 11 stations against 81 flagged stops, so 71
+of 72 stops scored the same baseline. The snapshot's `demand` list carries every
+generator's live multiplier and radius; the topology's `features` say where each
+is. A generator goes to its nearest stop within its radius. Rejected: crediting
+every stop in range — a generator 300 m from three stops is one generator, and
+counting it three times makes clustered stops look busier than they are.
+Rejected: fetching `/view/places` for positions — 17,867 places over nine pages,
+when the topology already carries them.
+
+**The return is routed on its own, through the outbound stops in reverse.** With
+the return modelled as the outbound path read backwards, every line on a real
+city came out one-way, because lines follow dual carriageways. Rejected: allowing
+one-way lines and leaving it there — a bus network nobody can ride home on is not
+a network. Rejected: routing the return only between the two terminals — it would
+skip the stops passengers boarded at.
+
+**A line only reaches for stops it can come back from.** Strongly connected
+components of the drivable road graph (Kosaraju, iterative) mark which junctions
+can be driven between both ways; 13 of 81 stops sit in one-way pockets at the
+district's edge. Rejected: serving them with a one-way line — it would bring back
+exactly the lines with no return this change removes. They stay uncovered, and the
+header counts them.
+
+**Return rides only where a return service exists.** A reverse ride used to be
+offered on any segment whose own roads could be driven back, even on a line with
+no return. Rejected: keeping per-segment reversibility as a separate idea from the
+line's return — the only reverse bus is the one that runs.
+
+**The A\* divisor covers the fastest link, not just the fastest limit.** 2.0 lets
+an operator push a road past its limit, and costs follow the live speed. Taking
+the maximum of straight-line distance over link time across the transit graph
+makes the guess consistent link by link, by the triangle inequality, rounding
+included. Rejected: rounding every edge cost up to absorb the rounding error — it
+fixes the milliseconds and not the override.
+
+**Five exit statuses.** Usage 2, simulator unreachable or failing 3, simulator
+data unreadable 4, run state 5, internal 1 (`--debug` for the trace). Rejected:
+keeping one status per exception family — `IllegalArgumentException` meant both
+"you typed it wrong" and "the simulator sent inconsistent data".
+
+**Attach reads a STOPPED run, with a note.** Live, a stopped run keeps its world,
+and a seek brings it back to PAUSED. Rejected: refusing it — the state is
+readable and sometimes exactly what the user left there on purpose. `ERROR` and
+`TERMINATING` are refused; `STOPPING` is waited out.
