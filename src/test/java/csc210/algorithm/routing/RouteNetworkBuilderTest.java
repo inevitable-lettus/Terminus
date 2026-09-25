@@ -339,4 +339,31 @@ class RouteNetworkBuilderTest {
         assertEquals(network.routeCount(), bothWays,
                 "a line only reaches for stops it can come back from, so every line runs both ways");
     }
+
+    /**
+     * Regression: the stops within walking distance of the hub were claimed
+     * up front and then barred as targets, contrary to the builder's own
+     * javadoc; and a path through an already-claimed stop never counted the
+     * uncovered stops beside it. Here D can only be covered by driving to B
+     * (D is 55 m from B, 74 m from A, and on no road), and B is A's walk
+     * neighbour. Both defects together left the network empty.
+     */
+    @Test
+    void aStopBesideTheHubIsStillAWorthwhileTargetForWhatLiesBeyondIt() {
+        List<Node> nodes = List.of(
+                new Node(0, 1_000_000L, new Position(0, 0, 0.0, 0.0), 0, true, 0, false, 0, 0, 0, "store", 10.0, 0.0),
+                new Node(1, 1_000_001L, new Position(0, 0, 50.0, 0.0), 0, true, 0, false, 0, 0, 0, "store", 1.0, 0.0),
+                new Node(2, 1_000_002L, new Position(0, 0, 50.0, 55.0), 0, true, 0, false, 0, 0, 0, "store", 4.0, 0.0));
+        List<Edge> edges = List.of(
+                new Edge(0, 0, 1, 1, "residential", 1, 50.0, 16.67),
+                new Edge(1, 1, 0, 0, "residential", 1, 50.0, 16.67));
+        Graph g = Graph.of(nodes, edges);
+        DemandModel demand = DemandModel.of(g, snapshotOf(g));
+
+        RouteNetwork network = new RouteNetworkBuilder(g, CostModel.ofCosts(new long[] {3000, 3000}), demand,
+                new RouteBudget(60_000L, 4, 1.0, 60.0)).build();
+
+        assertEquals(1, network.routeCount(), "driving A to B is the only way to reach D's passengers");
+        assertEquals(15.0, network.demandCovered(), 1e-9);
+    }
 }

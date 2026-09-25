@@ -151,6 +151,10 @@ public final class RouteNetworkBuilder {
         nodes.add(hub);
 
         Set<Integer> claimed = new LinkedHashSet<>();
+        // Stops this line actually drives to, as distinct from the ones merely
+        // within walking distance of them. Only these are off-limits as targets.
+        Set<Integer> served = new java.util.HashSet<>();
+        served.add(hub);
         int current = hub;
         long elapsedMillis = 0L;
         double demandCovered = claimDemand(hub, claimed);
@@ -162,7 +166,7 @@ public final class RouteNetworkBuilder {
             long bestCost = 0L;
 
             for (int candidate : demandModel.stopNodes()) {
-                if (covered[candidate] || claimed.contains(candidate)
+                if (covered[candidate] || served.contains(candidate)
                         || !tree.isReachable(candidate) || candidate == current
                         || !components.mutuallyReachable(hub, candidate)) {
                     continue;
@@ -177,10 +181,12 @@ public final class RouteNetworkBuilder {
                     continue;
                 }
                 // Greedy set-cover ratio: demand newly reached per extra
-                // millisecond of driving. Ties break on the lower stop id so
-                // two runs on the same snapshot produce the same network.
+                // millisecond of driving. Candidates arrive in ascending id
+                // order and only a strictly better score replaces the best, so
+                // ties go to the lower stop id and two runs on the same
+                // snapshot produce the same network.
                 double score = gain / extraMillis;
-                if (score > bestScore || (score == bestScore && bestTarget >= 0 && candidate < bestTarget)) {
+                if (score > bestScore) {
                     bestScore = score;
                     bestTarget = candidate;
                     bestCost = extraMillis;
@@ -199,6 +205,7 @@ public final class RouteNetworkBuilder {
             }
             for (int i = 1; i < pathNodes.length; i++) {
                 if (isStop[pathNodes[i]]) {
+                    served.add(pathNodes[i]);
                     demandCovered += claimDemand(pathNodes[i], claimed);
                 }
             }
@@ -290,7 +297,10 @@ public final class RouteNetworkBuilder {
         List<Integer> newlyCovered = new ArrayList<>();
         for (int i = 1; i < pathNodes.length; i++) {
             int node = pathNodes[i];
-            if (!isStop[node] || covered[node] || claimed.contains(node)) {
+            // A stop already covered — by this line's walk radius or an earlier
+            // line — still lets the bus call there, and the stops beside it may
+            // not be covered yet. The per-neighbour checks below decide.
+            if (!isStop[node]) {
                 continue;
             }
             for (int neighbour : walkNeighbours[node]) {
