@@ -93,6 +93,19 @@ public final class JourneyPlanner {
      * from here" is a real answer to a real question.
      */
     public Itinerary plan(int originNode, int destinationNode) {
+        return plan(originNode, destinationNode, true, null);
+    }
+
+    /**
+     * As {@link #plan(int, int)}, choosing the search and watching it.
+     *
+     * @param aimed A* with this planner's heuristic if true; the same search with
+     *        a zero guess — Dijkstra — if false. Both find the same cost; the
+     *        difference is how much of the graph each has to settle to be sure.
+     * @param listener told each transit vertex as it is settled, or {@code null}
+     */
+    public Itinerary plan(int originNode, int destinationNode, boolean aimed,
+                          csc210.algorithm.search.SearchListener listener) {
         if (originNode == destinationNode) {
             return Itinerary.alreadyThere();
         }
@@ -134,10 +147,11 @@ public final class JourneyPlanner {
                 originNode, origin, boardMillis,
                 destinationNode, destination, alightMillis);
 
-        TransitHeuristic heuristic = TransitHeuristic.towards(
-                extended.graph(), extended.targetVertex(), distance, roadGraph);
+        AStar.Heuristic guess = aimed
+                ? TransitHeuristic.towards(extended.graph(), extended.targetVertex(), distance, roadGraph)::estimateMillis
+                : AStar.zeroHeuristic();
         TransitPath path = new AStar(extended.graph())
-                .find(extended.sourceVertex(), extended.targetVertex(), heuristic::estimateMillis);
+                .find(extended.sourceVertex(), extended.targetVertex(), guess, listener);
 
         if (!path.found()) {
             return walkableWithoutABus

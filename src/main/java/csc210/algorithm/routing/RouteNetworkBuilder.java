@@ -91,8 +91,17 @@ public final class RouteNetworkBuilder {
         this.walkNeighbours = buildWalkNeighbours();
     }
 
+    /** Told about each decision the greedy loop makes; a no-op unless {@link #build(BuildListener)} says otherwise. */
+    private BuildListener listener = new BuildListener() {};
+
     /** Runs the greedy loop and returns the finished network. */
     public RouteNetwork build() {
+        return build(new BuildListener() {});
+    }
+
+    /** As {@link #build()}, telling {@code watcher} about each decision as it is made. */
+    public RouteNetwork build(BuildListener watcher) {
+        this.listener = watcher;
         java.util.Arrays.fill(covered, false);
         java.util.Arrays.fill(excludedHubs, false);
         List<BusRoute> routes = new ArrayList<>();
@@ -106,14 +115,17 @@ public final class RouteNetworkBuilder {
                 break;
             }
 
+            listener.onHub(routes.size(), hub);
             BusRoute route = growRouteFrom(hub, routes.size());
             if (route == null) {
                 // A stop nothing can be built from — an isolated hub, or one
                 // whose neighbours all overrun the time budget. Exclude it
                 // rather than looping on it forever; it stays uncovered.
                 excludedHubs[hub] = true;
+                listener.onHubExcluded(hub);
                 continue;
             }
+            listener.onRouteAccepted(route);
             routes.add(route);
             demandCovered += route.demandCovered();
         }
@@ -199,6 +211,7 @@ public final class RouteNetworkBuilder {
 
             int[] pathNodes = tree.pathTo(bestTarget);
             int[] pathEdges = tree.edgePathTo(bestTarget);
+            listener.onExtension(routeId, bestTarget, pathNodes, demandGainedAlong(pathNodes, claimed));
             for (int i = 1; i < pathNodes.length; i++) {
                 nodes.add(pathNodes[i]);
                 edges.add(pathEdges[i - 1]);

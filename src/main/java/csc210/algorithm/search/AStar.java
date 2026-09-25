@@ -51,6 +51,16 @@ public final class AStar {
      *        run as plain Dijkstra
      */
     public TransitPath find(int sourceVertex, int goalVertex, Heuristic heuristic) {
+        return find(sourceVertex, goalVertex, heuristic, null);
+    }
+
+    /**
+     * As {@link #find(int, int, Heuristic)}, telling {@code listener} about each
+     * vertex as it is settled.
+     *
+     * @param listener told the settle order, or {@code null} for none
+     */
+    public TransitPath find(int sourceVertex, int goalVertex, Heuristic heuristic, SearchListener listener) {
         int vertexCount = graph.vertexCount();
         long[] costSoFar = new long[vertexCount];
         Arrays.fill(costSoFar, Long.MAX_VALUE);
@@ -68,6 +78,9 @@ public final class AStar {
             int current = open.extractMin();
             settled[current] = true;
             verticesExpanded++;
+            if (listener != null) {
+                listener.onSettle(current, costSoFar[current], heuristic.estimateMillis(current));
+            }
 
             if (current == goalVertex) {
                 return reconstruct(sourceVertex, goalVertex, costSoFar, cameFrom, arrivedBy, verticesExpanded);
