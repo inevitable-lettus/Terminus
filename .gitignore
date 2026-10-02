@@ -1,7 +1,23 @@
-build/
+# Working notes and presentation prep — not part of the shared repo
+CLAUDE.md
+ai-context/
+docs/ideas.md
+
+# Gradle
 .gradle/
+build/
+
+# Written by ./bus export
 out/
-*.class
-.DS_Store
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE Java build output (VSCode Java ext, etc.)
+bin/
+
+# IDE
 .idea/
 *.iml
+.vscode/
+
+# macOS
+.DS_Store

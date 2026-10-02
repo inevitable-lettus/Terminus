@@ -1,0 +1,277 @@
+package csc210.algorithm.live;
+
+import csc210.algorithm.journey.Itinerary;
+import csc210.algorithm.journey.JourneyPlanner;
+import csc210.algorithm.journey.StopAccess;
+import csc210.algorithm.journey.StopAccessIndex;
+import csc210.algorithm.export.RouteExporter;
+import csc210.algorithm.routing.BusRoute;
+import csc210.algorithm.routing.RouteNetwork;
+import csc210.algorithm.routing.RouteNetworkBuilder;
+import csc210.algorithm.transit.TransitGraph;
+import csc210.algorithm.transit.TransitLink;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * Phases B and D against a running simulator: door-to-door passenger journeys
+ * on live data, publishing the generated lines back, and the ways a query is
+ * allowed to fail.
+ *
+ * <p>Like the rest of the live suite these assert properties rather than exact
+ * durations. A journey's cost depends on the road speeds at the instant it is
+ * planned, and those are not the fixture's.
+ */
+@Tag("live")
+class LiveJourneyTest {
+
+    /** Everything from one live read, through to a planner ready to answer queries. */
+    private record LiveWorld(LiveSandbox.World world, RouteNetwork network,
+                             TransitGraph transit, JourneyPlanner planner) {}
+
+    private static LiveWorld plannerAtDesignTime() throws IOException, InterruptedException {
+        LiveSandbox.World world = LiveSandbox.at(LiveSandbox.DESIGN_TIME);
+        RouteNetwork network = new RouteNetworkBuilder(world.graph(), world.costModel(),
+                world.demandModel(), world.budget()).build();
+        TransitGraph transit = TransitGraph.of(world.graph(), network, world.costModel());
+        return new LiveWorld(world, network, transit, JourneyPlanner.of(world.graph(), transit));
+    }
+
+    @Test
+    @DisplayName("a passenger query between two junctions is answered on live data")
+    void doorToDoorOnLiveData() throws IOException, InterruptedException {
+        LiveWorld live = plannerAtDesignTime();
+        // The first and last junctions of the main road network, far apart and
+        // both somewhere a bus can reach and leave. Junction 0 itself can sit in
+        // a one-way pocket at the district's edge on a real city.
+        csc210.algorithm.graph.StrongComponents main =
+                csc210.algorithm.graph.StrongComponents.of(live.world().graph(), live.world().costModel());
+        int firstJunction = 0;
+        while (!main.inLargest(firstJunction)) {
+            firstJunction++;
+        }
+        int lastJunction = live.world().graph().nodeCount() - 1;
+        while (!main.inLargest(lastJunction)) {
+            lastJunction--;
+        }
+
+        Itinerary itinerary = live.planner().plan(firstJunction, lastJunction);
+
+        assertTrue(itinerary.found(), "junction " + firstJunction + " to " + lastJunction
+                + " should be reachable on this network");
+        assertFalse(itinerary.legs().isEmpty());
+
+        long summed = itinerary.legs().stream().mapToLong(Itinerary.Leg::millis).sum();
+        assertEquals(itinerary.totalMillis(), summed, "the legs must account for the whole journey");
+
+        // Printed so a live run leaves evidence a person can read, not just a
+        // green tick. The build order asks for the real output, not a summary.
+        System.out.println("Live journey, junction " + firstJunction + " to " + lastJunction + ":");
+        System.out.println(itinerary.describe());
+    }
+
+    @Test
+    @DisplayName("the stops a junction can walk to are all within reach, priced, and include every served stop itself")
+    void liveAccessIndexCoversTheMap() throws IOException, InterruptedException {
+        LiveWorld live = plannerAtDesignTime();
+        StopAccessIndex index = StopAccessIndex.of(live.world().graph(), live.transit());
+
+        // A real city is not blanketed in stops, so a junction far from every
+        // line has an empty list — that is an answer, not a defect. What must hold
+        // is that each entry is honest, and that a served stop finds itself.
+        for (int stop : live.transit().servedStops()) {
+            assertTrue(index.near(stop).stream().anyMatch(s -> s.metres() == 0.0),
+                    "served stop " + stop + " cannot walk to itself");
+        }
+        int withAStop = 0;
+        for (int node = 0; node < live.world().graph().nodeCount(); node++) {
+            java.util.List<StopAccess> near = index.near(node);
+            if (!near.isEmpty()) {
+                withAStop++;
+            }
+            for (StopAccess stop : near) {
+                assertTrue(stop.metres() <= index.radiusM());
+                assertEquals(StopAccessIndex.walkMillis(stop.metres()), stop.walkMillis());
+            }
+        }
+        System.out.printf("%d of %d junctions are within %.0f m of a served stop%n",
+                withAStop, live.world().graph().nodeCount(), index.radiusM());
+    }
+
+    @Test
+    @DisplayName("a door-to-door journey never costs more than walking, when walking is possible")
+    void walkingIsAFloorOnLiveData() throws IOException, InterruptedException {
+        LiveWorld live = plannerAtDesignTime();
+        var graph = live.world().graph();
+        double radius = live.transit().walkingRadiusM();
+
+        for (int origin = 0; origin < graph.nodeCount(); origin += 11) {
+            for (int destination = 0; destination < graph.nodeCount(); destination += 13) {
+                if (origin == destination) {
+                    continue;
+                }
+                double metres = TransitGraph.straightLineMetres(
+                        graph.node(origin).position(), graph.node(destination).position());
+                if (metres > radius) {
+                    continue;
+                }
+                Itinerary itinerary = live.planner().plan(origin, destination);
+                assertTrue(itinerary.found());
+                assertTrue(itinerary.totalMillis() <= StopAccessIndex.walkMillis(metres),
+                        origin + " -> " + destination + " came back worse than walking it");
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("the same junction twice is a free journey, not a search")
+    void originEqualsDestinationOnLiveData() throws IOException, InterruptedException {
+        LiveWorld live = plannerAtDesignTime();
+        Itinerary itinerary = live.planner().plan(42, 42);
+        assertTrue(itinerary.found());
+        assertEquals(0L, itinerary.totalMillis());
+        assertTrue(itinerary.legs().isEmpty());
+    }
+
+    @Test
+    @DisplayName("every generated line is a drivable traversal, in whichever directions the roads allow")
+    void everyLineIsDrivableAndExportsCleanly() throws IOException, InterruptedException {
+        LiveWorld live = plannerAtDesignTime();
+        RouteExporter exporter = new RouteExporter(live.world().graph(), live.world().costModel());
+
+        for (BusRoute route : live.network().routes()) {
+            exporter.requireContinuous(route.nodes(), route.label() + " outbound");
+            if (route.runsBothWays()) {
+                exporter.requireContinuous(route.back().nodes(), route.label() + " return");
+            }
+        }
+        // Publishing to the simulator is retired in DSTNS 2.0 (HTTP 410), so the
+        // drivability rule its validator used to enforce is checked here directly.
+        var written = exporter.toJson(live.network(), new RouteExporter.Meta(
+                null, LiveSandbox.DESIGN_TIME, live.world().topology().graphHash(), null,
+                live.world().graph().nodeCount(), live.world().graph().edgeCount(),
+                live.world().demandModel().stopCount()));
+        assertTrue(written.contains("\"routes\""));
+        System.out.println("One-way lines: " + exporter.oneWayLines(live.network()));
+    }
+
+    @Test
+    @DisplayName("a closed road is kept out of the journeys planned after it closes")
+    void aClosedRoadChangesThePlannedJourney() throws IOException, InterruptedException {
+        LiveWorld live = plannerAtDesignTime();
+        int lastJunction = live.world().graph().nodeCount() - 1;
+
+        Itinerary before = live.planner().plan(0, lastJunction);
+        assertTrue(before.found());
+
+        // Close a road the first line actually drives along, so the closure has
+        // something to bite on. Closing one nothing uses would prove nothing.
+        BusRoute route = live.network().routes().get(0);
+        int closedEdge = route.edges()[route.edges().length / 2];
+
+        try {
+            live.world().client().setEdgeClosed(closedEdge, true);
+            LiveSandbox.World after = LiveSandbox.reread(live.world().client(), live.world().topology());
+
+            assertFalse(after.costModel().isTraversable(closedEdge),
+                    "the simulator reported the road open again immediately after being told to close it");
+
+            RouteNetwork rebuilt = new RouteNetworkBuilder(after.graph(), after.costModel(),
+                    after.demandModel(), after.budget()).build();
+            TransitGraph transit = TransitGraph.of(after.graph(), rebuilt, after.costModel());
+            JourneyPlanner planner = JourneyPlanner.of(after.graph(), transit);
+            RouteExporter publisher = new RouteExporter(after.graph());
+
+            for (BusRoute rebuiltRoute : rebuilt.routes()) {
+                for (int edge : rebuiltRoute.edges()) {
+                    assertTrue(edge != closedEdge,
+                            rebuiltRoute.label() + " still drives along the closed road " + closedEdge);
+                }
+                assertTrue(publisher.isContinuous(rebuiltRoute.nodes()),
+                        rebuiltRoute.label() + " stopped being a continuous traversal after the closure");
+            }
+
+            Itinerary afterClosure = planner.plan(0, lastJunction);
+            assertNotNull(afterClosure);
+            if (afterClosure.found()) {
+                for (Itinerary.Leg leg : afterClosure.legs()) {
+                    assertTrue(leg.millis() >= 0);
+                }
+            }
+        } finally {
+            // Leave the simulator as it was found, pass or fail.
+            live.world().client().setEdgeClosed(closedEdge, false);
+        }
+    }
+
+    @Test
+    @DisplayName("a passenger who will not walk cannot board, and is told so")
+    void noWalkMeansNoJourneyOnLiveData() throws IOException, InterruptedException {
+        LiveWorld live = plannerAtDesignTime();
+        var graph = live.world().graph();
+
+        int nonStop = -1;
+        for (int node = 0; node < graph.nodeCount() && nonStop < 0; node++) {
+            if (live.transit().verticesAt(node).length == 0) {
+                nonStop = node;
+            }
+        }
+        assertTrue(nonStop >= 0, "expected at least one junction with no stop on it");
+
+        JourneyPlanner stranded = new JourneyPlanner(graph, live.transit(),
+                StopAccessIndex.of(graph, live.transit(), 1.0), live.planner().distance());
+
+        Itinerary itinerary = stranded.plan(nonStop, live.transit().servedStops()[0]);
+        assertFalse(itinerary.found(), "there is no journey from a junction this passenger cannot leave");
+        assertTrue(itinerary.legs().isEmpty());
+    }
+
+    @Test
+    @DisplayName("the heuristic in use is the one the live map's geometry allows")
+    void theHeuristicChoiceIsMadeFromTheLiveMap() throws IOException, InterruptedException {
+        LiveWorld live = plannerAtDesignTime();
+        // JourneyPlanner.of asks the map rather than assuming, and this asserts
+        // that it asked — not what the answer happens to be today. The previous
+        // version demanded Manhattan, which was right while DSTNS served an
+        // axis-aligned lattice and wrong the morning it served real roads. The
+        // portable claim is that the choice follows the geometry.
+        var geometry = csc210.algorithm.search.TransitHeuristic.isManhattanAdmissibleOn(live.world().graph());
+        assertEquals(geometry
+                        ? csc210.algorithm.search.TransitHeuristic.Distance.MANHATTAN
+                        : csc210.algorithm.search.TransitHeuristic.Distance.EUCLIDEAN,
+                live.planner().distance(),
+                "the planner must pick the measure this map's geometry permits");
+        System.out.println("live map is axis-aligned: " + geometry
+                + ", planner uses " + live.planner().distance());
+    }
+
+    @Test
+    @DisplayName("an itinerary describes the same journey the search actually found")
+    void itineraryMatchesTheSearchOnLiveData() throws IOException, InterruptedException {
+        LiveWorld live = plannerAtDesignTime();
+        var graph = live.world().graph();
+
+        for (int destination = 5; destination < graph.nodeCount(); destination += 23) {
+            Itinerary itinerary = live.planner().plan(0, destination);
+            if (!itinerary.found() || itinerary.legs().isEmpty()) {
+                continue;
+            }
+            long changes = itinerary.legs().stream()
+                    .filter(leg -> leg.kind() == TransitLink.Kind.TRANSFER
+                            || leg.kind() == TransitLink.Kind.WALK)
+                    .count();
+            assertEquals(itinerary.transfers(), changes);
+            assertEquals(itinerary.totalMillis(),
+                    itinerary.legs().stream().mapToLong(Itinerary.Leg::millis).sum());
+        }
+    }
+}
