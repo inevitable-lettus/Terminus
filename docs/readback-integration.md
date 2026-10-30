@@ -88,3 +88,73 @@ plan order: **1 + 2** (this part), then 4 + 5, then 3.
   state, not on every failure.
 - **Fixed-headway timetable** — departures at a constant interval; count =
   service span / headway.
+
+## Part 2: the portal's endpoints and the journey contract (items 4 and 5)
+
+### What changed
+
+| Change | Where | Defend it as |
+|---|---|---|
+| `GET /api/v1/live` | `PortalContract.live` | "The run id and the simulated clock in seconds; the portal polls it every 2 s and re-copies when `runId` changes. `buses` is filled in part 3." |
+| `GET /api/v1/routes` | `PortalContract.routes` | "Each line's stops in calling order, outbound and return." |
+| `GET /api/v1/trips` | `PortalContract.trips` | "The timetable, with an ETA at every stop: departure + live travel time from the first stop." |
+| ETA arithmetic | `schedule/LiveTimes` (new) | "Time to junction *k* of a line = sum of the first *k* road costs at the current speeds." |
+| `departureTime` read | `schedule/SimTime` (new), `PortalContract.answer` | "Seconds of the day or HH:MM:SS; missing means the simulator's clock." |
+| `tripId` / `busId` on rides | `Timetable.firstReaching`, `PortalContract.answer` | "Walk the journey's legs with a clock. At a ride, take the first trip whose ETA at the boarding stop is at or after the clock; the clock jumps to that trip's ETA at the alighting stop." |
+| Stop `name` | `SandboxClient.stopNames`, `PlannedCity.withStopNames`, `PortalContract.stops` | "DSTNS names some stops as places; a place's `anchor_node` is a junction, mapped to our merged stop." |
+| Unknown fields ignored | `ApiServer` portal mapper | "`FAIL_ON_UNKNOWN_PROPERTIES` off, so an extra field from the portal is not a 400." |
+
+### Rejected alternatives
+
+| Rejected | Why not |
+|---|---|
+| `tripId` from the planner's own times only (departure + leg ms) | Ignores that a bus leaves only every 15 minutes. Walking the legs with a clock makes the second ride follow the first bus's real arrival. |
+| Work out the trip with a formula (`ceil((t - offset - 06:00) / 15 min)`) | Correct but harder to read aloud. A loop over the line's trips in departure order says the same thing plainly, and 64 trips per direction is nothing. |
+| Find the ride's direction from its stop list | A line can call at the same stop more than once. Matching the drawn junction path against each direction's junction list is exact. |
+| Refuse the old ISO `departureTime` (`2026-09-10T09:00:00Z`) | The contract must stay backward compatible; a real-world date says nothing about the simulated day, so it means "now", as before. Other garbage is a 400. |
+| Read stop names every 2 s | Names do not change within a run; read once per plan. A failed read is a note, and the portal falls back to the id. |
+
+### Details worth knowing
+
+- `estimatedDurationSeconds` and segment `cost` are still the planner's times
+  (no waiting for the scheduled bus). `tripId` adds which bus, not a new total.
+- Only some DSTNS stops are named places (11 of 81 in the captured city), so most
+  `name`s are `null`. The `/view/stops` reply shape was not captured live; the
+  parser takes either a list or `{items: [...]}`.
+- ETAs and `stopTimes` follow the current speeds, so they move during a run; ids
+  do not.
+
+### Tests (offline)
+
+- `PortalScheduleTest`: live (run id, 64800 s), routes, trips (768, ETA at the first
+  stop = departure, ETAs never go down); 07:07 → the 07:15 bus, same with
+  `25620`, exactly 07:15 → 07:15, after 21:45 → `null`; no `departureTime` → 18:00
+  bus; an unknown field is fine; a bad time is a 400; names through the anchor
+  junction; the names parser takes both shapes.
+- `SimTimeTest`: both forms, and refusals.
+- `ApiServerTest`: rides carry `tripId` = `busId`; walks carry none.
+
+### Likely TA questions
+
+- **How do you pick the bus?** Loop over that line direction's trips in departure
+  order; the first whose arrival at the boarding stop (departure + live travel time
+  to it) is at or after the passenger. Linear scan, at most 64 trips.
+- **Why is the bus id the same as the trip id?** One trip is one bus run. A real
+  fleet would reuse buses across trips (vehicle scheduling, a different problem).
+  Not needed for selling seats.
+- **What if the passenger misses the last bus?** `tripId` is `null`; the journey is
+  still returned so the portal can say so.
+- **Why ignore unknown fields?** Postel's rule: be strict in what you send, liberal
+  in what you accept. The portal's fields can grow without breaking us.
+
+### New concepts
+
+- **Prefix sums along a path** — ETA at stop *k* = departure + sum of the first *k*
+  edge costs.
+- **Simulation of a passenger's clock** — step through legs, advancing a clock,
+  snapping to the next scheduled departure at each boarding.
+- **Linear search for the first match** in a list sorted by time.
+- **Backward-compatible API evolution** — add optional fields, ignore unknown ones,
+  keep accepting the old input form.
+- **Tolerant parsing** — accept either reply shape; treat a missing optional
+  source as "no data", not an error.

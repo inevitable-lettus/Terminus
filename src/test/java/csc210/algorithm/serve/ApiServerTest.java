@@ -223,7 +223,10 @@ class ApiServerTest {
         for (JsonNode segment : data.path("segments")) {
             assertTrue(segment.has("fromStopId") && segment.has("toStopId") && segment.has("routeId")
                     && segment.has("busId") && segment.has("cost") && segment.has("distanceMeters"));
-            assertTrue(segment.path("busId").isNull(), "there is no fleet model");
+            // An old-style real-world departureTime means "now" (18:00), so every ride has a bus;
+            // a walk between stops has none. The bus id is the trip id.
+            assertEquals(segment.path("routeId").isNull(), segment.path("tripId").isNull(), segment.toString());
+            assertEquals(segment.path("tripId"), segment.path("busId"));
         }
         // A bus does not average 100 m/s: distance and time must describe the same trip.
         double metresPerSecond = data.path("totalDistanceMeters").asDouble()

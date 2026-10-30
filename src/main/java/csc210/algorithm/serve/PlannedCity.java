@@ -55,10 +55,11 @@ public final class PlannedCity {
     private final BuildTrace buildTrace;
     private final StrongComponents components;
     private final Timetable timetable;
+    private final Map<Integer, String> stopNames;
 
     private PlannedCity(World world, RunInfo run, RouteBudget budget, String source, RouteNetwork network,
                         TransitGraph transit, JourneyPlanner planner, BuildTrace buildTrace,
-                        StrongComponents components, Timetable timetable) {
+                        StrongComponents components, Timetable timetable, Map<Integer, String> stopNames) {
         this.world = world;
         this.run = run;
         this.budget = budget;
@@ -69,6 +70,7 @@ public final class PlannedCity {
         this.buildTrace = buildTrace;
         this.components = components;
         this.timetable = timetable;
+        this.stopNames = stopNames;
     }
 
     /**
@@ -83,7 +85,13 @@ public final class PlannedCity {
                 .build(trace);
         TransitGraph transit = TransitGraph.of(world.graph(), network, world.costModel());
         return new PlannedCity(world, run, budget, source, network, transit, JourneyPlanner.of(world.graph(), transit),
-                trace, StrongComponents.of(world.graph(), world.costModel()), Timetable.of(network));
+                trace, StrongComponents.of(world.graph(), world.costModel()), Timetable.of(network), Map.of());
+    }
+
+    /** The same city with DSTNS's stop names, keyed by the junction each named stop is anchored to. */
+    public PlannedCity withStopNames(Map<Integer, String> names) {
+        return new PlannedCity(world, run, budget, source, network, transit, planner, buildTrace, components,
+                timetable, Map.copyOf(names));
     }
 
     /**
@@ -94,7 +102,7 @@ public final class PlannedCity {
     public PlannedCity withLiveCosts(World fresh, RunInfo now) {
         TransitGraph transit = TransitGraph.of(fresh.graph(), network, fresh.costModel());
         return new PlannedCity(fresh, now, budget, source, network, transit, JourneyPlanner.of(fresh.graph(), transit),
-                buildTrace, StrongComponents.of(fresh.graph(), fresh.costModel()), timetable);
+                buildTrace, StrongComponents.of(fresh.graph(), fresh.costModel()), timetable, stopNames);
     }
 
     public World world() {
@@ -111,6 +119,11 @@ public final class PlannedCity {
 
     public Timetable timetable() {
         return timetable;
+    }
+
+    /** Stop names from DSTNS by anchor junction; empty if the simulator gave none. */
+    public Map<Integer, String> stopNames() {
+        return stopNames;
     }
 
     /** {@code "live"} or {@code "bundle"}. */

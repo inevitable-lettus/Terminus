@@ -43,6 +43,20 @@ public final class Timetable {
         }
     }
 
+    /**
+     * The first trip of one line direction that reaches a point {@code offsetS}
+     * seconds into its run at or after {@code arriveS}, or {@code null} if the
+     * last bus has gone.
+     */
+    public Trip firstReaching(int routeId, boolean outbound, int offsetS, int arriveS) {
+        for (Trip trip : trips) {
+            if (trip.routeId() == routeId && trip.outbound() == outbound && trip.departSimS() + offsetS >= arriveS) {
+                return trip;
+            }
+        }
+        return null;
+    }
+
     /** Every trip, line by line, outbound before return, in departure order. */
     public List<Trip> trips() {
         return trips;
