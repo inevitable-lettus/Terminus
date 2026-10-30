@@ -158,3 +158,69 @@ plan order: **1 + 2** (this part), then 4 + 5, then 3.
   keep accepting the old input form.
 - **Tolerant parsing** — accept either reply shape; treat a missing optional
   source as "no data", not an error.
+
+## Part 3: bus position and ETA (item 3)
+
+### What changed
+
+| Change | Where | Defend it as |
+|---|---|---|
+| Bus positions | `schedule/BusPositions` (new) | "A bus that left *t* seconds ago has driven *t* seconds of its line. Add up the live road times until the total passes *t*; the bus is on that road, placed in proportion to the time used on it." |
+| `buses` in `/api/v1/live` | `PortalContract.live` | "Every trip that has left and not reached its last stop, with `lat`, `lng` and the next stop." |
+| One road's time | `LiveTimes.roadMillis` | "So the position walk is one pass over the roads, not a re-sum per road." |
+
+ETAs were already built in part 2 (`/api/v1/trips` needs them); the same
+`LiveTimes` sums give positions here.
+
+### Rejected alternatives
+
+| Rejected | Why not |
+|---|---|
+| Place the bus between two **stops** (the plan's wording) | A straight line between stops cuts across blocks. Placing it between two **junctions** of the road it is on is the same loop at a finer step and stays on the road. |
+| Simulate each bus tick by tick | Needs state, a loop of its own and catch-up after a pause or seek. Position as a function of (departure, now, live speeds) has no state and is right after any clock jump. |
+| Add buses to DSTNS traffic | DSTNS is not ours to change; buses read traffic, they do not add to it. |
+
+### Details worth knowing
+
+- **Live speeds are used for the whole run so far**, not the speeds the bus actually
+  met earlier. A sudden jam therefore moves a bus *backwards* on the map. Honest
+  limitation of a stateless model; fine for a live view, and the next ETA is right.
+- A closed road on the line is gridlock (part 1), so a bus stuck behind it sits
+  on that road and every later ETA grows.
+- Interpolation is straight between two junctions in lat/lng; a junction-to-junction
+  road is short, so the error is small.
+- Cost per `/live` request: one pass over the roads of each running trip (a few
+  hundred trips × a few hundred roads), about 100,000 additions.
+
+### Tests (offline)
+
+- `BusPositionsTest`: at a fixed 10 m/s the bus is within a metre of halfway at half
+  its travel time; a bus moves forward when the clock advances 60 s; only buses
+  that have left and not finished are placed (07:00 is on the road at 07:00, 07:15
+  is not, nothing at 05:00); the next stop is the first call ahead; a finished bus
+  is not placed.
+- `PortalScheduleTest`: `/live` at 18:00 lists only trips that have left; closing a
+  road on a line leaves the first stop's ETA alone and makes the last stop's later.
+
+**Live tests not written or run:** DSTNS was not running during this build. The
+plan's two live checks (a bus moves when the clock advances; a closure raises
+later ETAs) are covered offline on the 2.0 capture by the two tests above.
+
+### Likely TA questions
+
+- **Why is position a function, not a simulation?** Same inputs, same answer, with
+  no state to keep in step with the simulator's clock, which can pause and seek.
+- **What is the complexity?** O(trips × roads per line) per request, linear.
+- **Can a bus go backwards?** Yes, if speeds drop sharply, because the whole trip so
+  far is re-priced at today's speeds. A per-bus distance accumulator would fix it,
+  at the cost of state; not worth it for a live view.
+- **Why proportional placement?** Within one road the speed is one number, so time
+  used is distance covered: linear interpolation is exact up to road curvature.
+
+### New concepts
+
+- **Stateless derived state** — compute position from (schedule, clock, speeds)
+  instead of storing and updating it.
+- **Linear interpolation** — `from + (to − from) × fraction`.
+- **Cumulative-sum search** — walk partial sums until they pass a target; the
+  index is the segment, the remainder the fraction.

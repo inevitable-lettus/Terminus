@@ -4,6 +4,7 @@ import csc210.algorithm.cli.UsageException;
 import csc210.algorithm.graph.Graph;
 import csc210.algorithm.model.Node;
 import csc210.algorithm.routing.BusRoute;
+import csc210.algorithm.schedule.BusPositions;
 import csc210.algorithm.schedule.LiveTimes;
 import csc210.algorithm.schedule.SimTime;
 import csc210.algorithm.schedule.Trip;
@@ -195,7 +196,16 @@ public final class PortalContract {
 
     /** {@code GET /api/v1/live}: the run, its clock, and the buses on the road. */
     public static Live live(PlannedCity city) {
-        return new Live(new LiveData(city.run().runId(), currentSimTime(city), List.of()));
+        Integer now = currentSimTime(city);
+        List<LiveBus> buses = new ArrayList<>();
+        if (now != null) {
+            for (BusPositions.BusPosition bus : BusPositions.at(now, city.timetable(), city.network(),
+                    city.world().graph(), city.world().costModel())) {
+                buses.add(new LiveBus(bus.trip().id(), "route_" + bus.trip().routeId(), bus.lat(), bus.lng(),
+                        "stop_" + bus.nextStop()));
+            }
+        }
+        return new Live(new LiveData(city.run().runId(), now, buses));
     }
 
     /** {@code GET /api/v1/routes}: each line's stops, outbound and return, in calling order. */
