@@ -2,8 +2,7 @@
 
 The build protocol was **waived** for this work, as on 2026-09-25. This file is
 the read-back it owes: every change, why, what was rejected, and the questions a
-TA is likely to ask. Read it with the PR diff open. It lives here, not in
-`ai-context/` (which is gitignored), so it travels with the code.
+TA is likely to ask. Read it with the PR diff open.
 
 Plan: [`integration-changes.md`](integration-changes.md). Built in three PRs, in
 plan order: **1 + 2** (this part), then 4 + 5, then 3.
