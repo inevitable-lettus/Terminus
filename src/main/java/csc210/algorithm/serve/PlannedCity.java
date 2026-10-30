@@ -17,6 +17,7 @@ import csc210.algorithm.routing.BusRoute;
 import csc210.algorithm.routing.RouteBudget;
 import csc210.algorithm.routing.RouteNetwork;
 import csc210.algorithm.routing.RouteNetworkBuilder;
+import csc210.algorithm.schedule.Timetable;
 import csc210.algorithm.search.ExpansionRecorder;
 import csc210.algorithm.transit.TransitGraph;
 import csc210.algorithm.transit.TransitLink;
@@ -35,7 +36,9 @@ import java.util.TreeMap;
  * answers from, built once so a journey costs a search and not a reload.
  *
  * <p>Immutable. A reload builds a new one and swaps it in, so a request that
- * started on the old city finishes on the old city.
+ * started on the old city finishes on the old city. A speed update
+ * ({@link #withLiveCosts}) also builds a new one, but keeps the network and the
+ * timetable, so route and trip ids stay the same for the whole run.
  */
 public final class PlannedCity {
 
@@ -51,10 +54,11 @@ public final class PlannedCity {
     private final JourneyPlanner planner;
     private final BuildTrace buildTrace;
     private final StrongComponents components;
+    private final Timetable timetable;
 
     private PlannedCity(World world, RunInfo run, RouteBudget budget, String source, RouteNetwork network,
                         TransitGraph transit, JourneyPlanner planner, BuildTrace buildTrace,
-                        StrongComponents components) {
+                        StrongComponents components, Timetable timetable) {
         this.world = world;
         this.run = run;
         this.budget = budget;
@@ -64,6 +68,7 @@ public final class PlannedCity {
         this.planner = planner;
         this.buildTrace = buildTrace;
         this.components = components;
+        this.timetable = timetable;
     }
 
     /**
@@ -78,7 +83,18 @@ public final class PlannedCity {
                 .build(trace);
         TransitGraph transit = TransitGraph.of(world.graph(), network, world.costModel());
         return new PlannedCity(world, run, budget, source, network, transit, JourneyPlanner.of(world.graph(), transit),
-                trace, StrongComponents.of(world.graph(), world.costModel()));
+                trace, StrongComponents.of(world.graph(), world.costModel()), Timetable.of(network));
+    }
+
+    /**
+     * The same network and timetable, re-priced on {@code fresh} (a newer
+     * snapshot of the same map). Algorithm 1 does not run again; only the ride
+     * costs, and so the journeys, follow the new speeds.
+     */
+    public PlannedCity withLiveCosts(World fresh, RunInfo now) {
+        TransitGraph transit = TransitGraph.of(fresh.graph(), network, fresh.costModel());
+        return new PlannedCity(fresh, now, budget, source, network, transit, JourneyPlanner.of(fresh.graph(), transit),
+                buildTrace, StrongComponents.of(fresh.graph(), fresh.costModel()), timetable);
     }
 
     public World world() {
@@ -91,6 +107,10 @@ public final class PlannedCity {
 
     public RouteNetwork network() {
         return network;
+    }
+
+    public Timetable timetable() {
+        return timetable;
     }
 
     /** {@code "live"} or {@code "bundle"}. */
@@ -331,7 +351,8 @@ public final class PlannedCity {
                 }
                 long cost = 0L;
                 for (int e = positions[i]; e < positions[i + 1]; e++) {
-                    cost += world.costModel().costMillis(edgeLists[d][e]);
+                    int edge = edgeLists[d][e];
+                    cost += world.costModel().busMillis(edge, world.graph().edge(edge).lengthM());
                 }
                 if (cost < bestCost) {
                     bestCost = cost;

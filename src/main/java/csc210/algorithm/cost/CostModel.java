@@ -163,6 +163,17 @@ public final class CostModel {
         return cost;
     }
 
+    /**
+     * Milliseconds for a bus to drive {@code edgeId} on its fixed line. A line is
+     * planned once per run, so a road on it can close later; the bus cannot
+     * re-route, so a closed road is priced as gridlock (the 0.1 m/s floor)
+     * rather than refused. A bus that has to wait out a closure is very late,
+     * not gone.
+     */
+    public long busMillis(int edgeId, double lengthM) {
+        return isTraversable(edgeId) ? costMillis[edgeId] : travelTimeMillis(lengthM, MIN_SPEED_MPS);
+    }
+
     public int edgeCount() {
         return costMillis.length;
     }

@@ -1,5 +1,6 @@
 package csc210.algorithm.serve;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -35,7 +36,8 @@ import java.util.zip.GZIPOutputStream;
  *   GET  /api/journey?from=&amp;to=&amp;board_wait=   one journey, A* and Dijkstra's work
  *   GET  /api/trace/search?from=&amp;to=&amp;algo=    the order a search settled junctions
  *   GET  /api/trace/build                     the greedy builder's decisions
- *   POST /api/reload        {"time":"HH:MM:SS"}  re-read the simulator and re-plan
+ *   POST /api/reload  {"time":"HH:MM:SS","seek":true}  re-read the simulator and re-plan;
+ *                                             the clock moves only when seek is true
  *   POST /api/v1/routes/query                 the ticketing portal's contract
  *   GET  /api/v1/stops                        stop ids for the portal to map
  *   GET  /                                    the dashboard, if it has been built
@@ -46,7 +48,7 @@ import java.util.zip.GZIPOutputStream;
  */
 public final class ApiServer implements AutoCloseable {
 
-    /** Re-reads the simulator, at {@code time} if given, and plans the result. */
+    /** Re-reads the simulator, after moving its clock to {@code time} if given, and plans the result. */
     @FunctionalInterface
     public interface Reloader {
         PlannedCity reload(String time) throws IOException, InterruptedException;
@@ -105,7 +107,9 @@ public final class ApiServer implements AutoCloseable {
                 throw new RunStateException("this server holds a saved bundle, not a live run, so it cannot reload");
             }
             byte[] body = exchange.getRequestBody().readAllBytes();
-            String time = body.length == 0 ? null : server.api.readTree(body).path("time").asText(null);
+            JsonNode request = body.length == 0 ? server.api.createObjectNode() : server.api.readTree(body);
+            // The clock is shared by everyone using the simulator, so it moves only when asked for by name.
+            String time = request.path("seek").asBoolean(false) ? request.path("time").asText(null) : null;
             if (time != null && !time.matches("([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d")) {
                 throw new UsageException("time must look like HH:MM:SS, got '" + time + "'");
             }
@@ -122,6 +126,16 @@ public final class ApiServer implements AutoCloseable {
         http.createContext("/", server.guard("GET", server::serveStatic));
         http.start();
         return server;
+    }
+
+    /** The city every answer comes from right now. */
+    public PlannedCity city() {
+        return city;
+    }
+
+    /** Swaps in a new city; requests already running finish on the old one. */
+    public void replace(PlannedCity newCity) {
+        city = newCity;
     }
 
     /** The port actually bound, which matters when 0 was asked for. */

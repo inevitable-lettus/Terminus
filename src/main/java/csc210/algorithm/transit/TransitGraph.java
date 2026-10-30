@@ -145,11 +145,11 @@ public final class TransitGraph {
         // from its own edges, never from the outbound ones reversed.
         for (BusRoute route : network.routes()) {
             addRides(outgoing, vertexIndex, route.id(), route.edges(), route.stopOccurrences(),
-                    route.stopOccurrencePositions(), rideMillis);
+                    route.stopOccurrencePositions(), roadGraph, rideMillis);
             if (route.runsBothWays()) {
                 BusRoute.Return back = route.back();
                 addRides(outgoing, vertexIndex, route.id(), back.edges(), back.stopOccurrences(),
-                        back.stopOccurrencePositions(), rideMillis);
+                        back.stopOccurrencePositions(), roadGraph, rideMillis);
             }
         }
 
@@ -224,7 +224,7 @@ public final class TransitGraph {
 
     /** One ride link per pair of consecutive stop visits along one direction of one line. */
     private static void addRides(List<List<TransitLink>> outgoing, Map<Long, Integer> vertexIndex, int routeId,
-                                 int[] edges, int[] occurrences, int[] positions,
+                                 int[] edges, int[] occurrences, int[] positions, Graph roadGraph,
                                  csc210.algorithm.cost.CostModel rideMillis) {
         for (int i = 0; i + 1 < occurrences.length; i++) {
             int from = vertexIndex.get(key(occurrences[i], routeId));
@@ -234,7 +234,7 @@ public final class TransitGraph {
             }
             long millis = 0L;
             for (int e = positions[i]; e < positions[i + 1]; e++) {
-                millis += rideMillis.costMillis(edges[e]);
+                millis += rideMillis.busMillis(edges[e], roadGraph.edge(edges[e]).lengthM());
             }
             outgoing.get(from).add(new TransitLink(from, to, millis, TransitLink.Kind.RIDE, routeId));
         }

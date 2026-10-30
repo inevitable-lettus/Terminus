@@ -155,7 +155,8 @@ export function liveSource(base = ""): Source {
       await fetch(base + "/api/reload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ time }),
+        // The dashboard is the operator's tool, so it asks for the clock to move by name.
+        body: JSON.stringify({ time, seek: true }),
       }).then((r) => json(r));
     },
   };
