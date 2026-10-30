@@ -175,6 +175,23 @@ class ApiServerTest {
         assertEquals(409, post("/api/reload", "{}").statusCode(), "a server with no reloader holds no live run");
     }
 
+    @Test
+    void aReloadMovesTheSharedClockOnlyWhenSeekIsAskedFor() throws Exception {
+        java.util.List<String> asked = new java.util.ArrayList<>();
+        try (ApiServer reloading = ApiServer.start("127.0.0.1", 0, city, time -> {
+            asked.add(String.valueOf(time));
+            return city;
+        }, null, "http://sandbox.test")) {
+            String base = "http://127.0.0.1:" + reloading.port();
+            for (String body : new String[] {"{}", "{\"time\":\"08:30:00\"}", "{\"time\":\"08:30:00\",\"seek\":true}"}) {
+                HttpResponse<String> answer = HTTP.send(HttpRequest.newBuilder(URI.create(base + "/api/reload"))
+                        .POST(HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
+                assertEquals(200, answer.statusCode());
+            }
+        }
+        assertEquals(java.util.List.of("null", "null", "08:30:00"), asked);
+    }
+
     // ---- the ticketing portal's contract ------------------------------------
 
     @Test

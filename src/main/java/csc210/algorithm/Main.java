@@ -14,6 +14,7 @@ import csc210.algorithm.routing.RouteBudget;
 import csc210.algorithm.routing.RouteNetwork;
 import csc210.algorithm.routing.RouteNetworkBuilder;
 import csc210.algorithm.serve.ApiServer;
+import csc210.algorithm.serve.LiveRefresher;
 import csc210.algorithm.serve.PlannedCity;
 import csc210.algorithm.world.World;
 import csc210.algorithm.world.WorldLoader;
@@ -24,6 +25,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Locale;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * The command line. Run it through {@code ./bus}:
@@ -223,7 +227,39 @@ public final class Main {
                 ? "  dashboard  " + base + "/"
                 : "  dashboard  not built — `npm install && npm run dev` in dashboard/, then open http://localhost:5174");
         notes.println("  API        " + base + "/api/network, /api/journey?from=&to=, /api/v1/routes/query");
+
+        // A daemon thread, so it never keeps the program alive after the server stops.
+        ScheduledExecutorService ticker = Executors.newSingleThreadScheduledExecutor(task -> {
+            Thread thread = new Thread(task, "live-refresh");
+            thread.setDaemon(true);
+            return thread;
+        });
+        ticker.scheduleWithFixedDelay(new LiveRefresher(server, liveReads(client, options), notes),
+                LiveRefresher.PERIOD_SECONDS, LiveRefresher.PERIOD_SECONDS, TimeUnit.SECONDS);
+        notes.println("  Speeds are re-read every " + LiveRefresher.PERIOD_SECONDS
+                + " s; the network is re-planned only when the simulator starts a new run.");
         return server;
+    }
+
+    /** What the live refresher reads from the simulator, each tick. */
+    private static LiveRefresher.Simulator liveReads(SandboxClient client, Options options) {
+        return new LiveRefresher.Simulator() {
+            @Override
+            public RunInfo currentRun() throws IOException, InterruptedException {
+                return describeRun(client, true, options.seed);
+            }
+
+            @Override
+            public World reread(World previous) throws IOException, InterruptedException {
+                return WorldLoader.assemble(previous.topology(), client.snapshot(), client::edges);
+            }
+
+            @Override
+            public PlannedCity planFresh(RunInfo run) throws IOException, InterruptedException {
+                World fresh = WorldLoader.load(client);
+                return PlannedCity.plan(fresh, run, applyOverrides(fresh.budget(), options), "live");
+            }
+        };
     }
 
     /** {@code --json}: the command's answer in the serve API's own shapes. */

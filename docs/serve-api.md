@@ -11,8 +11,11 @@ extra to install.
 ./bus serve --port 9000 --host 0.0.0.0
 ```
 
-Every answer comes from one immutable planned city. `POST /api/reload` plans a
-new one and swaps it in whole, so a request never sees half of each. Responses
+Every answer comes from one immutable planned city, swapped in whole, so a request
+never sees half of each. Every 2 seconds the server re-reads the simulator's speeds
+and re-prices the same lines (route and trip ids do not change); it re-runs
+Algorithm 1 only when the simulator's `run_id` changes. `POST /api/reload` forces a
+re-plan. Responses
 are gzipped when the client accepts it; CORS allows any origin, so the dashboard
 and the portal's dev servers can call it directly.
 
@@ -26,7 +29,7 @@ and the portal's dev servers can call it directly.
 | `GET /api/journey?from=&to=&board_wait=` | `legs[{kind, line, from_node, to_node, stops_ridden, ms, path, text}]`, `total_ms`, `transfers`, `walk_ms`, and `a_star_expanded` / `dijkstra_expanded` for the same question |
 | `GET /api/trace/search?from=&to=&algo=astar\|dijkstra` | the junctions the search settled, in order, with their costs (capped at 20,000) |
 | `GET /api/trace/build` | the greedy builder's decisions: `hub`, `extend` (with the path driven and the demand gained), `accept`, `exclude` |
-| `POST /api/reload` `{"time":"HH:MM:SS"}` | re-reads the simulator, at that time if given, and re-plans |
+| `POST /api/reload` `{"time":"HH:MM:SS","seek":true}` | re-reads the simulator and re-plans; moves the shared clock to `time` only when `seek` is `true` |
 
 A ride leg's `path` is drawn through the stops the search actually rode through,
 along the cheapest road slice for each hop, so its road costs sum to exactly the

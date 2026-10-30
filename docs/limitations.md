@@ -107,8 +107,10 @@ gives. *(Fixed 2026-09-25: walking the whole way used to be compared only within
 foot. A bus answer now never costs more than walking straight there, at any
 distance.)*
 
-**Searches run against a frozen snapshot.** They answer "what was best at 18:00",
-not "what is best right now".
+**Searches run against a snapshot at most 2 seconds old.** `./bus serve` re-reads the
+speeds every 2 seconds, but the lines are planned once per run: a road that closes
+later is priced as gridlock (0.1 m/s) for the bus, which cannot re-route. The
+one-shot commands still answer for the single moment they read.
 
 **A passenger starts at a junction, not an address.** Access and egress legs
 are modelled — a query takes two road junctions and the walks at either end are
