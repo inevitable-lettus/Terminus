@@ -1,6 +1,6 @@
 # Suggested changes for integration with the ticketing portal
 
-*Drafted 2026-10-22 · status: items 1, 2, 4 and 5 built (2026-10-30, build protocol waived; read-back in [`readback-integration.md`](readback-integration.md)); 3 to follow.*
+*Drafted 2026-10-22 · status: items 1–5 built (2026-10-30, build protocol waived; read-back in [`readback-integration.md`](readback-integration.md)).*
 
 The group's integration plan (`group-08-public-bus-route-planner/context/integration_plan.md`) has real users booking seats on buses that run inside the DSTNS city. DSTNS v2 has no buses (`POST /api/v1/control/transit/route` returns `410 TRANSIT_API_RETIRED`) and will not be changed, so this module becomes the owner of buses, timetable and live bus positions. Everything below is kept deliberately simple so it is easy to explain.
 

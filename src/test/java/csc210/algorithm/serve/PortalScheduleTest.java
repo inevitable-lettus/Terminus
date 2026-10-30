@@ -90,6 +90,30 @@ class PortalScheduleTest {
         }
     }
 
+    @Test
+    void liveListsTheBusesOnTheRoadAt1800() throws Exception {
+        JsonNode buses = get("/api/v1/live").at("/data/buses");
+        assertTrue(buses.size() > 0);
+        for (JsonNode bus : buses) {
+            String tripId = bus.path("tripId").asText();
+            int hhmm = Integer.parseInt(tripId.substring(tripId.length() - 4));
+            assertTrue(hhmm <= 1800, tripId + " has not left yet");
+            assertTrue(bus.path("nextStopId").asText().startsWith("stop_"));
+            assertTrue(tripId.startsWith(bus.path("routeId").asText() + "-"));
+        }
+    }
+
+    @Test
+    void closingARoadOnALineMakesLaterStopsLater() {
+        BusRoute line = city.network().routes().get(0);
+        PlannedCity closed = city.withLiveCosts(LiveCostsTest.withClosed(city.world(), line.edges()[0]), city.run());
+        PortalContract.TripInfo before = PortalContract.trips(city).data().get(0);
+        PortalContract.TripInfo after = PortalContract.trips(closed).data().get(0);
+        int last = before.stopTimes().size() - 1;
+        assertEquals(before.stopTimes().get(0).etaSimS(), after.stopTimes().get(0).etaSimS());
+        assertTrue(after.stopTimes().get(last).etaSimS() > before.stopTimes().get(last).etaSimS());
+    }
+
     /** A line whose first two stops are joined by a direct ride, and the query for it. */
     private static String[] directRide() throws Exception {
         for (BusRoute route : city.network().routes()) {

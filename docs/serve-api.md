@@ -74,7 +74,7 @@ leg's `ms`. A test holds that on every ride in a sample of the 2.0 city.
 
 | Endpoint | Returns |
 |---|---|
-| `GET /api/v1/live` | `{data: {runId, simTime, buses: [{tripId, routeId, lat, lng, nextStopId}]}}`; `simTime` in seconds of the day; `buses` is empty until item 3 (bus positions) lands |
+| `GET /api/v1/live` | `{data: {runId, simTime, buses: [{tripId, routeId, lat, lng, nextStopId}]}}`; `simTime` in seconds of the day; `buses` are the trips on the road now, placed from the timetable and live speeds |
 | `GET /api/v1/routes` | `{data: [{routeId, stops: ["stop_12", ...], returnStops: [...]}]}`; `returnStops` is empty for a line with no return |
 | `GET /api/v1/trips` | `{data: [{tripId, routeId, outbound, departSimS, seats, stopTimes: [{stopId, etaSimS}]}]}`; ETAs use the current speeds |
 

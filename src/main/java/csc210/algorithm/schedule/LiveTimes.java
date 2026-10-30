@@ -39,10 +39,15 @@ public final class LiveTimes {
     public long millisTo(Direction direction, int position) {
         long total = 0L;
         for (int e = 0; e < position; e++) {
-            int edge = direction.edges()[e];
-            total += costs.busMillis(edge, graph.edge(edge).lengthM());
+            total += roadMillis(direction, e);
         }
         return total;
+    }
+
+    /** Milliseconds to drive road number {@code index} of {@code direction}. */
+    public long roadMillis(Direction direction, int index) {
+        int edge = direction.edges()[index];
+        return costs.busMillis(edge, graph.edge(edge).lengthM());
     }
 
     /**
