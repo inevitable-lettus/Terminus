@@ -215,11 +215,12 @@ public final class Main {
             }
             World fresh = WorldLoader.load(client);
             return PlannedCity.plan(fresh, describeRun(client, true, options.seed),
-                    applyOverrides(fresh.budget(), options), "live");
+                    applyOverrides(fresh.budget(), options), "live").withStopNames(stopNames(client, notes));
         };
         Path dashboard = Path.of(options.dashboard);
         ApiServer server = ApiServer.start(options.host, options.port,
-                PlannedCity.plan(world, run, budget, "live"), reloader, dashboard, options.sandboxUrl);
+                PlannedCity.plan(world, run, budget, "live").withStopNames(stopNames(client, notes)),
+                reloader, dashboard, options.sandboxUrl);
         String base = "http://" + options.host + ":" + server.port();
         notes.println();
         notes.println("Serving on " + base + "  (Ctrl-C to stop)");
@@ -234,15 +235,26 @@ public final class Main {
             thread.setDaemon(true);
             return thread;
         });
-        ticker.scheduleWithFixedDelay(new LiveRefresher(server, liveReads(client, options), notes),
+        ticker.scheduleWithFixedDelay(new LiveRefresher(server, liveReads(client, options, notes), notes),
                 LiveRefresher.PERIOD_SECONDS, LiveRefresher.PERIOD_SECONDS, TimeUnit.SECONDS);
         notes.println("  Speeds are re-read every " + LiveRefresher.PERIOD_SECONDS
                 + " s; the network is re-planned only when the simulator starts a new run.");
         return server;
     }
 
+    /** Stop names are a nicety: without them the portal shows stop ids, so a failed read is a note, not an error. */
+    private static java.util.Map<Integer, String> stopNames(SandboxClient client, PrintStream notes)
+            throws InterruptedException {
+        try {
+            return client.stopNames();
+        } catch (IOException unavailable) {
+            notes.println("No stop names from the simulator (" + unavailable.getMessage() + "); stops keep their ids.");
+            return java.util.Map.of();
+        }
+    }
+
     /** What the live refresher reads from the simulator, each tick. */
-    private static LiveRefresher.Simulator liveReads(SandboxClient client, Options options) {
+    private static LiveRefresher.Simulator liveReads(SandboxClient client, Options options, PrintStream notes) {
         return new LiveRefresher.Simulator() {
             @Override
             public RunInfo currentRun() throws IOException, InterruptedException {
@@ -257,7 +269,8 @@ public final class Main {
             @Override
             public PlannedCity planFresh(RunInfo run) throws IOException, InterruptedException {
                 World fresh = WorldLoader.load(client);
-                return PlannedCity.plan(fresh, run, applyOverrides(fresh.budget(), options), "live");
+                return PlannedCity.plan(fresh, run, applyOverrides(fresh.budget(), options), "live")
+                        .withStopNames(stopNames(client, notes));
             }
         };
     }

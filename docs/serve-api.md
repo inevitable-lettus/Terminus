@@ -40,26 +40,48 @@ leg's `ms`. A test holds that on every ride in a sample of the 2.0 city.
 `POST /api/v1/routes/query`
 
 ```json
-{"sourceStopId": "stop_1645", "destStopId": "stop_201", "departureTime": "2026-09-10T09:00:00Z"}
+{"sourceStopId": "stop_1645", "destStopId": "stop_201", "departureTime": "07:07:00"}
 ```
 
 ```json
 {"data": {"path": ["stop_1645", "stop_201"],
           "segments": [{"fromStopId": "stop_1645", "toStopId": "stop_201", "routeId": "route_2",
-                        "busId": null, "cost": 6.97, "distanceMeters": 1120.45}],
+                        "busId": "route_2-out-0715", "tripId": "route_2-out-0715",
+                        "cost": 6.97, "distanceMeters": 1120.45}],
           "totalCost": 6.97, "totalDistanceMeters": 1120.45, "estimatedDurationSeconds": 418}}
 ```
 
 - **Stop ids** are `stop_<junction>`, the junction being the stop's merged
-  representative. `GET /api/v1/stops` lists them with position, whether a line
-  serves them and which (`route_<n>`), for the portal to map onto its own `stop`
-  table. Any junction the simulator flagged as a stop is accepted and resolved.
+  representative. `GET /api/v1/stops` lists them with position, `name` (from DSTNS
+  `/view/stops`, matched through the place's anchor junction; `null` for the many
+  stops DSTNS does not name), whether a line serves them and which (`route_<n>`),
+  for the portal to map onto its own `stop` table. Any junction the simulator
+  flagged as a stop is accepted and resolved.
 - **`cost` is in minutes.** The contract names no unit; minutes are what every
   other figure here is printed in.
-- **`busId` is `null`.** There is no fleet model to name a bus from.
-- **`departureTime` is accepted and ignored.** The network is planned for one
-  moment of the simulated day.
+- **`departureTime`** is simulated time: seconds of the day (`25620`) or
+  `HH:MM:SS`. Left out, it is the simulator's current time. A real-world
+  date-time (the contract's first form, `2026-09-10T09:00:00Z`) also means "now".
+  Anything else is a 400.
+- **`tripId` and `busId`** (the same id) name the first timetabled trip on that
+  line and direction that reaches the boarding stop at or after the passenger
+  does. A later ride starts from when the earlier trip reaches its alighting stop.
+  `null` after the last bus (21:45) or on a walk.
+- **Unknown fields are ignored**, so the portal can send more than is read.
 - A segment with `routeId` `null` is a walk between two stops to change line.
+
+### What the portal copies and polls
+
+| Endpoint | Returns |
+|---|---|
+| `GET /api/v1/live` | `{data: {runId, simTime, buses: [{tripId, routeId, lat, lng, nextStopId}]}}`; `simTime` in seconds of the day; `buses` is empty until item 3 (bus positions) lands |
+| `GET /api/v1/routes` | `{data: [{routeId, stops: ["stop_12", ...], returnStops: [...]}]}`; `returnStops` is empty for a line with no return |
+| `GET /api/v1/trips` | `{data: [{tripId, routeId, outbound, departSimS, seats, stopTimes: [{stopId, etaSimS}]}]}`; ETAs use the current speeds |
+
+Route and trip ids stay the same for a whole run (the network is planned once per
+`run_id`). The timetable: every line, each direction it runs, a bus every 15
+simulated minutes from 06:00 to 21:45, 40 seats; trip id = bus id =
+`route_<n>-out-HHMM` or `route_<n>-back-HHMM`.
 
 Errors use the simulator's own envelope, `{"ok": false, "error": {"code", "message"}}`:
 

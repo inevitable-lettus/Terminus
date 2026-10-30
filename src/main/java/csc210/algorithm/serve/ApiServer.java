@@ -1,5 +1,6 @@
 package csc210.algorithm.serve;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
@@ -39,7 +40,10 @@ import java.util.zip.GZIPOutputStream;
  *   POST /api/reload  {"time":"HH:MM:SS","seek":true}  re-read the simulator and re-plan;
  *                                             the clock moves only when seek is true
  *   POST /api/v1/routes/query                 the ticketing portal's contract
- *   GET  /api/v1/stops                        stop ids for the portal to map
+ *   GET  /api/v1/stops                        stop ids and names for the portal to map
+ *   GET  /api/v1/live                         run id, simulated time, buses on the road
+ *   GET  /api/v1/routes                       each line's stops, outbound and return
+ *   GET  /api/v1/trips                        the timetable, with ETAs at every stop
  *   GET  /                                    the dashboard, if it has been built
  * </pre>
  *
@@ -56,8 +60,12 @@ public final class ApiServer implements AutoCloseable {
 
     private final HttpServer server;
     private final ObjectMapper api = SandboxJson.mapper();
-    /** The portal's contract is camelCase, not this module's snake_case. */
-    private final ObjectMapper portal = new ObjectMapper();
+    /**
+     * The portal's contract is camelCase, not this module's snake_case. Unknown
+     * fields are ignored, so the portal can send more than we read.
+     */
+    private final ObjectMapper portal = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private final Reloader reloader;
     private final Path staticRoot;
     private final String sandboxUrl;
@@ -123,6 +131,12 @@ public final class ApiServer implements AutoCloseable {
         }));
         http.createContext("/api/v1/stops", server.guard("GET", exchange -> server.send(exchange, 200,
                 server.portal.writeValueAsBytes(PortalContract.stops(server.city)))));
+        http.createContext("/api/v1/live", server.guard("GET", exchange -> server.send(exchange, 200,
+                server.portal.writeValueAsBytes(PortalContract.live(server.city)))));
+        http.createContext("/api/v1/routes", server.guard("GET", exchange -> server.send(exchange, 200,
+                server.portal.writeValueAsBytes(PortalContract.routes(server.city)))));
+        http.createContext("/api/v1/trips", server.guard("GET", exchange -> server.send(exchange, 200,
+                server.portal.writeValueAsBytes(PortalContract.trips(server.city)))));
         http.createContext("/", server.guard("GET", server::serveStatic));
         http.start();
         return server;

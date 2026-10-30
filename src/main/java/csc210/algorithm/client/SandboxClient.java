@@ -231,6 +231,28 @@ public final class SandboxClient {
      * which run was read, so a run driven from the UI and a run read from the
      * command line can be shown to be the same one.
      */
+    /**
+     * Stop names from {@code /view/stops} (DSTNS 2.0 places of kind
+     * {@code bus_stop}), keyed by the junction each is anchored to. Only some
+     * stops are named places; the rest are simply not in the map.
+     */
+    public java.util.Map<Integer, String> stopNames() throws IOException, InterruptedException {
+        return stopNamesFrom(get("/api/v1/view/stops", JsonNode.class).path("data"));
+    }
+
+    /** The parsing half of {@link #stopNames}, for a test. Takes the list itself or {@code {items: [...]}}. */
+    public static java.util.Map<Integer, String> stopNamesFrom(JsonNode data) {
+        JsonNode items = data.isArray() ? data : data.path("items");
+        java.util.Map<Integer, String> names = new java.util.TreeMap<>();
+        for (JsonNode place : items) {
+            String name = place.path("name").asText("");
+            if (!name.isBlank() && place.path("anchor_node").isInt()) {
+                names.putIfAbsent(place.path("anchor_node").asInt(), name);
+            }
+        }
+        return names;
+    }
+
     public JsonNode playbackStatus() throws IOException, InterruptedException {
         return get("/api/v1/playback/status", JsonNode.class);
     }
