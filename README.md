@@ -104,6 +104,8 @@ The algorithm module needs JDK 21. The Gradle wrapper is committed, so Gradle it
 
 The default suite reads saved sandbox responses from `src/test/resources/fixtures/`, so it passes with the simulator stopped. The live suite talks to a real sandbox on `127.0.0.1:8090` (override with `-Psandbox=http://host:port`) and skips rather than fails when none is reachable. See [docs/testing.md](docs/testing.md).
 
+To run Terminus alongside a simulation started by the DSTNS launcher, see [docs/fabric.md](docs/fabric.md).
+
 ### Using it
 
 Start a run in the simulator first — DSTNS 2.0 only lets its operator do that, through its own CLI or UI. Then one command per question:

@@ -23,6 +23,7 @@ public final class Options {
     public static final String DEFAULT_SANDBOX = "http://127.0.0.1:8090";
     public static final String DEFAULT_TIME = "18:00:00";
     public static final String DEFAULT_SEED = "0x2026";
+    public static final String DEFAULT_FABRIC_ID = "terminus";
 
     private static final Pattern CLOCK = Pattern.compile("([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d");
 
@@ -58,6 +59,10 @@ public final class Options {
     public final int port;
     /** serve: the built dashboard to serve at {@code /}. */
     public final String dashboard;
+    /** serve: join DSTNS as a Fabric application, started by the DSTNS launcher. */
+    public final boolean fabric;
+    public final String fabricId;
+    public final String fabricTokenFile;
 
     private Options(Builder b) {
         this.mode = b.mode;
@@ -82,6 +87,9 @@ public final class Options {
         this.host = b.host;
         this.port = b.port;
         this.dashboard = b.dashboard;
+        this.fabric = b.fabric;
+        this.fabricId = b.fabricId;
+        this.fabricTokenFile = b.fabricTokenFile;
     }
 
     private static final class Builder {
@@ -107,6 +115,10 @@ public final class Options {
         String outDirectory = "out";
         int top = 15;
         boolean usedPublishAlias;
+        boolean fabric;
+        String fabricId = DEFAULT_FABRIC_ID;
+        String fabricTokenFile;
+        boolean sandboxGiven;
     }
 
     /**
@@ -171,6 +183,11 @@ public final class Options {
                 i += 1;
                 continue;
             }
+            if ("--fabric".equals(flag)) {
+                b.fabric = true;
+                i += 1;
+                continue;
+            }
             if (i + 1 >= args.length) {
                 throw new UsageException("option " + flag + " needs a value");
             }
@@ -190,7 +207,12 @@ public final class Options {
                     b.seed = value;
                     b.start = true;      // a seed only means something to a run we start
                 }
-                case "--sandbox" -> b.sandboxUrl = value;
+                case "--sandbox" -> {
+                    b.sandboxUrl = value;
+                    b.sandboxGiven = true;
+                }
+                case "--fabric-id" -> b.fabricId = value;
+                case "--fabric-token-file" -> b.fabricTokenFile = value;
                 case "--token-file" -> b.tokenFile = value;
                 case "--minutes" -> b.minutes = positiveInt(flag, value);
                 case "--routes" -> b.routes = positiveInt(flag, value);
@@ -204,6 +226,22 @@ public final class Options {
                 default -> throw new UsageException("unknown option '" + flag + "'");
             }
             i += 2;
+        }
+        if (b.fabric) {
+            if (b.mode != Mode.SERVE) {
+                throw new UsageException("--fabric only applies to serve");
+            }
+            if (b.start) {
+                throw new UsageException("--fabric cannot start a run: under Fabric the DSTNS launcher starts it");
+            }
+            // The launcher passes the server's address in DSTNS_URL.
+            String launched = System.getenv("DSTNS_URL");
+            if (!b.sandboxGiven && launched != null && !launched.isBlank()) {
+                b.sandboxUrl = launched;
+            }
+            if (b.fabricTokenFile == null) {
+                b.fabricTokenFile = ".fabric/" + b.fabricId + ".token";
+            }
         }
         return new Options(b);
     }
@@ -292,6 +330,15 @@ public final class Options {
                   --host ADDR        serve: which address (default 127.0.0.1)
                   --dashboard DIR    serve: the built dashboard (default dashboard/dist)
                   --out DIR          export: where to write (default ./out)
+
+                Running under the DSTNS launcher (serve only):
+                  --fabric           join DSTNS as a Fabric application, wait for the
+                                     launcher to start the run, then serve; the
+                                     address comes from DSTNS_URL unless --sandbox
+                  --fabric-id ID     the application id (default terminus)
+                  --fabric-token-file PATH
+                                     where the Fabric token is kept
+                                     (default .fabric/ID.token)
 
                 Starting a run from here (needs the simulator's operator token):
                   --start            stop the current run and start one of our own

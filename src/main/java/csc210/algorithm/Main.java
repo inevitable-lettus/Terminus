@@ -10,6 +10,9 @@ import csc210.algorithm.client.RunStateException;
 import csc210.algorithm.client.SandboxClient;
 import csc210.algorithm.client.SandboxHttpException;
 import csc210.algorithm.export.RouteExporter;
+import csc210.algorithm.fabric.FabricApp;
+import csc210.algorithm.fabric.FabricClient;
+import csc210.algorithm.fabric.TokenStore;
 import csc210.algorithm.routing.RouteBudget;
 import csc210.algorithm.routing.RouteNetwork;
 import csc210.algorithm.routing.RouteNetworkBuilder;
@@ -201,8 +204,21 @@ public final class Main {
      * Reads the simulator, plans it, and starts serving — everything
      * {@code ./bus serve} does short of waiting, so a test can drive it and stop it.
      */
+    /** How long {@code serve --fabric} waits for the launcher to start the run. */
+    static final Duration FABRIC_WAIT = Duration.ofMinutes(15);
+
     static ApiServer startServing(Options options, PrintStream notes) throws IOException, InterruptedException {
         SandboxClient client = new SandboxClient(options.sandboxUrl).withOperatorToken(resolveToken(options));
+        FabricApp fabric = null;
+        if (options.fabric) {
+            // Under the DSTNS launcher the run starts only once we say we are active,
+            // and the map exists only after that, so join first and read second.
+            fabric = FabricApp.join(new FabricClient(options.sandboxUrl, options.fabricId),
+                    new TokenStore(Path.of(options.fabricTokenFile)), client.health().lifecycle(), notes);
+            Runtime.getRuntime().addShutdownHook(new Thread(fabric::close));
+            notes.println("Waiting for the simulation to start...");
+            fabric.awaitWorld(FABRIC_WAIT);
+        }
         RunInfo run = options.start ? startOwnRun(client, options) : attachToRun(client, options, notes);
         World world = WorldLoader.load(client);
         RouteBudget budget = applyOverrides(world.budget(), options);
@@ -235,8 +251,13 @@ public final class Main {
             thread.setDaemon(true);
             return thread;
         });
-        ticker.scheduleWithFixedDelay(new LiveRefresher(server, liveReads(client, options, notes), notes),
+        LiveRefresher refresher = new LiveRefresher(server, liveReads(client, options, notes), notes);
+        ticker.scheduleWithFixedDelay(refresher,
                 LiveRefresher.PERIOD_SECONDS, LiveRefresher.PERIOD_SECONDS, TimeUnit.SECONDS);
+        if (fabric != null) {
+            // A new world or an incident should not wait for the next tick.
+            fabric.onEvent(event -> ticker.execute(refresher));
+        }
         notes.println("  Speeds are re-read every " + LiveRefresher.PERIOD_SECONDS
                 + " s; the network is re-planned only when the simulator starts a new run.");
         return server;
