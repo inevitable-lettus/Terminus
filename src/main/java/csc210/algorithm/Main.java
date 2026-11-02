@@ -12,6 +12,7 @@ import csc210.algorithm.client.SandboxHttpException;
 import csc210.algorithm.export.RouteExporter;
 import csc210.algorithm.fabric.FabricApp;
 import csc210.algorithm.fabric.FabricClient;
+import csc210.algorithm.fabric.ObserverDrawing;
 import csc210.algorithm.fabric.TokenStore;
 import csc210.algorithm.routing.RouteBudget;
 import csc210.algorithm.routing.RouteNetwork;
@@ -257,10 +258,30 @@ public final class Main {
         if (fabric != null) {
             // A new world or an incident should not wait for the next tick.
             fabric.onEvent(event -> ticker.execute(refresher));
+            ticker.scheduleWithFixedDelay(drawer(new ObserverDrawing(fabric.client()), server, notes),
+                    0, LiveRefresher.PERIOD_SECONDS, TimeUnit.SECONDS);
         }
         notes.println("  Speeds are re-read every " + LiveRefresher.PERIOD_SECONDS
                 + " s; the network is re-planned only when the simulator starts a new run.");
         return server;
+    }
+
+    /** Draws the served city in the DSTNS observer; a failed draw is noted once and retried on the next tick. */
+    private static Runnable drawer(ObserverDrawing drawing, ApiServer server, PrintStream notes) {
+        boolean[] failing = {false};
+        return () -> {
+            try {
+                drawing.update(server.city());
+                failing[0] = false;
+            } catch (InterruptedException stopped) {
+                Thread.currentThread().interrupt();
+            } catch (Exception problem) {
+                if (!failing[0]) {
+                    notes.println("Drawing in the DSTNS observer failed, will retry: " + problem.getMessage());
+                }
+                failing[0] = true;
+            }
+        };
     }
 
     /** Stop names are a nicety: without them the portal shows stop ids, so a failed read is a note, not an error. */
