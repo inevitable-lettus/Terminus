@@ -34,12 +34,17 @@ public final class LiveRefresher implements Runnable {
     private final ApiServer server;
     private final Simulator simulator;
     private final PrintStream notes;
-    private boolean failing = false;
+    private volatile boolean failing = false;
 
     public LiveRefresher(ApiServer server, Simulator simulator, PrintStream notes) {
         this.server = server;
         this.simulator = simulator;
         this.notes = notes;
+    }
+
+    /** Whether the last tick failed, so the speeds being served are older than 2 seconds. */
+    public boolean failing() {
+        return failing;
     }
 
     @Override

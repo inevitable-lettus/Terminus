@@ -75,4 +75,13 @@ class ObserverDrawingTest {
         assertTrue(panel.toString().contains("table"));
         assertTrue(panel.toString().contains("08:30"));
     }
+
+    @Test
+    void theStatusWarnsWhenTheSpeedsAreOutOfDate() {
+        assertEquals("ok", ObserverDrawing.status(morning, ObserverDrawing.buses(morning, 8 * 3600 + 30 * 60), false)
+                .get("tone"));
+        Map<String, Object> stale = ObserverDrawing.status(morning, List.of(), true);
+        assertEquals("warn", stale.get("tone"));
+        assertTrue(stale.get("value").toString().contains("out of date"));
+    }
 }

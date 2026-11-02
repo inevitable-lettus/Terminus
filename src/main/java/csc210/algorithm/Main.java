@@ -258,7 +258,7 @@ public final class Main {
         if (fabric != null) {
             // A new world or an incident should not wait for the next tick.
             fabric.onEvent(event -> ticker.execute(refresher));
-            ticker.scheduleWithFixedDelay(drawer(new ObserverDrawing(fabric.client()), server, notes),
+            ticker.scheduleWithFixedDelay(drawer(new ObserverDrawing(fabric.client(), refresher::failing), server, notes),
                     0, LiveRefresher.PERIOD_SECONDS, TimeUnit.SECONDS);
         }
         notes.println("  Speeds are re-read every " + LiveRefresher.PERIOD_SECONDS

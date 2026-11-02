@@ -114,6 +114,28 @@ class PortalScheduleTest {
         assertTrue(after.stopTimes().get(last).etaSimS() > before.stopTimes().get(last).etaSimS());
     }
 
+    /**
+     * End-to-end step 6: a person closes one direction of a road the ride uses, and the
+     * portal's journey gets longer; closing the other direction of the same road does not
+     * touch this ride, because DSTNS closes one directed edge at a time.
+     */
+    @Test
+    void closingTheRiddenDirectionSlowsTheJourneyButTheOtherDirectionDoesNot() throws Exception {
+        String[] ride = directRide();
+        BusRoute line = city.network().routes().get(Integer.parseInt(ride[2].substring("route_".length())));
+        int ridden = line.edges()[0];
+        int twin = city.world().graph().edge(ridden).reverseTwin();
+        PortalContract.Query query = new PortalContract.Query(ride[0], ride[1], "07:07:00");
+
+        long open = PortalContract.answer(city, query).data().estimatedDurationSeconds();
+        PlannedCity riddenClosed = city.withLiveCosts(LiveCostsTest.withClosed(city.world(), ridden), city.run());
+        assertTrue(PortalContract.answer(riddenClosed, query).data().estimatedDurationSeconds() > open);
+
+        assertTrue(twin >= 0, "the capture's first ride is on a two-way road");
+        PlannedCity twinClosed = city.withLiveCosts(LiveCostsTest.withClosed(city.world(), twin), city.run());
+        assertEquals(open, PortalContract.answer(twinClosed, query).data().estimatedDurationSeconds());
+    }
+
     /** A line whose first two stops are joined by a direct ride, and the query for it. */
     private static String[] directRide() throws Exception {
         for (BusRoute route : city.network().routes()) {

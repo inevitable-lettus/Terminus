@@ -12,8 +12,10 @@ import java.io.IOException;
 import java.io.PrintStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** One tick of the 2-second loop, with a stand-in simulator. */
 class LiveRefresherTest {
@@ -98,6 +100,7 @@ class LiveRefresherTest {
         refresher.run();
 
         assertSame(first, server.city());
+        assertTrue(refresher.failing());
         assertEquals("Live update failed, keeping the last speeds: simulator down" + System.lineSeparator(),
                 printed.toString());
 
@@ -105,5 +108,6 @@ class LiveRefresherTest {
         simulator.run = new RunInfo("run_a", "0x2026", "18:00:04", true);
         refresher.run();
         assertEquals("18:00:04", server.city().run().time());
+        assertFalse(refresher.failing());
     }
 }

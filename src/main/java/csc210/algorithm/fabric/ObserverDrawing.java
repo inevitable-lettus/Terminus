@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 
 /**
  * Draws Terminus in the DSTNS observer: each bus line along its roads, its stops, the
@@ -30,10 +31,13 @@ public final class ObserverDrawing {
     private static final int SERIES = 8;
 
     private final FabricClient fabric;
+    private final BooleanSupplier stale;
     private RouteNetwork drawn;
 
-    public ObserverDrawing(FabricClient fabric) {
+    /** @param stale whether the speeds are out of date because re-reading the simulator is failing */
+    public ObserverDrawing(FabricClient fabric, BooleanSupplier stale) {
         this.fabric = fabric;
+        this.stale = stale;
     }
 
     /** Sends whatever changed since the last call. */
@@ -48,7 +52,7 @@ public final class ObserverDrawing {
         List<Bus> buses = buses(city, now);
         elements.add(busOverlay(buses));
         elements.add(arrivalsPanel(city, now, buses));
-        elements.add(status(city, buses));
+        elements.add(status(city, buses, stale.getAsBoolean()));
         fabric.batchUi(elements, List.of());
         drawn = city.network();
     }
@@ -140,7 +144,11 @@ public final class ObserverDrawing {
         return element("arrivals", "panel", Map.of("title", "Next arrivals", "widgets", widgets));
     }
 
-    static Map<String, Object> status(PlannedCity city, List<Bus> buses) {
+    static Map<String, Object> status(PlannedCity city, List<Bus> buses, boolean stale) {
+        if (stale) {
+            return element("status", "status", Map.of("label", "Terminus",
+                    "value", "road speeds out of date: cannot re-read DSTNS", "tone", "warn"));
+        }
         return element("status", "status", Map.of("label", "Terminus",
                 "value", city.network().routes().size() + " lines, " + buses.size() + " buses",
                 "tone", buses.isEmpty() ? "neutral" : "ok"));
