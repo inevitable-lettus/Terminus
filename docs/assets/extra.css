@@ -1,0 +1,1051 @@
+/* ==========================================================================
+   Terminus documentation theme (the DSTNS documentation theme, reused).
+   Palette taken from the DSTNS observer: deep navy surfaces, one cyan accent.
+   ========================================================================== */
+
+:root {
+  --dstns-navy-900: #050f17;
+  --dstns-navy-800: #07131c;
+  --dstns-navy-700: #0b1c28;
+  --dstns-navy-600: #12293a;
+  --dstns-ink: #edf1f4;
+
+  --md-primary-fg-color: var(--dstns-navy-700);
+  --md-primary-fg-color--light: var(--dstns-navy-600);
+  --md-primary-fg-color--dark: var(--dstns-navy-900);
+  --md-primary-bg-color: var(--dstns-ink);
+  --md-primary-bg-color--light: rgb(237 241 244 / 70%);
+}
+
+[data-md-color-scheme="slate"] {
+  --dstns-accent: #4fd6ea;
+  --dstns-accent-rgb: 79 214 234;
+  --dstns-on-accent: #04121b;
+  --md-default-bg-color: var(--dstns-navy-800);
+  --md-default-bg-color--light: var(--dstns-navy-700);
+  --md-code-bg-color: #0d2230;
+  --md-typeset-a-color: var(--dstns-accent);
+  --md-accent-fg-color: var(--dstns-accent);
+  --md-accent-bg-color: var(--dstns-on-accent);
+}
+
+[data-md-color-scheme="default"] {
+  /* Darker than the observer's cyan so text on the pale hover tint keeps
+     at least 4.5:1 against white. */
+  --dstns-accent: #086578;
+  --dstns-accent-rgb: 8 101 120;
+  --dstns-on-accent: #ffffff;
+  --md-typeset-a-color: #086578;
+  --md-accent-fg-color: #086578;
+  --md-accent-bg-color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   Header: one row. Wordmark on the left, section tabs beside it, then the
+   search field, theme toggle and repository link on the right. The wordmark is
+   the site title, so Material's plain-text site name is not shown.
+   -------------------------------------------------------------------------- */
+:root { --dstns-grid: 76rem; }
+.md-grid { max-width: var(--dstns-grid); }
+.md-header {
+  background-color: var(--md-primary-fg-color);
+  border-bottom: 1px solid rgb(127 160 180 / 16%);
+  box-shadow: none;
+}
+.md-header__inner { align-items: center; gap: 0.15rem; height: 3.2rem; padding: 0 0.8rem; }
+.md-header__button.md-logo { padding: 0.3rem 0; margin: 0 1.1rem 0 0; }
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg { height: 1.15rem; width: auto; }
+.md-header__title { display: none; }
+
+/* Tabs sit inside the header and take the free space. */
+.md-header .md-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  background: none;
+  color: var(--md-primary-bg-color);
+  overflow: visible;
+}
+.md-header .md-tabs .md-grid { max-width: none; margin: 0; }
+/* The tab row sits under the search overlay, so it dims with the rest of the page
+   while the search is open (Material gives it z-index 3, which kept it lit). */
+.md-header .md-tabs { z-index: 0; }
+/* Material fades tabs out on scroll; in the header they stay put. */
+.md-header .md-tabs[hidden] { pointer-events: auto; }
+.md-header .md-tabs[hidden] .md-tabs__link { opacity: 0.78; transform: none; }
+.md-header .md-tabs[hidden] .md-tabs__item--active .md-tabs__link { opacity: 1; }
+.md-header .md-tabs__list { display: flex; margin: 0; contain: none; gap: 0.2rem; }
+.md-header .md-tabs__item { height: auto; list-style: none; padding: 0; margin: 0; }
+
+/* Tabs are plain text. Hover and focus change the colour; the current section
+   is white with a thin accent line under it. No fills, pills or outlines. */
+.md-header .md-tabs__link {
+  position: relative;
+  display: block;
+  margin: 0;
+  padding: 0.6rem 0.65rem;
+  border: 0;
+  border-radius: 0;
+  background: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: rgb(237 241 244 / 68%);
+  font-size: 0.72rem;
+  font-weight: 500;
+  opacity: 1;
+  transition: color 150ms ease;
+}
+.md-header .md-tabs__link::after {
+  content: "";
+  position: absolute;
+  left: 0.65rem;
+  right: 0.65rem;
+  bottom: 0.1rem;
+  height: 2px;
+  border-radius: 2px;
+  background: #4fd6ea;
+  opacity: 0;
+  transform: scaleX(0.3);
+  transition: opacity 150ms ease, transform 180ms ease;
+}
+.md-header .md-tabs__link:hover,
+.md-header .md-tabs__link:focus-visible { color: #4fd6ea; }
+.md-header .md-tabs__link:active { color: #8be4f1; }
+.md-header .md-tabs__item--active .md-tabs__link { color: #fff; font-weight: 600; }
+.md-header .md-tabs__item--active .md-tabs__link::after { opacity: 1; transform: scaleX(1); }
+.md-header .md-tabs__item--active .md-tabs__link:hover { color: #fff; }
+.md-header .md-tabs__link:focus-visible::after { opacity: 1; transform: scaleX(1); }
+
+/* Tooltips: a compact dark card with an accent edge, used for every title. */
+.md-tooltip2__inner {
+  background-color: #0b1c28 !important;
+  color: #edf1f4 !important;
+  border: 1px solid rgb(79 214 234 / 35%);
+  border-radius: 8px !important;
+  box-shadow: 0 10px 30px -10px rgb(0 0 0 / 60%) !important;
+  font-size: 0.62rem !important;
+  font-weight: 500 !important;
+  line-height: 1.45;
+  padding: 0.35rem 0.6rem !important;
+}
+.md-tooltip2--top:before { border-top-color: #0b1c28 !important; }
+.md-tooltip2--bottom:before { border-bottom-color: #0b1c28 !important; }
+.md-typeset abbr[title] { text-decoration: none; border-bottom: 1px dotted var(--dstns-accent); cursor: help; }
+
+/* Search: one rounded control that opens into one rounded card. The pill and the
+   results share a surface, border and radius family, so they read as one piece. */
+:root {
+  --dstns-panel-bg: #0b1c28;
+  --dstns-panel-fg: #edf1f4;
+  --dstns-panel-muted: #93a6b3;
+  --dstns-panel-line: rgb(255 255 255 / 9%);
+  --dstns-panel-hover: rgb(79 214 234 / 9%);
+  --dstns-panel-mark: rgb(79 214 234 / 20%);
+}
+.md-search { margin-left: 0.4rem; }
+.md-search__inner { width: 10rem; }
+.md-search__form,
+[data-md-toggle="search"]:checked ~ .md-header .md-search__form {
+  height: 2rem;
+  border-radius: 999px;
+  background-color: rgb(255 255 255 / 8%);
+  border: 1px solid rgb(255 255 255 / 14%);
+  box-shadow: none;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+.md-search__form:hover { background-color: rgb(255 255 255 / 13%); }
+[data-md-toggle="search"]:checked ~ .md-header .md-search__form {
+  background-color: var(--dstns-panel-bg);
+  border-color: rgb(79 214 234 / 70%);
+  box-shadow: 0 0 0 3px rgb(79 214 234 / 18%);
+}
+.md-search__input,
+.md-search__input:focus,
+.md-search__input:focus-visible,
+[data-md-toggle="search"]:checked ~ .md-header .md-search__input {
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  height: 100%;
+  padding-left: 2.3rem;
+  padding-right: 2.4rem;
+  font-size: 0.72rem;
+  border-radius: 999px;
+  color: var(--dstns-panel-fg);
+}
+.md-search .md-search__input::placeholder,
+[data-md-toggle="search"]:checked ~ .md-header .md-search__input::placeholder { color: rgb(237 241 244 / 55%) !important; opacity: 1; }
+.md-search__suggest { padding-left: 2.3rem; font-size: 0.72rem; line-height: 2rem; color: rgb(237 241 244 / 35%); }
+.md-search__icon[for="__search"] { top: 0.5rem; left: 0.7rem; }
+.md-search__icon[for="__search"] svg { width: 1rem; height: 1rem; }
+.md-search__options { top: 0.3rem; right: 0.5rem; }
+.md-search__icon, .md-search__icon svg { color: rgb(237 241 244 / 80%); }
+@media screen and (min-width: 60em) {
+  /* The search keeps a fixed slot in the header. Opening it grows the field over
+     the tabs instead of squeezing them, and a progressive blur sweeps in behind it. */
+  .md-search { width: 10rem; flex: none; height: 2rem; padding: 0; }
+  .md-search__inner {
+    position: absolute;
+    top: 0;
+    right: 0;
+    float: none;
+    width: 10rem;
+    transition: width 320ms cubic-bezier(0.32, 0.72, 0, 1);
+    z-index: 6;
+  }
+  [data-md-toggle="search"]:checked ~ .md-header .md-search__inner { width: 30rem; }
+  .md-search::before {
+    content: "";
+    position: absolute;
+    top: -0.6rem;
+    right: 0;
+    width: 0;
+    height: 3.2rem;
+    -webkit-backdrop-filter: blur(10px) saturate(1.1);
+    backdrop-filter: blur(10px) saturate(1.1);
+    -webkit-mask-image: linear-gradient(to left, #000 0%, #000 55%, transparent 100%);
+    mask-image: linear-gradient(to left, #000 0%, #000 55%, transparent 100%);
+    opacity: 0;
+    pointer-events: none;
+    transition: width 320ms cubic-bezier(0.32, 0.72, 0, 1), opacity 220ms ease;
+    z-index: 5;
+  }
+  [data-md-toggle="search"]:checked ~ .md-header .md-search::before { width: 44rem; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .md-search__inner, .md-search::before { transition: none !important; }
+}
+
+/* The card. Nothing is drawn until something has been typed: the prompt lives in
+   the input's placeholder instead of a box below it. */
+.md-search__output {
+  top: 2.5rem;
+  border-radius: 18px;
+  border: 1px solid rgb(79 214 234 / 28%);
+  background-color: var(--dstns-panel-bg);
+  box-shadow: 0 24px 60px -18px rgb(0 0 0 / 60%);
+  overflow: hidden;
+}
+.md-search:not([data-empty="false"]) .md-search__output,
+.md-search__inner:has(.md-search__input:placeholder-shown) .md-search__output { display: none; }
+.md-search__scrollwrap {
+  width: 100% !important;
+  background-color: transparent;
+  border-radius: 18px;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 25%) transparent;
+}
+.md-search-result { color: var(--dstns-panel-fg); }
+.md-search-result__meta {
+  background: none;
+  color: var(--dstns-panel-muted);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.75rem 1.1rem 0.5rem;
+  border-bottom: 1px solid var(--dstns-panel-line);
+}
+.md-search-result__list { padding: 0.25rem 0 0.4rem; }
+.md-search-result__list:empty { display: none; }
+.md-search-result__meta:has(+ .md-search-result__list:empty) { border-bottom: 0; padding-bottom: 0.8rem; }
+.md-search-result__item { box-shadow: none; border-bottom: 1px solid var(--dstns-panel-line); }
+.md-search-result__item:last-child { border-bottom: 0; }
+.md-search-result__link { outline: none; transition: background-color 120ms ease; }
+.md-search-result__link:hover,
+.md-search-result__link:focus,
+.md-search-result__link[data-md-state="active"] { background-color: var(--dstns-panel-hover); }
+.md-search-result__article { padding: 0.55rem 1rem 0.4rem 0.4rem; overflow: visible; }
+.md-search-result__article--document { padding-bottom: 0.2rem; }
+.md-search__output .md-search-result__title,
+.md-search__output .md-search__output .md-search-result .md-typeset {
+  color: var(--dstns-panel-muted);
+  font-size: 0.68rem;
+  line-height: 1.55;
+}
+.md-search__output .md-search-result .md-typeset h1 {
+  color: var(--dstns-panel-fg);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  margin: 0.3rem 0;
+}
+.md-search__output .md-search-result .md-typeset h2 {
+  color: var(--dstns-panel-fg);
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin: 0.3rem 0;
+}
+.md-search__output .md-search-result .md-typeset p {
+  color: var(--dstns-panel-muted);
+  margin: 0.1rem 0 0.3rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.md-search__output .md-search-result .md-typeset code { background: rgb(255 255 255 / 8%); color: var(--dstns-panel-fg); }
+.md-search-result__icon { color: var(--dstns-panel-muted); }
+.md-search-result mark,
+.md-search-result__title mark,
+.md-search-result__teaser mark {
+  background-color: var(--dstns-panel-mark);
+  color: #4fd6ea;
+  border-radius: 3px;
+  padding: 0 0.12em;
+  text-decoration: none;
+  font-weight: 600;
+}
+.md-search-result__more { margin: 0; }
+.md-search-result__more > summary > div {
+  color: #4fd6ea;
+  font-size: 0.64rem;
+  font-weight: 600;
+  padding: 0.1rem 1rem 0.55rem 2.25rem;
+}
+.md-search-result__more > summary:hover > div,
+.md-search-result__more > summary:focus > div { background: var(--dstns-panel-hover); color: #4fd6ea; }
+.md-search-result__more[open] > summary { background: transparent; }
+.md-search-result__terms { color: var(--dstns-panel-muted); font-size: 0.62rem; }
+@media screen and (max-width: 59.9375em) {
+  .md-search__output { top: 2.8rem; border-radius: 0 0 18px 18px; border-left: 0; border-right: 0; }
+}
+.md-header__option .md-icon,
+.md-header__source { margin-left: 0.2rem; }
+.md-header__source { width: auto; max-width: none; flex: none; min-width: 12rem; }
+.md-header__source .md-source__repository { max-width: none; overflow: visible; }
+.md-source { transition: color 150ms ease, opacity 150ms ease; }
+.md-source:hover { opacity: 1; color: #4fd6ea; }
+
+/* Material hides the header logo on narrow screens and shows the site name
+   instead; keep the wordmark and put the menu button first. */
+@media screen and (max-width: 76.1875em) {
+  .md-header__button.md-logo { display: block; }
+  .md-header__button[for="__drawer"] { order: -1; }
+  .md-header .md-tabs { display: none; }
+  .md-header__title { display: block; visibility: hidden; flex-grow: 1; }
+}
+/* The mobile drawer prints the name beside the logo; collapse the text only. */
+.md-nav--primary > .md-nav__title { font-size: 0; }
+.md-nav--primary > .md-nav__title .md-logo img { height: 1.6rem; width: auto; }
+.md-nav--primary > .md-nav__title .md-nav__button.md-logo { margin: 0; }
+
+/* --------------------------------------------------------------------------
+   Buttons. Every state sets its own text and fill, so a hover can never leave
+   a label the same colour as its background. Only colours, shadow and a 1px
+   lift are animated.
+   -------------------------------------------------------------------------- */
+.md-typeset .md-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.6em 1.35em;
+  border: 1px solid rgb(var(--dstns-accent-rgb) / 55%);
+  border-radius: 8px;
+  background-color: transparent;
+  color: var(--dstns-accent);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: none;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+.md-typeset .md-button:hover,
+.md-typeset .md-button:focus-visible {
+  background-color: rgb(var(--dstns-accent-rgb) / 14%);
+  border-color: var(--dstns-accent);
+  color: var(--dstns-accent);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px -8px rgb(var(--dstns-accent-rgb) / 55%);
+}
+.md-typeset .md-button:active {
+  transform: translateY(0);
+  box-shadow: none;
+  background-color: rgb(var(--dstns-accent-rgb) / 22%);
+}
+.md-typeset .md-button:focus-visible {
+  outline: 2px solid var(--dstns-accent);
+  outline-offset: 2px;
+}
+
+.md-typeset .md-button--primary {
+  background-color: var(--dstns-accent);
+  border-color: var(--dstns-accent);
+  color: var(--dstns-on-accent);
+}
+.md-typeset .md-button--primary:hover,
+.md-typeset .md-button--primary:focus-visible {
+  background-color: #8be4f1;
+  border-color: #8be4f1;
+  color: var(--dstns-on-accent);
+}
+.md-typeset .md-button--primary:active {
+  background-color: #3cc3d8;
+  border-color: #3cc3d8;
+  color: var(--dstns-on-accent);
+}
+[data-md-color-scheme="default"] .md-typeset .md-button--primary {
+  background-color: var(--dstns-navy-700);
+  border-color: var(--dstns-navy-700);
+  color: var(--dstns-ink);
+}
+[data-md-color-scheme="default"] .md-typeset .md-button--primary:hover,
+[data-md-color-scheme="default"] .md-typeset .md-button--primary:focus-visible {
+  background-color: var(--dstns-navy-600);
+  border-color: var(--dstns-navy-600);
+  color: var(--dstns-ink);
+}
+[data-md-color-scheme="default"] .md-typeset .md-button--primary:active {
+  background-color: var(--dstns-navy-900);
+  border-color: var(--dstns-navy-900);
+  color: var(--dstns-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-typeset .md-button,
+  .md-typeset .grid.cards > ul > li { transition: none; transform: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Cards
+   -------------------------------------------------------------------------- */
+.md-typeset .grid.cards > ul > li {
+  border-radius: 10px;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+.md-typeset .grid.cards > ul > li:hover {
+  border-color: rgb(var(--dstns-accent-rgb) / 70%);
+  box-shadow: 0 10px 28px -14px rgb(var(--dstns-accent-rgb) / 45%);
+  transform: translateY(-2px);
+}
+.md-typeset .grid.cards > ul > li > p:first-child strong { font-size: 1.02em; }
+
+/* --------------------------------------------------------------------------
+   Content
+   -------------------------------------------------------------------------- */
+.md-typeset img.screenshot {
+  border-radius: 10px;
+  box-shadow: 0 12px 40px -12px rgb(0 0 0 / 55%);
+  border: 1px solid rgb(127 160 180 / 25%);
+}
+.md-typeset__table { display: block; width: 100%; }
+.md-typeset table:not([class]) { display: table; width: 100%; }
+.md-typeset table:not([class]) { font-size: 0.72rem; }
+.md-typeset .mermaid { text-align: center; }
+.md-typeset .arithmatex { overflow-x: auto; overflow-y: hidden; }
+/* Inline formulas wider than a phone scroll inside themselves instead of the page. */
+.md-typeset span.arithmatex { display: inline-block; max-width: 100%; vertical-align: middle; }
+
+/* --------------------------------------------------------------------------
+   Home page
+   -------------------------------------------------------------------------- */
+.dstns-hero { text-align: center; padding: 1.4rem 0 0.6rem; }
+.dstns-hero .dstns-lede {
+  max-width: 68ch;
+  margin: 0 auto 1.4rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--md-default-fg-color--light);
+}
+.dstns-hero .dstns-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; }
+.dstns-hero .dstns-actions .md-button { margin: 0; }
+
+.dstns-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.6rem;
+  margin: 1.6rem 0 2rem;
+}
+.dstns-stats > div {
+  padding: 0.8rem 0.6rem;
+  text-align: center;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 10px;
+}
+.dstns-stats strong {
+  display: block;
+  font-size: 1.45rem;
+  line-height: 1.2;
+  color: var(--dstns-accent);
+}
+.dstns-stats span { font-size: 0.68rem; color: var(--md-default-fg-color--light); }
+
+/* Home page: section cards and quick-link chips. */
+.md-typeset .dstns-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.7rem;
+  margin: 1rem 0 1.6rem;
+}
+.md-typeset .dstns-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 12px;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+.md-typeset .dstns-card p { margin: 0; font-size: 0.72rem; line-height: 1.5; color: var(--md-default-fg-color--light); }
+.md-typeset .dstns-card p:last-child { margin-top: auto; padding-top: 0.3rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.md-typeset .dstns-card__title { font-size: 0.88rem; font-weight: 700; text-decoration: none; }
+.md-typeset .dstns-card__title::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.md-typeset .dstns-card:hover,
+.md-typeset .dstns-card:focus-within {
+  border-color: rgb(var(--dstns-accent-rgb) / 70%);
+  box-shadow: 0 10px 28px -14px rgb(var(--dstns-accent-rgb) / 45%);
+}
+/* Chips sit above the card's whole-card link so they stay separately clickable. */
+.md-typeset .dstns-chip {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  padding: 0.12rem 0.6rem;
+  border: 1px solid rgb(var(--dstns-accent-rgb) / 40%);
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.md-typeset .dstns-chip:hover { background-color: rgb(var(--dstns-accent-rgb) / 14%); border-color: var(--dstns-accent); }
+.md-typeset .dstns-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0 1rem; }
+.md-typeset .dstns-chips p { display: contents; }
+.md-typeset .dstns-chips .dstns-chip { padding: 0.25rem 0.8rem; font-size: 0.72rem; }
+@media (prefers-reduced-motion: reduce) {
+  .md-typeset .dstns-card, .md-typeset .dstns-chip { transition: none; }
+}
+
+/* Inline title tooltips (Material's .md-tooltip): same card as above. */
+.md-tooltip {
+  background-color: #0b1c28 !important;
+  border: 1px solid rgb(79 214 234 / 35%);
+  border-radius: 8px !important;
+  box-shadow: 0 10px 30px -10px rgb(0 0 0 / 60%) !important;
+}
+.md-tooltip__inner {
+  color: #edf1f4 !important;
+  font-size: 0.62rem !important;
+  font-weight: 500 !important;
+  line-height: 1.45;
+  padding: 0.35rem 0.6rem !important;
+}
+
+/* Page titles: solid and a little heavier than Material's light weight. */
+.md-typeset h1 {
+  margin: 0 0 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--md-default-fg-color);
+}
+.md-typeset h2 { font-weight: 600; letter-spacing: -0.005em; color: var(--md-default-fg-color); }
+.md-typeset h3, .md-typeset h4 { font-weight: 600; }
+
+/* Mermaid diagrams use the site palette. */
+:root {
+  --md-mermaid-font-family: "Inter", sans-serif;
+}
+[data-md-color-scheme="slate"] {
+  --md-mermaid-node-bg-color: #0f2a3a;
+  --md-mermaid-node-fg-color: #edf1f4;
+  --md-mermaid-edge-color: #7fa0b4;
+  --md-mermaid-label-bg-color: #07131c;
+  --md-mermaid-label-fg-color: #cfdbe3;
+}
+[data-md-color-scheme="default"] {
+  --md-mermaid-node-bg-color: #e6f3f6;
+  --md-mermaid-node-fg-color: #0b1c28;
+  --md-mermaid-edge-color: #4b6575;
+  --md-mermaid-label-bg-color: #ffffff;
+  --md-mermaid-label-fg-color: #1a2a35;
+}
+
+/* Mobile drawer: the title bar uses the header's navy. */
+@media screen and (max-width: 76.1875em) {
+  .md-nav--primary .md-nav__title {
+    background-color: var(--md-primary-fg-color);
+    color: var(--md-primary-bg-color);
+    box-shadow: none;
+  }
+  .md-nav--primary .md-nav__title .md-nav__icon { color: var(--md-primary-bg-color); }
+  .md-nav--primary .md-nav__item--active > .md-nav__link { color: var(--dstns-accent); }
+}
+
+/* Landing hero: wordmark, full name, short description, centred. */
+.md-typeset .dstns-hero { text-align: center; }
+.md-typeset .dstns-hero .dstns-hero__logo {
+  margin: 0.4rem auto 0.5rem;
+  max-width: none;
+  display: flex;
+  justify-content: center;
+}
+/* One element, painted with the text colour through the wordmark as a mask, so
+   the logo follows the selected scheme and exactly one is ever drawn. */
+.dstns-wordmark {
+  display: block;
+  width: min(22rem, 78vw);
+  aspect-ratio: 774.48 / 166.74;
+  background-color: var(--dstns-hero-ink, currentColor);
+  -webkit-mask: url("logo-wordmark.svg") center / contain no-repeat;
+  mask: url("logo-wordmark.svg") center / contain no-repeat;
+}
+[data-md-color-scheme="default"] { --dstns-hero-ink: #0b1c28; }
+[data-md-color-scheme="slate"] { --dstns-hero-ink: #edf1f4; }
+.md-typeset .dstns-hero .dstns-hero__full {
+  margin: 0.2rem auto 1rem;
+  font-size: clamp(0.8rem, 2.2vw, 1.05rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--md-default-fg-color);
+}
+.md-typeset .dstns-hero .dstns-lede { text-align: center; }
+
+/* Abbreviation underlines belong in running text, not in buttons, links or headings. */
+.md-typeset a abbr[title],
+.md-typeset .md-button abbr[title],
+.md-typeset :is(h1, h2, h3, h4) abbr[title],
+.md-tabs abbr[title] { border-bottom: 0; cursor: inherit; }
+
+/* Abbreviation tooltips stay reachable inside whole-card links. */
+/* Material removes the title attribute while its tooltip is open, so these rules must
+   not depend on [title] or the abbreviation drops under the card link mid-hover. */
+.md-typeset .dstns-card abbr,
+.md-typeset .dstns-chip abbr { position: relative; z-index: 2; cursor: help; border-bottom: 1px dotted var(--dstns-accent); }
+
+/* Landing page, large screens: the wordmark through the statistics fill the first
+   screen, and the observer screenshot waits one scroll below. */
+@media screen and (min-width: 60em) and (min-height: 560px) {
+  .md-typeset .dstns-first {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    /* viewport, minus the header and the space above the content */
+    min-height: calc(100svh - 3.2rem - var(--dstns-first-top, 2.5rem));
+  }
+  .dstns-first .dstns-hero { padding: 0 0 0.4rem; }
+  .dstns-first .dstns-stats { margin: 1.8rem 0 1rem; }
+}
+
+/* ==========================================================================
+   Search, second pass: curvature, tabs that clear out of the way, result tree
+   ========================================================================== */
+
+/* Material squares the bottom corners of the open card with a more specific selector. */
+[data-md-toggle="search"]:checked ~ .md-header .md-search__output,
+.md-search__output {
+  border-radius: 18px !important;
+}
+.md-search__scrollwrap { border-radius: 18px; max-height: calc(75vh - 3.2rem); }
+
+/* The repository link shows only its name. */
+.md-header__source .md-source__facts { display: none; }
+.md-header__source { min-width: 0; }
+.md-source__repository { max-width: none; overflow: visible; }
+
+/* Tabs the open field would cover (even partly) slide out of the way entirely; the
+   script marks them. The tab row, repository link and theme toggle dim with the page. */
+@media screen and (min-width: 60em) {
+  .md-header .md-tabs__item { transition: opacity 200ms ease, transform 260ms cubic-bezier(0.32, 0.72, 0, 1); }
+  .md-header .md-tabs__item.dstns-tab-out { opacity: 0; transform: translateX(-0.5rem); pointer-events: none; }
+  .md-header .md-tabs,
+  .md-header__source,
+  .md-header__option { transition: filter 260ms ease; }
+  [data-md-toggle="search"]:checked ~ .md-header .md-tabs,
+  [data-md-toggle="search"]:checked ~ .md-header .md-header__source,
+  [data-md-toggle="search"]:checked ~ .md-header .md-header__option { filter: brightness(0.46); }
+  /* No tab stands out while the search has the focus, the current one included. */
+  [data-md-toggle="search"]:checked ~ .md-header .md-tabs__item--active .md-tabs__link { color: rgb(237 241 244 / 68%); font-weight: 500; }
+  [data-md-toggle="search"]:checked ~ .md-header .md-tabs__item--active .md-tabs__link::after { opacity: 0.35; }
+}
+
+/* ==========================================================================
+   Search results: a page, with the matches inside it nested beneath
+   ========================================================================== */
+.md-search.dstns-custom .md-search-result { display: none; }
+.dstns-results { color: var(--dstns-panel-muted); font-size: 0.68rem; }
+.dstns-results :is(ol, ul) { list-style: none; margin: 0; padding: 0; }
+.dstns-results li { margin: 0; }
+.dstns-ico { width: 1.1em; height: 1.1em; fill: currentColor; flex: none; }
+.dstns-results mark {
+  background: var(--dstns-panel-mark);
+  color: #4fd6ea;
+  border-radius: 3px;
+  padding: 0 0.12em;
+  font-weight: 600;
+}
+.dstns-results code {
+  padding: 0 0.3em;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 8%);
+  color: var(--dstns-panel-fg);
+  font-size: 0.92em;
+}
+
+/* Filters stay at the top while the list scrolls */
+.dstns-filters {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.75rem 1rem 0.55rem;
+  background: var(--dstns-panel-bg);
+}
+.dstns-filters:empty { display: none; }
+.dstns-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.16rem 0.65rem;
+  border: 1px solid var(--dstns-panel-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dstns-panel-muted);
+  font-family: inherit;
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+.dstns-pill span { font-weight: 500; opacity: 0.7; }
+.dstns-pill:hover { color: var(--dstns-panel-fg); border-color: rgb(79 214 234 / 45%); }
+.dstns-pill[aria-pressed="true"] { background: rgb(79 214 234 / 16%); color: #4fd6ea; border-color: rgb(79 214 234 / 55%); }
+.dstns-pill:focus-visible { outline: 2px solid #4fd6ea; outline-offset: 1px; }
+.dstns-summary {
+  padding: 0.15rem 1.1rem 0.5rem;
+  color: var(--dstns-panel-muted);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--dstns-panel-line);
+}
+
+/* Page rows */
+.dstns-page { border-bottom: 1px solid var(--dstns-panel-line); padding-bottom: 0.35rem; }
+.dstns-link { color: inherit; text-decoration: none; outline: none; }
+.dstns-page__link {
+  position: relative;
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem 0.45rem;
+  transition: background-color 120ms ease;
+}
+.dstns-page__link.dstns-active,
+.dstns-section__link.dstns-active { background: var(--dstns-panel-hover); }
+.dstns-page__link.dstns-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55rem;
+  bottom: 0.3rem;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: #4fd6ea;
+}
+.dstns-page__icon {
+  display: grid;
+  place-items: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 8px;
+  background: rgb(79 214 234 / 9%);
+  color: #8be4f1;
+  font-size: 0.85rem;
+}
+.dstns-page[data-kind="exact"] .dstns-page__icon { background: rgb(79 214 234 / 22%); color: #4fd6ea; box-shadow: inset 0 0 0 1px rgb(79 214 234 / 55%); }
+.dstns-page__body { display: flex; flex-direction: column; gap: 0.18rem; min-width: 0; flex: 1; }
+.dstns-page__head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.dstns-page__title { color: var(--dstns-panel-fg); font-size: 0.8rem; font-weight: 600; line-height: 1.35; }
+.dstns-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: none;
+  padding: 0.04rem 0.5rem;
+  border: 1px solid var(--dstns-panel-line);
+  border-radius: 999px;
+  color: var(--dstns-panel-muted);
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.dstns-kind--exact { background: rgb(79 214 234 / 18%); border-color: rgb(79 214 234 / 55%); color: #4fd6ea; }
+.dstns-kind--title { color: #8be4f1; border-color: rgb(79 214 234 / 30%); }
+.dstns-crumb { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; font-size: 0.6rem; font-weight: 500; color: var(--dstns-panel-muted); }
+.dstns-crumb i { font-style: normal; opacity: 0.55; }
+.dstns-teaser {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.66rem;
+  line-height: 1.5;
+  color: var(--dstns-panel-muted);
+}
+
+/* The tree of matches inside a page */
+.dstns-results .dstns-tree { position: relative; margin: 0 1rem 0.1rem 2.15rem; padding-left: 1rem; }
+.dstns-results .dstns-tree::before { content: ""; position: absolute; left: 0.2rem; top: 0; bottom: 0.9rem; border-left: 1px solid var(--dstns-panel-line); }
+.dstns-section, .dstns-more { position: relative; }
+.dstns-results .dstns-section::before, .dstns-results .dstns-more::before { content: ""; position: absolute; left: -0.8rem; top: 0.95rem; width: 0.6rem; border-top: 1px solid var(--dstns-panel-line); }
+.dstns-section__link { display: flex; gap: 0.5rem; padding: 0.4rem 0.6rem; border-radius: 10px; transition: background-color 120ms ease; }
+.dstns-section__icon { display: grid; place-items: center; width: 1.2rem; height: 1.2rem; border-radius: 6px; background: rgb(255 255 255 / 6%); color: #4fd6ea; font-size: 0.7rem; flex: none; }
+.dstns-section__body { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.dstns-section__title { color: var(--dstns-panel-fg); font-size: 0.72rem; font-weight: 600; line-height: 1.35; }
+.dstns-more__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.15rem 0 0.1rem 0.3rem;
+  padding: 0.2rem 0.5rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #4fd6ea;
+  font-family: inherit;
+  font-size: 0.62rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dstns-more__btn:hover, .dstns-more__btn:focus-visible { background: var(--dstns-panel-hover); outline: none; }
+.dstns-more__btn[aria-expanded="true"] .dstns-ico { transform: rotate(90deg); }
+
+.dstns-empty { padding: 1.1rem 1.2rem 1.4rem; }
+.dstns-empty p { margin: 0 0 0.3rem; }
+.dstns-empty strong { color: var(--dstns-panel-fg); }
+
+/* Footer: key hints, and the closing rounded edge of the card */
+.dstns-foot {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 1rem;
+  padding: 0.55rem 1rem;
+  border-top: 1px solid var(--dstns-panel-line);
+  background: var(--dstns-panel-bg);
+  color: var(--dstns-panel-muted);
+  font-size: 0.58rem;
+  font-weight: 500;
+}
+.dstns-foot kbd {
+  display: inline-block;
+  min-width: 1.15rem;
+  margin-right: 0.2rem;
+  padding: 0.02rem 0.3rem;
+  border: 1px solid var(--dstns-panel-line);
+  border-radius: 5px;
+  background: rgb(255 255 255 / 5%);
+  color: var(--dstns-panel-fg);
+  font: 600 0.58rem/1.5 inherit;
+  font-family: inherit;
+  text-align: center;
+  box-shadow: none;
+}
+@media screen and (max-width: 59.9375em) { .dstns-foot { display: none; } }
+
+/* Back to top: a small floating button on every page once it has been scrolled. */
+.dstns-top {
+  position: fixed;
+  right: 1.2rem;
+  bottom: 1.2rem;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.8rem 0.45rem 0.6rem;
+  border: 1px solid rgb(79 214 234 / 35%);
+  border-radius: 999px;
+  background: rgb(11 28 40 / 92%);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: #edf1f4;
+  font-family: var(--md-text-font-family);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 10px 30px -12px rgb(0 0 0 / 55%);
+  opacity: 0;
+  transform: translateY(0.6rem);
+  pointer-events: none;
+  transition: opacity 200ms ease, transform 240ms cubic-bezier(0.32, 0.72, 0, 1), border-color 150ms ease, color 150ms ease;
+}
+.dstns-top.is-visible { opacity: 1; transform: none; pointer-events: auto; }
+.dstns-top svg { width: 0.9rem; height: 0.9rem; fill: none; stroke: #4fd6ea; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.dstns-top:hover { border-color: #4fd6ea; color: #fff; }
+.dstns-top:focus-visible { outline: 2px solid #4fd6ea; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .dstns-top { transition: none; } }
+@media print { .dstns-top { display: none; } }
+
+/* --------------------------------------------------------------------------
+   Admonitions and collapsible blocks: one shape for all of them, in the site
+   palette. The type shows only in the accent bar and the icon colour.
+   -------------------------------------------------------------------------- */
+:root {
+  --dstns-adm-info: #086578;
+  --dstns-adm-tip: #047857;
+  --dstns-adm-warn: #b45309;
+  --dstns-adm-danger: #b91c1c;
+}
+[data-md-color-scheme="slate"] {
+  --dstns-adm-info: #4fd6ea;
+  --dstns-adm-tip: #34d399;
+  --dstns-adm-warn: #f5b942;
+  --dstns-adm-danger: #f87171;
+}
+.md-typeset .admonition,
+.md-typeset details { --dstns-adm: var(--dstns-adm-info); }
+.md-typeset :is(.admonition, details):is(.tip, .hint, .success, .check, .done) { --dstns-adm: var(--dstns-adm-tip); }
+.md-typeset :is(.admonition, details):is(.warning, .caution, .attention) { --dstns-adm: var(--dstns-adm-warn); }
+.md-typeset :is(.admonition, details):is(.danger, .error, .failure, .fail, .missing, .bug) { --dstns-adm: var(--dstns-adm-danger); }
+
+.md-typeset .admonition,
+.md-typeset details {
+  border: 1px solid var(--md-default-fg-color--lightest) !important;
+  border-left: 3px solid var(--dstns-adm) !important;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--dstns-adm) 5%, transparent);
+  box-shadow: none !important;
+  font-size: 0.68rem;
+}
+.md-typeset :is(.admonition, details):focus-within { box-shadow: 0 0 0 3px color-mix(in srgb, var(--dstns-adm) 18%, transparent) !important; }
+.md-typeset .admonition-title,
+.md-typeset summary {
+  background: transparent !important;
+  border: 0 !important;
+  color: var(--md-default-fg-color);
+  font-weight: 600;
+}
+.md-typeset .admonition-title::before,
+.md-typeset summary::before { background-color: var(--dstns-adm) !important; }
+.md-typeset summary::after { background-color: var(--md-default-fg-color--light) !important; }
+.md-typeset details[open] > summary::after { background-color: var(--dstns-adm) !important; }
+.md-typeset details > summary { cursor: pointer; border-radius: 10px; }
+.md-typeset details > summary:hover { color: var(--dstns-adm); }
+.md-typeset details:not([open]) { background: transparent; }
+
+/* Code in tables breaks only where site.js allows it (after . _ / -), never mid-word. */
+.md-typeset table:not([class]) td code { word-break: normal; overflow-wrap: normal; }
+
+/* Narrower desktops (the tab row is shown from 76.25em): tighten the header so all
+   eight tabs, the theme toggle, the search slot and the repository link fit. */
+@media screen and (min-width: 76.25em) and (max-width: 85em) {
+  .md-header__button.md-logo { margin-right: 0.6rem; }
+  .md-header .md-tabs__list { gap: 0.05rem; }
+  .md-header .md-tabs__link { padding-left: 0.42rem; padding-right: 0.42rem; font-size: 0.68rem; }
+  .md-header .md-tabs__link::after { left: 0.42rem; right: 0.42rem; }
+  .md-search { width: 8rem; }
+  .md-search__inner { width: 8rem; }
+}
+
+/* Not-found page */
+.md-typeset .dstns-404 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 3rem 0 4rem;
+}
+.dstns-404 .dstns-wordmark { width: min(12rem, 60vw); opacity: 0.9; }
+.md-typeset .dstns-404__code {
+  margin: 1.6rem 0 0;
+  color: var(--dstns-accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+}
+.md-typeset .dstns-404 h1 { margin: 0.3rem 0 0.6rem; }
+.md-typeset .dstns-404__lede { max-width: 46ch; margin: 0 auto 1.4rem; color: var(--md-default-fg-color--light); }
+.dstns-404__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; }
+.dstns-404__actions .md-button { margin: 0; cursor: pointer; }
+
+/* Footer in the header's navy, in both schemes. */
+:root {
+  --md-footer-bg-color: var(--dstns-navy-800);
+  --md-footer-bg-color--dark: var(--dstns-navy-900);
+  --md-footer-fg-color: var(--dstns-ink);
+  --md-footer-fg-color--light: rgb(237 241 244 / 70%);
+  --md-footer-fg-color--lighter: rgb(237 241 244 / 45%);
+}
+.md-footer { border-top: 1px solid rgb(127 160 180 / 14%); }
+
+/* The clear button in the search field: a filled circle, quiet until hovered. */
+.md-search__options .md-search__icon[type="reset"] { color: rgb(237 241 244 / 55%); transition: color 140ms ease, transform 140ms ease; }
+.md-search__options .md-search__icon[type="reset"]:hover,
+.md-search__options .md-search__icon[type="reset"]:focus-visible { color: #4fd6ea; transform: scale(1.06); }
+.md-search__options .md-search__icon[type="reset"] svg { width: 1rem; height: 1rem; }
+
+/* "Skip to content" appears as a pill below the header, not on top of the logo. */
+.md-skip,
+.md-skip:focus {
+  position: fixed;
+  top: 3.7rem;
+  left: 50%;
+  margin: 0;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid rgb(79 214 234 / 55%);
+  border-radius: 999px;
+  background: #0b1c28;
+  color: #edf1f4;
+  font-size: 0.66rem;
+  font-weight: 600;
+  box-shadow: 0 10px 30px -12px rgb(0 0 0 / 55%);
+}
+.md-skip { transform: translate(-50%, -0.4rem); }
+.md-skip:focus { transform: translate(-50%, 0); outline: 2px solid #4fd6ea; outline-offset: 2px; }
+/* The clear button sits above the input so it can be clicked. */
+.md-search__options { z-index: 4; }
+
+/* Matches highlighted on a page opened from search: the search panel's cyan tint,
+   fading out after a few seconds (site.js). */
+.md-typeset mark[data-md-highlight] {
+  background-color: rgb(79 214 234 / 22%);
+  color: inherit;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgb(79 214 234 / 35%);
+  transition: background-color 1.2s ease, box-shadow 1.2s ease;
+}
+[data-md-color-scheme="default"] .md-typeset mark[data-md-highlight] { background-color: rgb(8 101 120 / 16%); box-shadow: 0 0 0 1px rgb(8 101 120 / 30%); }
+.dstns-hl-fading .md-typeset mark[data-md-highlight] { background-color: transparent !important; box-shadow: 0 0 0 1px transparent !important; }
+
+/* While the search is open, only the results scroll: the page underneath stays put. */
+html:has(#__search:checked) { overflow: hidden; }
+html { scrollbar-gutter: stable; }
+.md-search__scrollwrap { overscroll-behavior: contain; }
+
+/* --------------------------------------------------------------------------
+   The observer's shapes: the same ladder of radii, one-line controls as
+   stadiums, and a thing inside another following its curve.
+   -------------------------------------------------------------------------- */
+.md-typeset .md-button { border-radius: 999px; }
+.md-typeset .grid.cards > ul > li { border-radius: 18px; }
+.md-typeset pre > code { border-radius: 12px; }
+.md-typeset .highlight { border-radius: 12px; }
+.md-typeset .admonition, .md-typeset details { border-radius: 12px; }
+.md-typeset table:not([class]) { border-radius: 12px; overflow: hidden; }
+.md-typeset code { border-radius: 6px; }
+.md-typeset img { border-radius: 12px; }
+.md-typeset mjx-container { overflow-x: auto; overflow-y: hidden; }
+/* Display formulas fit the column, however many terms they have. */
+.md-typeset mjx-container[display="true"] { font-size: 90% !important; }
+
+/* A page whose title is its logo. The heading stays in the page, for search, screen readers and the
+   table of contents, and is only moved out of sight: display: none would take it out of all three. */
+.md-typeset h1.dstns-logo-title {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; border: 0;
+}
