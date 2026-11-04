@@ -30,7 +30,12 @@ public final class WorldLoader {
 
     /** Reads the simulator's current state and builds the world from it. */
     public static World load(SandboxClient client) throws IOException, InterruptedException {
-        return assemble(client.topology(), client.snapshot(), client::edges);
+        return load(client, StopSet.DEFAULT_MAX_GAP_M);
+    }
+
+    /** As {@link #load(SandboxClient)}, leaving no junction more than {@code maxGapM} from a stop. */
+    public static World load(SandboxClient client, double maxGapM) throws IOException, InterruptedException {
+        return assemble(client.topology(), client.snapshot(), client::edges, maxGapM);
     }
 
     /** Where the one-way flags come from when the topology does not carry them. */
@@ -48,6 +53,16 @@ public final class WorldLoader {
      */
     public static World assemble(TopologyData topology, SnapshotData snapshot, EdgeDetails edgeDetails)
             throws IOException, InterruptedException {
+        return assemble(topology, snapshot, edgeDetails, StopSet.DEFAULT_MAX_GAP_M);
+    }
+
+    /**
+     * As {@link #assemble(TopologyData, SnapshotData, EdgeDetails)}, adding stops where the
+     * simulator flagged none so that no junction is more than {@code maxGapM} from one
+     * ({@link StopSet#coveringMap}); {@code 0} adds none.
+     */
+    public static World assemble(TopologyData topology, SnapshotData snapshot, EdgeDetails edgeDetails,
+                                 double maxGapM) throws IOException, InterruptedException {
         Graph graph = Graph.of(topology.nodes(), topology.edges());
 
         // DSTNS 2.0 says which edges are fabricated reverses on the topology
@@ -59,7 +74,17 @@ public final class WorldLoader {
                 : EdgeDetail.syntheticReverseIds(edgeDetails.fetch());
         CostModel costModel = CostModel.of(graph, snapshot, oneWay);
 
-        StopSet stops = StopSet.of(graph);
+        // Where stops are added must not move when a road closes or reopens, or the stops the
+        // network was planned for would differ from the ones a refreshed world reports. So the
+        // reach of a line is judged on the road layout alone: every edge open but the fabricated
+        // reverses of one-way streets.
+        long[] layout = new long[graph.edgeCount()];
+        for (int edge = 0; edge < layout.length; edge++) {
+            layout[edge] = oneWay.contains(edge) ? -1L : 1L;
+        }
+        csc210.algorithm.graph.StrongComponents drivable =
+                csc210.algorithm.graph.StrongComponents.of(graph, CostModel.ofCosts(layout));
+        StopSet stops = StopSet.coveringMap(graph, maxGapM, drivable::inLargest);
         DemandModel demand = DemandModel.of(graph, snapshot, stops, topology.features());
         RouteBudget budget = RouteBudget.forStops(graph, demand.stopNodes());
         return new World(topology, snapshot, graph, costModel, stops, demand,

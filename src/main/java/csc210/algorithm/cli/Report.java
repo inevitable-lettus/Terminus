@@ -4,6 +4,7 @@ import csc210.algorithm.demand.DemandModel;
 import csc210.algorithm.demand.StopSet;
 import csc210.algorithm.export.RouteExporter;
 import csc210.algorithm.graph.Graph;
+import csc210.algorithm.journey.AccessCoverage;
 import csc210.algorithm.journey.Itinerary;
 import csc210.algorithm.journey.JourneyPlanner;
 import csc210.algorithm.journey.StopAccess;
@@ -51,7 +52,13 @@ public final class Report {
         text.append(String.format(Locale.ROOT, "  one-way  %d roads excluded (%s)%n", world.oneWayEdges(),
                 world.oneWayFromTopology() ? "flagged by the topology" : "read from /view/edges"));
         text.append(String.format(Locale.ROOT, "  stops    %d flagged, %d after merging those within %.0f m%n",
-                world.stops().rawCount(), world.stops().count(), StopSet.MERGE_RADIUS_M));
+                world.stops().rawCount(), world.stops().count() - world.stops().fillInCount(),
+                StopSet.MERGE_RADIUS_M));
+        if (world.stops().fillInCount() > 0) {
+            text.append(String.format(Locale.ROOT,
+                    "           %d more added where the simulator flagged none; the farthest junction is now %.0f m from a stop%n",
+                    world.stops().fillInCount(), farthestFromAStop(world)));
+        }
         int stuck = 0;
         csc210.algorithm.graph.StrongComponents both =
                 csc210.algorithm.graph.StrongComponents.of(world.graph(), world.costModel());
@@ -80,6 +87,11 @@ public final class Report {
                     StopSet.MERGE_RADIUS_M));
         }
         return text.toString();
+    }
+
+    /** The largest distance any junction is left from a stop. */
+    private static double farthestFromAStop(World world) {
+        return AccessCoverage.of(world.graph(), world.stops().representatives(), 0.0).farthestMetres();
     }
 
     private static String describe(DemandModel demand) {
@@ -147,6 +159,13 @@ public final class Report {
                 : String.format(Locale.ROOT,
                         "  passenger network: %d separate pieces — a rider cannot get between them "
                                 + "(interchange walk %.0f m)%n", pieces, transit.walkingRadiusM()));
+
+        AccessCoverage access = AccessCoverage.of(world.graph(), transit.servedStops(), transit.walkingRadiusM());
+        text.append(String.format(Locale.ROOT,
+                "  map access: %.1f%% of %d junctions have a served stop within %.0f m (farthest %s)%n",
+                access.share() * 100.0, access.junctions(), access.radiusM(),
+                Double.isInfinite(access.farthestMetres()) ? "no stop is served"
+                        : String.format(Locale.ROOT, "%.0f m", access.farthestMetres())));
         return text.toString();
     }
 

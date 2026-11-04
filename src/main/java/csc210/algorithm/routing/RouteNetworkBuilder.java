@@ -205,6 +205,27 @@ public final class RouteNetworkBuilder {
                 }
             }
 
+            if (bestTarget < 0 && served.size() == 1) {
+                // Nothing here gains demand, and the line is still only its hub. Every
+                // stop around is covered already, so the hub is a leftover: a stop
+                // beside the network that no line calls at. Link it to the nearest
+                // stop it can reach and return from, so it gets a bus rather than
+                // being given up on — the walk radius cannot cover it, because the
+                // stops that would walk to it are the ones covered by other lines.
+                for (int candidate : demandModel.stopNodes()) {
+                    if (candidate == current || !tree.isReachable(candidate)
+                            || !components.mutuallyReachable(hub, candidate)) {
+                        continue;
+                    }
+                    long extraMillis = tree.costTo(candidate);
+                    if (extraMillis > 0 && extraMillis <= budget.maxRouteMillis()
+                            && (bestTarget < 0 || extraMillis < bestCost)) {
+                        bestTarget = candidate;
+                        bestCost = extraMillis;
+                    }
+                }
+            }
+
             if (bestTarget < 0) {
                 break;
             }

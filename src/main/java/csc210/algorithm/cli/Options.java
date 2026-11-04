@@ -42,6 +42,8 @@ public final class Options {
     public final Integer minutes;
     public final Integer routes;
     public final Double walkMetres;
+    /** Most metres any junction may be from a stop before one is added; {@code null} for the default, 0 for none added. */
+    public final Double gapMetres;
     /** journey: minutes a passenger waits for the first bus; 0 unless asked, since DSTNS publishes no headways. */
     public final double boardWaitMinutes;
     public final String outDirectory;
@@ -77,6 +79,7 @@ public final class Options {
         this.minutes = b.minutes;
         this.routes = b.routes;
         this.walkMetres = b.walkMetres;
+        this.gapMetres = b.gapMetres;
         this.boardWaitMinutes = b.boardWaitMinutes;
         this.outDirectory = b.outDirectory;
         this.top = b.top;
@@ -111,6 +114,7 @@ public final class Options {
         Integer minutes;
         Integer routes;
         Double walkMetres;
+        Double gapMetres;
         double boardWaitMinutes;
         String outDirectory = "out";
         int top = 15;
@@ -217,6 +221,7 @@ public final class Options {
                 case "--minutes" -> b.minutes = positiveInt(flag, value);
                 case "--routes" -> b.routes = positiveInt(flag, value);
                 case "--walk" -> b.walkMetres = nonNegativeDouble(flag, value);
+                case "--max-gap" -> b.gapMetres = nonNegativeDouble(flag, value);
                 case "--board-wait" -> b.boardWaitMinutes = nonNegativeDouble(flag, value, "minutes");
                 case "--port" -> b.port = port(value);
                 case "--host" -> b.host = value;
@@ -321,6 +326,8 @@ public final class Options {
                   --routes N         most lines to build
                   --walk METRES      how far a passenger will walk to a stop
                                      (these three default to values derived from the map)
+                  --max-gap METRES   farthest any junction may be from a stop; stops are
+                                     added where it is farther (default 325, 0 adds none)
                   --top N            stops: how many to list (default 15)
                   --board-wait MIN   journey: minutes to wait for the first bus
                                      (default 0 — the simulator publishes no timetable)

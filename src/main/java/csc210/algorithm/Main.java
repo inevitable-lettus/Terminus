@@ -9,6 +9,7 @@ import csc210.algorithm.client.RunStartRefusedException;
 import csc210.algorithm.client.RunStateException;
 import csc210.algorithm.client.SandboxClient;
 import csc210.algorithm.client.SandboxHttpException;
+import csc210.algorithm.demand.StopSet;
 import csc210.algorithm.export.RouteExporter;
 import csc210.algorithm.fabric.FabricApp;
 import csc210.algorithm.fabric.FabricClient;
@@ -171,7 +172,7 @@ public final class Main {
         SandboxClient client = new SandboxClient(options.sandboxUrl).withOperatorToken(resolveToken(options));
         RunInfo run = options.start ? startOwnRun(client, options) : attachToRun(client, options, notes);
 
-        World world = WorldLoader.load(client);
+        World world = WorldLoader.load(client, maxGap(options));
         RouteBudget budget = applyOverrides(world.budget(), options);
         RouteNetwork network = new RouteNetworkBuilder(world.graph(), world.costModel(),
                 world.demandModel(), budget).build();
@@ -221,7 +222,7 @@ public final class Main {
             fabric.awaitWorld(FABRIC_WAIT);
         }
         RunInfo run = options.start ? startOwnRun(client, options) : attachToRun(client, options, notes);
-        World world = WorldLoader.load(client);
+        World world = WorldLoader.load(client, maxGap(options));
         RouteBudget budget = applyOverrides(world.budget(), options);
         notes.print(Report.header(run, world, budget, options));
 
@@ -230,7 +231,7 @@ public final class Main {
                 client.pausePlayback();
                 client.seek(time);
             }
-            World fresh = WorldLoader.load(client);
+            World fresh = WorldLoader.load(client, maxGap(options));
             return PlannedCity.plan(fresh, describeRun(client, true, options.seed),
                     applyOverrides(fresh.budget(), options), "live").withStopNames(stopNames(client, notes));
         };
@@ -305,12 +306,12 @@ public final class Main {
 
             @Override
             public World reread(World previous) throws IOException, InterruptedException {
-                return WorldLoader.assemble(previous.topology(), client.snapshot(), client::edges);
+                return WorldLoader.assemble(previous.topology(), client.snapshot(), client::edges, maxGap(options));
             }
 
             @Override
             public PlannedCity planFresh(RunInfo run) throws IOException, InterruptedException {
-                World fresh = WorldLoader.load(client);
+                World fresh = WorldLoader.load(client, maxGap(options));
                 return PlannedCity.plan(fresh, run, applyOverrides(fresh.budget(), options), "live")
                         .withStopNames(stopNames(client, notes));
             }
@@ -342,6 +343,11 @@ public final class Main {
             case EXPORT -> header + "\n" + Report.exported(written) + "\n" + Report.network(world, network, budget);
             case SERVE, HELP -> Options.usage();
         };
+    }
+
+    /** {@code --max-gap}, or the default gap between a junction and its nearest stop. */
+    static double maxGap(Options options) {
+        return options.gapMetres != null ? options.gapMetres : StopSet.DEFAULT_MAX_GAP_M;
     }
 
     static RouteBudget applyOverrides(RouteBudget derived, Options options) {

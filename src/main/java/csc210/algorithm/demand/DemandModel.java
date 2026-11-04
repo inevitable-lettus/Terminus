@@ -103,14 +103,14 @@ public final class DemandModel {
             for (int stop : stops.representatives()) {
                 scores[stop] = catchment.demandAt(stop);
             }
-            DemandModel fromCatchment = assemble(graph, stops, scores, DemandSource.CATCHMENT,
-                    catchment.assignedGenerators(), catchment.activeGenerators());
+            DemandModel fromCatchment = assemble(graph, stops, withFillInFloor(scores, stops),
+                    DemandSource.CATCHMENT, catchment.assignedGenerators(), catchment.activeGenerators());
             if (fromCatchment.totalDemand() > 0.0) {
                 return fromCatchment;
             }
         }
         double[] buildings = buildingDemand(graph, snapshot, stops);
-        DemandModel fromBuildings = assemble(graph, stops, buildings, DemandSource.BUILDINGS);
+        DemandModel fromBuildings = assemble(graph, stops, withFillInFloor(buildings, stops), DemandSource.BUILDINGS);
         if (fromBuildings.totalDemand() > 0.0) {
             return fromBuildings;
         }
@@ -119,6 +119,37 @@ public final class DemandModel {
             uniform[stop] = 1.0;
         }
         return assemble(graph, stops, uniform, DemandSource.UNIFORM);
+    }
+
+    /**
+     * Gives each stop added by {@link StopSet#coveringMap} at least the smallest
+     * demand any simulator stop has. An added stop sits where the simulator
+     * flagged none, so it usually scores zero, and the builder only drives to a
+     * stop that gains demand: left at zero it would never be served, and the
+     * district it was added for would stay without a bus. With nothing to scale
+     * against (every stop scored zero) the scores are left alone, and the
+     * fall-back in {@link #of} takes over.
+     */
+    private static double[] withFillInFloor(double[] scores, StopSet stops) {
+        if (stops.fillInCount() == 0) {
+            return scores;
+        }
+        double floor = Double.POSITIVE_INFINITY;
+        for (int stop : stops.representatives()) {
+            if (!stops.isFillIn(stop) && scores[stop] > 0.0) {
+                floor = Math.min(floor, scores[stop]);
+            }
+        }
+        if (Double.isInfinite(floor)) {
+            return scores;
+        }
+        double[] floored = scores.clone();
+        for (int stop : stops.representatives()) {
+            if (stops.isFillIn(stop)) {
+                floored[stop] = Math.max(floored[stop], floor);
+            }
+        }
+        return floored;
     }
 
     private static DemandModel assemble(Graph graph, StopSet stops, double[] demandAtNode, DemandSource source) {

@@ -347,11 +347,43 @@ little", and that is worth saying if asked.
 
 **Derive the budget from the stops.** The earlier 150 m walk and 8-line cap were
 an argument about one 8-stop map. Now the radius is half the median
-nearest-neighbour spacing, clamped to 75–400 m, and the line cap is one per twelve
-stops, clamped to 3–20. The 75 m floor is not arbitrary: it must exceed the 60 m
-merge radius, or a merged-away stop is outside its own representative's reach and
-is never counted covered. `RouteBudget.defaults()` stays, because tests pin
-numbers to it. Every figure can be overridden and the header says which were.
+nearest-neighbour spacing, clamped to 75–400 m, and no larger than what is left of
+the 400 m access walk after the farthest junction has walked to its nearest stop
+(see "Plan the whole map" below). The line cap is one per two stops, clamped to
+3–60, and the coverage target is 100%: the cap is a ceiling a line needs two stops
+to use, and the loop ends sooner when nothing it can reach is left uncovered. The
+75 m floor is not arbitrary: it must exceed the 60 m merge radius, or a merged-away
+stop is outside its own representative's reach and is never counted covered.
+`RouteBudget.defaults()` stays, because tests pin numbers to it. Every figure can
+be overridden and the header says which were.
+
+**Plan the whole map, not the middle of it.** A trip can board only if a *served*
+stop is within the 400 m access walk of where it starts, so the number that matters
+is the share of junctions with one — not the share of stops a line reaches. Three
+things kept it below 100% on a map with few stops:
+
+- *The radius.* A stop counts as covered if a line calls within the radius of it.
+  On a sparse map half the median spacing is 400 m, so one line "covered" stops
+  up to 400 m from it and a junction beside such a stop could be 800 m from a bus.
+  The radius is now capped at 400 m minus the farthest junction's distance to a
+  stop, so a junction is at most that far from a stop and the stop at most the
+  radius from a bus.
+- *No stop to serve.* No radius helps a district the simulator flagged no stop in.
+  `StopSet.coveringMap` adds stops by farthest-point insertion until no junction is
+  more than 325 m (400 m less the 75 m smallest radius) from one. Only junctions a
+  line can call at and come back from are used, and a flagged stop in a one-way
+  pocket does not count as closing a gap. "Can call" is judged on the road layout, not on today's closures, so the added stops do not move when a road closes and the network planned once stays valid. An added stop gets at least the smallest
+  demand of any flagged stop, or the builder would never drive to it. `--max-gap`
+  changes the 325 m; `0` adds none.
+- *A leftover stop beside the network.* When every stop around a hub is covered
+  already, no extension gains demand and the hub used to be given up on. It is now
+  linked to the nearest stop it can reach and return from.
+
+On the saved captures this changes nothing where stops were dense (Berlin, Dar es
+Salaam) and, with the flagged stops thinned to a quarter and an eighth, takes the
+share of the junctions a bus can reach that are within 400 m of a served stop from
+95.6% and 79.3% to 100%. Junctions in one-way pockets no line can enter or leave
+are left out of that figure; the report prints both. `MapCoverageTest` pins this and prints the figures.
 
 **Heuristic speed follows the map.** `h` divides by the fastest speed anything
 moves at. The constant 16.67 m/s was correct for the road classes DSTNS

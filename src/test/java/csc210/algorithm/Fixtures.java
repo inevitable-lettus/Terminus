@@ -129,6 +129,43 @@ public final class Fixtures {
         return assembled(v2Topology(), v2SnapshotAt0830(), Fixtures::noEdgeDetails);
     }
 
+    /**
+     * The 2.0 world with only every {@code keepEvery}-th flagged stop kept, at 18:00 — the same
+     * city as a server whose map flags fewer stops. {@code 1} keeps them all.
+     */
+    public static csc210.algorithm.world.World v2WorldWithSparseStops1800(int keepEvery) {
+        return assembled(sparseStops(v2Topology(), keepEvery), v2SnapshotAt1800(), Fixtures::noEdgeDetails);
+    }
+
+    /** As {@link #v2WorldWithSparseStops1800(int)}, adding stops only where a junction is farther than {@code maxGapM} from one. */
+    public static csc210.algorithm.world.World v2WorldWithSparseStops1800(int keepEvery, double maxGapM) {
+        try {
+            return csc210.algorithm.world.WorldLoader.assemble(sparseStops(v2Topology(), keepEvery),
+                    v2SnapshotAt1800(), Fixtures::noEdgeDetails, maxGapM);
+        } catch (IOException | InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** As {@link #v2WorldWithSparseStops1800}, at 08:30. */
+    public static csc210.algorithm.world.World v2WorldWithSparseStops0830(int keepEvery) {
+        return assembled(sparseStops(v2Topology(), keepEvery), v2SnapshotAt0830(), Fixtures::noEdgeDetails);
+    }
+
+    private static TopologyData sparseStops(TopologyData topology, int keepEvery) {
+        java.util.List<csc210.algorithm.model.Node> nodes = new java.util.ArrayList<>();
+        int seen = 0;
+        for (csc210.algorithm.model.Node node : topology.nodes()) {
+            boolean keep = node.busStop() && seen++ % keepEvery == 0;
+            nodes.add(new csc210.algorithm.model.Node(node.id(), node.osmNodeId(), node.position(), node.degree(),
+                    keep, keep ? node.busStopRadiusM() : 0.0, node.signal(), node.signalCycleS(),
+                    node.signalGreenS(), node.signalOffsetS(), node.building(), node.buildingImpact(),
+                    node.buildingRadiusM()));
+        }
+        return new TopologyData(nodes, topology.edges(), topology.bounds(), topology.graphHash(),
+                topology.rootNode(), topology.topologyRevision(), topology.features(), topology.location());
+    }
+
     private static java.util.List<csc210.algorithm.client.EdgeDetail> noEdgeDetails() {
         throw new IllegalStateException("a 2.0 topology flags its own one-way streets");
     }

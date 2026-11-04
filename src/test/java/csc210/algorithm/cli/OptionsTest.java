@@ -116,6 +116,22 @@ class OptionsTest {
     }
 
     @Test
+    void maxGapIsCarriedThroughAndZeroMeansNoStopsAdded() {
+        assertEquals(null, parse("network").gapMetres);
+        assertEquals(250.0, parse("network", "--max-gap", "250").gapMetres);
+        assertEquals(0.0, parse("network", "--max-gap", "0").gapMetres);
+    }
+
+    @Test
+    void anInvalidMaxGapIsRejected() {
+        for (String bad : new String[]{"-1", "NaN", "Infinity", "far"}) {
+            IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+                    () -> Options.parse(new String[]{"network", "--max-gap", bad}), bad);
+            assertTrue(thrown.getMessage().startsWith("--max-gap"), thrown.getMessage());
+        }
+    }
+
+    @Test
     void zeroMetresOfWalkingIsAllowedBecauseItMeansOnlyTheStopItself() {
         assertEquals(0.0, parse("network", "--walk", "0").walkMetres);
     }
