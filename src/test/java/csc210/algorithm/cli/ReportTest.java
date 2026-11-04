@@ -62,6 +62,22 @@ class ReportTest {
     }
 
     @Test
+    void theHeaderSaysWhenStopsWereAddedToCoverTheMap() {
+        World sparse = Fixtures.v2WorldWithSparseStops1800(8);
+        String text = Report.header(RUN, sparse, sparse.budget(), Options.parse(new String[]{"network"}));
+
+        assertTrue(text.contains(sparse.stops().fillInCount() + " more added where the simulator flagged none"), text);
+        assertFalse(Report.header(RUN, world, budget, Options.parse(new String[]{"network"})).contains("more added"));
+    }
+
+    @Test
+    void theNetworkSummaryReportsHowMuchOfTheMapHasAStopWithinReach() {
+        String text = Report.network(world, network, budget);
+
+        assertTrue(text.contains("map access: 100.0% of 279 junctions have a served stop within 400 m"), text);
+    }
+
+    @Test
     void anOverriddenBudgetFieldIsLabelledAsSetNotDerived() {
         Options options = Options.parse(new String[]{"network", "--walk", "300", "--routes", "2", "--minutes", "5"});
         String text = Report.header(RUN, world, Main2.overrides(budget, options), options);

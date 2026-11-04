@@ -83,7 +83,7 @@ public final class PlannedCity {
         BuildTrace trace = new BuildTrace();
         RouteNetwork network = new RouteNetworkBuilder(world.graph(), world.costModel(), world.demandModel(), budget)
                 .build(trace);
-        TransitGraph transit = TransitGraph.of(world.graph(), network, world.costModel());
+        TransitGraph transit = TransitGraph.of(world.graph(), network, world.costModel(), budget.accessWalkM());
         return new PlannedCity(world, run, budget, source, network, transit, JourneyPlanner.of(world.graph(), transit),
                 trace, StrongComponents.of(world.graph(), world.costModel()), Timetable.of(network), Map.of());
     }
@@ -100,7 +100,7 @@ public final class PlannedCity {
      * costs, and so the journeys, follow the new speeds.
      */
     public PlannedCity withLiveCosts(World fresh, RunInfo now) {
-        TransitGraph transit = TransitGraph.of(fresh.graph(), network, fresh.costModel());
+        TransitGraph transit = TransitGraph.of(fresh.graph(), network, fresh.costModel(), budget.accessWalkM());
         return new PlannedCity(fresh, now, budget, source, network, transit, JourneyPlanner.of(fresh.graph(), transit),
                 buildTrace, StrongComponents.of(fresh.graph(), fresh.costModel()), timetable, stopNames);
     }

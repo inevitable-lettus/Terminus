@@ -125,6 +125,7 @@ Start a run in the simulator first — DSTNS 2.0 only lets its operator do that,
 |---|---|
 | `--time HH:MM:SS` | pause the run and read it at that virtual time |
 | `--minutes N`, `--routes N`, `--walk METRES` | override the budget, which is otherwise derived from the map |
+| `--max-gap METRES` | farthest any junction may be from a stop; stops are added where it is farther (default 325, `0` adds none) |
 | `--top N` | `stops`: how many to list |
 | `--out DIR` | `export`: where to write |
 | `--board-wait MIN` | `journey`: minutes to wait for the first bus (0 by default; the simulator publishes no timetable) |

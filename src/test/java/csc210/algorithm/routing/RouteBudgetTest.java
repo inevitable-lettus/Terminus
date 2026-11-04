@@ -121,9 +121,67 @@ class RouteBudgetTest {
         for (int i = 0; i < huge.length; i++) huge[i] = i * 300.0;
         for (int i = 0; i < few.length; i++) few[i] = i * 300.0;
 
+        // One line per two stops: the most lines a map could use, since a line needs two stops.
         org.junit.jupiter.api.Assertions.assertEquals(3, RouteBudget.forStops(stopsAt(few), ids(5)).maxRoutes());
-        org.junit.jupiter.api.Assertions.assertEquals(9, RouteBudget.forStops(stopsAt(many), ids(100)).maxRoutes());
-        org.junit.jupiter.api.Assertions.assertEquals(20, RouteBudget.forStops(stopsAt(huge), ids(500)).maxRoutes());
+        org.junit.jupiter.api.Assertions.assertEquals(50, RouteBudget.forStops(stopsAt(many), ids(100)).maxRoutes());
+        org.junit.jupiter.api.Assertions.assertEquals(60, RouteBudget.forStops(stopsAt(huge), ids(500)).maxRoutes());
+    }
+
+    @Test
+    void theDerivedBudgetAimsToServeEveryStopALineCanReach() {
+        org.junit.jupiter.api.Assertions.assertEquals(1.0, RouteBudget.forStops(stopsAt(0, 400, 800), ids(3)).targetCoverage());
+    }
+
+    @Test
+    void walkingRadiusLeavesRoomForTheFarthestJunctionToWalkToAStop() {
+        // Stops 800 m apart: half the spacing is 400 m, but a junction midway between them is
+        // already 400 m from either, so a stop "covered" at 400 m could be 800 m from the junction.
+        RouteBudget budget = RouteBudget.forStops(mapOf(new double[]{0, 800}, new double[]{400}), ids(2));
+
+        org.junit.jupiter.api.Assertions.assertEquals(RouteBudget.MIN_WALKING_RADIUS_M, budget.walkingRadiusM());
+    }
+
+    @Test
+    void walkingRadiusKeepsWhatIsLeftOfTheAccessWalkAfterTheFarthestJunction() {
+        // Stops 800 m apart, farthest junction 250 m from a stop: 400 - 250 = 150 m of radius to spend.
+        RouteBudget budget = RouteBudget.forStops(mapOf(new double[]{0, 800}, new double[]{250}), ids(2));
+
+        org.junit.jupiter.api.Assertions.assertEquals(150.0, budget.walkingRadiusM(), 1e-9);
+    }
+
+    @Test
+    void aPositionThatIsNotANumberDoesNotReachTheConstructorAsNaN() {
+        RouteBudget budget = RouteBudget.forStops(mapOf(new double[]{0, 400}, new double[]{Double.NaN}), ids(2));
+
+        org.junit.jupiter.api.Assertions.assertTrue(Double.isFinite(budget.walkingRadiusM()));
+        org.junit.jupiter.api.Assertions.assertEquals(RouteBudget.MIN_WALKING_RADIUS_M, budget.walkingRadiusM());
+    }
+
+    @Test
+    void theAccessWalkTheRadiusIsBudgetedAgainstIsTheOneJourneysUse() {
+        org.junit.jupiter.api.Assertions.assertEquals(csc210.algorithm.transit.TransitGraph.DEFAULT_INTERCHANGE_WALK_M,
+                RouteBudget.MAX_WALKING_RADIUS_M);
+    }
+
+    @Test
+    void journeysWalkAtLeastAsFarAsTheBuilderCountsAStopAsCovered() {
+        RouteBudget budget = RouteBudget.defaults();
+
+        org.junit.jupiter.api.Assertions.assertEquals(400.0, budget.accessWalkM());
+        org.junit.jupiter.api.Assertions.assertEquals(400.0, budget.withWalkingRadius(100.0).accessWalkM());
+        org.junit.jupiter.api.Assertions.assertEquals(650.0, budget.withWalkingRadius(650.0).accessWalkM());
+    }
+
+    /** Stops flagged at {@code stopXs}, then plain junctions at {@code junctionXs}; ids run in that order. */
+    private static csc210.algorithm.graph.Graph mapOf(double[] stopXs, double[] junctionXs) {
+        java.util.List<csc210.algorithm.model.Node> nodes = new java.util.ArrayList<>();
+        for (int i = 0; i < stopXs.length + junctionXs.length; i++) {
+            boolean stop = i < stopXs.length;
+            double x = stop ? stopXs[i] : junctionXs[i - stopXs.length];
+            nodes.add(new csc210.algorithm.model.Node(i, 100L + i,
+                    new csc210.algorithm.model.Position(0, 0, x, 0), 0, stop, 0, false, 0, 0, 0, null, 0, 0));
+        }
+        return csc210.algorithm.graph.Graph.of(nodes, java.util.List.of());
     }
 
     @Test
