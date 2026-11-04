@@ -24,3 +24,7 @@ bin/
 
 # Fabric token kept by serve --fabric
 .fabric/
+
+# Documentation build
+site/
+.venv-docs/

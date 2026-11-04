@@ -1,0 +1,168 @@
+# Terminus documentation site. Built by Read the Docs (see .readthedocs.yaml),
+# or locally:
+#
+#   python3 -m venv .venv-docs && .venv-docs/bin/pip install -r docs/requirements.txt
+#   .venv-docs/bin/mkdocs serve          # http://127.0.0.1:8000, live reload
+#   .venv-docs/bin/mkdocs build --strict # what Read the Docs runs
+
+site_name: Terminus
+site_description: >-
+  User guide for the Group 8 public bus route planner: the DSTNS traffic
+  simulator, the Terminus route builder and journey planner, and the ticketing
+  portal.
+site_author: CSC210 Group 8
+# Read the Docs sets the canonical URL of each version; the fallback is used
+# for local builds.
+site_url: !ENV [READTHEDOCS_CANONICAL_URL, "https://terminus.readthedocs.io/"]
+repo_url: https://github.com/inevitable-lettus/Terminus
+repo_name: inevitable-lettus/Terminus
+exclude_docs: |
+  requirements.txt
+  README.md
+
+copyright: Copyright &copy; 2026 CSC210 Group 8, Ahmedabad University &middot; Map data &copy; OpenStreetMap contributors
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+  logo: assets/logo-wordmark.svg
+  favicon: assets/logo.svg
+  icon:
+    repo: fontawesome/brands/github
+    close: material/close-circle
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.indexes
+    - navigation.footer
+    - toc.follow
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+
+hooks:
+  - hooks/cachebust.py
+
+extra_css:
+  - assets/extra.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/inevitable-lettus/Terminus
+      name: Terminus on GitHub
+  generator: false
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: false
+      toc_depth: 3
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra_javascript:
+  - assets/search-ui.js
+  - assets/site.js
+
+plugins:
+  - search
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - getting-started/index.md
+      - Before you begin:
+          - Requirements: getting-started/requirements.md
+      - Install and run:
+          - Installation: getting-started/installation.md
+          - Quick start: getting-started/quick-start.md
+  - User guide:
+      - guide/index.md
+      - Terminus:
+          - The ./bus commands: guide/bus-cli.md
+          - The local API: serve-api.md
+          - The dashboard: guide/dashboard.md
+          - Running under the DSTNS launcher: fabric.md
+          - Drawing in the DSTNS observer: guide/observer.md
+          - Road closures: guide/road-closures.md
+      - Ticketing portal:
+          - Booking a ticket: guide/portal-booking.md
+          - The conductor page: guide/portal-conductor.md
+  - Help:
+      - troubleshooting.md
+      - FAQ: faq.md
+      - Known limitations: known-limitations.md
+  - Reference:
+      - reference/index.md
+      - Design:
+          - Algorithms: algorithm.md
+          - Decisions log: decisions.md
+          - Build log: build-log.md
+          - Plan: plan.md
+          - DSTNS API notes: sandbox-api.md
+          - Integration changes: integration-changes.md
+          - Read-back integration: readback-integration.md
+      - Quality:
+          - Testing: testing.md
+          - Engineering limitations: limitations.md
+      - Presenting:
+          - Demo runbook: demo.md

@@ -192,4 +192,4 @@ graph, never on a real map.
 **Integration is done, and verified on `5f75fa5` only.** A command-line entry
 point (`./bus`) covers the network, the stops, a journey and an export; routes are
 written to files, since publishing them back is retired in 2.0. See the "Using
-it" section of the [README](../README.md).
+it" section of the [README](https://github.com/inevitable-lettus/Terminus/blob/main/README.md).

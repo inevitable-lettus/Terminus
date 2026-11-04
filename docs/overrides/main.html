@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{#- The navigation tabs live inside the header (partials/header.html), so the
+    separate tab row Material would add under it is left empty. -#}
+{% block tabs %}{% endblock %}
+
+{#- The home page is titled "Terminus | Docs" in the browser tab; other pages keep
+    "Page - Terminus". -#}
+{% block htmltitle %}
+  {% if page.is_homepage %}
+    <title>Terminus | Docs</title>
+  {% elif page.meta and page.meta.title %}
+    <title>{{ page.meta.title | striptags }} - {{ config.site_name }}</title>
+  {% elif page.title and not page.is_homepage %}
+    <title>{{ page.title | striptags }} - {{ config.site_name }}</title>
+  {% else %}
+    <title>{{ config.site_name }}</title>
+  {% endif %}
+{% endblock %}

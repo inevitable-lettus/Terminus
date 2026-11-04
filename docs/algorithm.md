@@ -12,7 +12,7 @@ Every piece of this module, in plain language first and jargon second, with the
 numbers each part actually produces. Technical terms are defined where they first
 appear rather than in a glossary at the end.
 
-Companion documents: [DESIGN.md](../DESIGN.md) for the design and its reasoning,
+Companion documents: [DESIGN.md](https://github.com/inevitable-lettus/Terminus/blob/main/DESIGN.md) for the design and its reasoning,
 [decisions.md](decisions.md) for every judgment call with its rejected
 alternative, [build-log.md](build-log.md) for the step-by-step record,
 [limitations.md](limitations.md) for what is weak and what is missing,
@@ -656,4 +656,4 @@ law, so it is checked and fails loudly on a map with one-way streets.
 
 Run everything with `./gradlew test`. What each suite checks, and why it is
 structured that way, is in [testing.md](testing.md). To run the module rather
-than its tests, see the "Using it" section of the [README](../README.md).
+than its tests, see the "Using it" section of the [README](https://github.com/inevitable-lettus/Terminus/blob/main/README.md).
