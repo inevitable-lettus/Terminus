@@ -127,4 +127,21 @@ class OptionsTest {
             assertTrue(usage.contains(word), "usage does not mention " + word);
         }
     }
+
+    @Test
+    void fabricServeKeepsItsTokenUnderTheAppId() {
+        Options options = parse("serve", "--fabric", "--sandbox", "http://127.0.0.1:8190");
+
+        assertTrue(options.fabric);
+        assertEquals("terminus", options.fabricId);
+        assertEquals(".fabric/terminus.token", options.fabricTokenFile);
+        assertEquals("http://127.0.0.1:8190", options.sandboxUrl);
+    }
+
+    @Test
+    void fabricIsOnlyForServeAndNeverStartsARun() {
+        assertThrows(UsageException.class, () -> parse("network", "--fabric"));
+        assertThrows(UsageException.class, () -> parse("serve", "--fabric", "--start"));
+        assertThrows(UsageException.class, () -> parse("serve", "--fabric", "--seed", "0x1"));
+    }
 }

@@ -21,3 +21,6 @@ bin/
 
 # macOS
 .DS_Store
+
+# Fabric token kept by serve --fabric
+.fabric/
