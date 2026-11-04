@@ -22,7 +22,7 @@ Open <http://127.0.0.1:8080>. Without `--time`, `./bus serve` reads the run wher
 clock is.
 
 Under the DSTNS launcher the same server runs with `--fabric`, on the port in the
-catalogue entry (8080 in the [Quick start](../getting-started/quick-start.md)).
+catalogue entry (8080 in the [Quick start](../getting-started/quick-start.md)). Serving the built dashboard under the launcher uses the same code path as `./bus serve`; it was not checked live.
 
 **While developing it.** Run the development server against `./bus serve`:
 

@@ -6,18 +6,20 @@ examples use `~/bus-planner`.
 ```bash
 mkdir ~/bus-planner && cd ~/bus-planner
 git clone https://github.com/varunkarthic/DSTNS.git
+(cd DSTNS && git checkout 4b88994)   # the commit this guide was tested on
 git clone https://github.com/inevitable-lettus/Terminus.git
 git clone https://github.com/CSC210-Monsoon2026/group-08-public-bus-route-planner.git portal
 ```
 
 ## DSTNS
 
-Nothing to do yet. The launcher (`./launcher`) installs the command-line tool's
-dependencies, builds the C++ core and the observer, and starts the server the first
-time you start a run, which takes a few minutes. Install the
-[prerequisites](requirements.md#dstns) first.
+Nothing to do yet. The launcher (`./launcher`) builds the C++ core and the observer,
+and starts the server the first time you start a run, which takes a few minutes.
+Install the [prerequisites](requirements.md#dstns) first.
 
-To build and check it now without starting a run, see the
+The checkout above pins DSTNS to `4b88994` because that is the commit the launcher
+steps in this guide were run against. Newer commits and the `v3` branch were not
+tested. For more on building, see the
 [DSTNS installation guide](https://dstns.readthedocs.io/v3/getting-started/installation/).
 
 ## Terminus

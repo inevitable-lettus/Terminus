@@ -5,26 +5,38 @@
 | | DSTNS | Terminus | Portal |
 |---|---|---|---|
 | Operating system | macOS 13+, Linux; Windows through WSL 2 | Anything that runs a JDK | Anything that runs Node and PostgreSQL |
-| Main runtime | C++20 compiler, CMake 3.22+, Rust 1.89+ (for the launcher), Node.js 20+ | JDK 21 | Node.js, PostgreSQL |
+| Main runtime | C++20 compiler, CMake 3.22+, SQLite and zlib headers, Node.js 20+, Python 3.10+ | JDK 21 | Node.js, PostgreSQL |
 | Browser | Current Chrome, Edge, Firefox or Safari, window at least 1024 × 640 | Same, for the dashboard | Same |
 | Network | Internet for new cities; none for the bundled district | None, apart from first-time Gradle and npm downloads | None, apart from npm downloads |
 
 ## DSTNS
 
-DSTNS is built from source by its own launcher. The prerequisites, platform notes and
-hardware sizing are in the DSTNS documentation:
+DSTNS is built from source by its own launcher. This guide was tested against DSTNS
+commit `4b88994` on its `main` branch (see [Installation](installation.md)). Its
+README lists:
+
+| Software | Minimum |
+|---|---|
+| C++ compiler | C++20 |
+| CMake | 3.22 |
+| SQLite and zlib | Development headers |
+| Node.js | 20 |
+| Python | 3.10. The launcher is a Python program (`./launcher` runs `python3 -m dstns_launcher`) |
+
+About 1 GB of memory and 1 GB of disk is enough for a district of 3,000 junctions.
+Platform notes and hardware sizing are in the DSTNS documentation:
 
 - [DSTNS system requirements](https://dstns.readthedocs.io/v3/getting-started/requirements/)
 - [DSTNS installation](https://dstns.readthedocs.io/v3/getting-started/installation/)
 
-In short: a C++20 compiler, CMake 3.22 or newer, SQLite, zlib and libcurl headers,
-Node.js 20 or newer, and Rust 1.89 or newer. About 1 GB of memory and 1 GB of disk
-is enough for a district of 3,000 junctions.
+!!! warning "The published DSTNS docs describe a different launcher"
+    The DSTNS documentation on Read the Docs (branch `v3`) lists Rust 1.89 for the
+    launcher. The tested commit's launcher is Python and the README does not list
+    Rust. Whether `v3` runs this guide's launcher steps was not checked. Follow this
+    guide for the tested commit, and the DSTNS docs if you choose `v3`.
 
-!!! note "Not verified here"
-    While testing the launcher flow the build also asked for `ninja` and `python3`.
-    The DSTNS requirements page does not list them. If the build complains, install
-    them with your package manager.
+!!! note "Not verified"
+    `ninja` is not required by the README. Whether the build needs it was not checked.
 
 ## Terminus
 

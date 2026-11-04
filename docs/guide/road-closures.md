@@ -5,19 +5,22 @@ the change and re-prices its lines and journeys.
 
 ## Close a road
 
-DSTNS takes a road closure through its control API. Use the id of a directed road
+DSTNS takes a road closure through its control API. The DSTNS observer guide does not
+describe a click that closes a road, and none was found while testing, so use the API. Use the id of a directed road
 (an edge). Roads are listed in Terminus's `GET /api/world` as `roads[{id, from, to,
 closed, ...}]`, and each bus line's roads are drawn in the observer.
 
 ```bash
 # Close one directed road
-curl -s -X PUT http://127.0.0.1:8090/api/v1/control/edges/412 -d '{"closed":true}'
+curl -s -X PUT http://127.0.0.1:8090/api/v1/control/edges/412 -d '{"closed":true}' \
+    -H "X-DSTNS-Operator: $(cat logs/operator.token)"   # run from the DSTNS folder
 
 # Undo the last change
 curl -s -X POST http://127.0.0.1:8090/api/v1/control/undo -d '{"count":1}'
 ```
 
-Replace `412` with a road a bus line actually uses; closing a road no line uses
+Testing used the operator token as shown. If your request is refused, check the
+DSTNS control API page below for what it expects. Replace `412` with a road a bus line actually uses; closing a road no line uses
 changes nothing. Roads can also close on their own: DSTNS incidents and flooding close
 roads during a run.
 

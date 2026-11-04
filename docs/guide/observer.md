@@ -19,6 +19,8 @@ The arrivals table lists at most 12 buses, soonest first. Outside service hours,
 when the clock is before 06:00, the panel says no bus is on the road and when
 buses run.
 
+The names of the layers and toggles that DSTNS lists these under were not checked.
+
 ## How it stays current
 
 - Lines and stops are drawn once per run and again only when the network changes,

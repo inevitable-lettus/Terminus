@@ -36,10 +36,11 @@ Check, in order:
    started it).
 2. **A copy crashed without unloading.** Wait about 150 seconds. DSTNS unloads an
    application that stops sending its heartbeat.
-3. **The token file is missing.** If `.fabric/terminus.token` was deleted, DSTNS no
-   longer recognises Terminus until it has unloaded the old registration (the 150
-   seconds above). A crash followed by a restart that keeps the file reuses the token
-   and does not conflict.
+3. **The token file is missing or wrong.** That is exactly what the message says.
+   Deleting `.fabric/terminus.token` does not clear the conflict; DSTNS keeps
+   refusing until it has unloaded the old registration (the 150 seconds above, five
+   missed 30-second heartbeats). A crash followed by a restart from the same folder
+   keeps the file, reuses the token and does not conflict.
 4. **Start fresh.** With the DSTNS server stopped, deleting its sealed application
    store, `logs/fabric-apps.json` and `logs/fabric-apps.json.key` in the DSTNS
    folder, removes every registration. Do this only with the server down, and only
@@ -54,15 +55,17 @@ Starting DSTNS without `--osm-file` makes it download the seed's city from the
 OpenStreetMap Overpass servers. Large cities can stall:
 
 ```text
-No data arrived for 200 seconds
+No data arrived for 200 seconds, so the download was stopped.
 ```
 
-(an earlier run stopped at 30 MiB). Options, easiest first:
+(a run with seed `0x2026` stopped at 30 MiB). Options, easiest first:
 
 1. **Use the bundled district.** It needs no download:
-   `./launcher start --seed 0x2026 --osm-file data/fixtures/real_network.osm.xml --apps terminus`.
-2. **Use a city you downloaded before.** Cached extracts work offline:
-   `./launcher start --osm-file data/maps/<city>_x5000.osm.xml`.
+   `./launcher start --seed 0x2026 --osm-file data/fixtures/real_network.osm.xml --apps terminus`
+   (a Berlin district of 1,196 junctions, included in the DSTNS repository).
+2. **Use a city you downloaded before.** DSTNS documents cached extracts as working
+   offline: `./launcher start --osm-file data/maps/<city>_x5000.osm.xml`. This was
+   not tried here.
 3. **Wait and retry, or change mirror.** Overpass servers rate-limit heavy use. Point
    DSTNS at another with `DSTNS_OVERPASS_ENDPOINTS=https://host/api/interpreter`.
    `DSTNS_MAP_STALL_S` changes the 200-second limit.
@@ -94,16 +97,18 @@ Terminus plans the bus lines once per run and then keeps two things up to date:
 | Road speeds and closures | Every 2 seconds, from DSTNS |
 | The lines, stops and timetable | Only when the simulator's `run_id` changes |
 
-Route and trip ids stay the same for a whole run. So after you start a new run, the
-network is re-planned by itself within a few seconds. To force a re-plan, for example
-after changing the budget or when the dashboard still shows an old city:
+Route and trip ids stay the same for a whole run, and a change in speeds moves
+journey times, not the lines. When a new run starts Terminus re-plans by itself and
+prints `New simulator run <id>: re-planned the network.` To rebuild the lines in the
+middle of a run, or to look at a chosen time, force a re-plan:
 
 ```bash
 curl -s -X POST http://127.0.0.1:8080/api/reload -d '{}'
 ```
 
-To also move the shared clock, send `{"time":"18:00:00","seek":true}`. The clock moves
-only when `seek` is `true`. A server holding a saved bundle (started from
+To also pause DSTNS and jump to a time first, send `{"time":"18:00:00","seek":true}`.
+The clock moves only when `seek` is `true`. Under the launcher the seek form may
+need the operator token; that was not tested. A server holding a saved bundle (started from
 `./bus export --bundle`) answers `409 RUN_STATE`, and one that cannot read DSTNS
 answers `502 SIMULATOR_UNAVAILABLE`.
 
@@ -116,20 +121,23 @@ their own run's trips.
 Every 2 seconds Terminus re-reads the simulator's speeds. A read can fail now and
 then, for example when DSTNS is busy or the connection is closed in the middle of the
 answer, or when the request times out. Terminus keeps the last good city and says so
-once:
+once, then says when it recovers:
 
 ```text
 Live update failed, keeping the last speeds: <reason>
+Live updates are working again.
 ```
+
+Under the launcher the same applies to the Fabric link, with
+`Fabric poll failed, will retry: <reason>` and `Fabric is answering again.`
 
 In the DSTNS observer the Terminus status line shows
 **road speeds out of date: cannot re-read DSTNS** while this lasts.
 
 - **One or two occasional messages** are harmless. The next tick recovers and the
   status goes back to normal.
-- **Constant failures** mean DSTNS is not answering. Check that it is running and
-  that `GET /api/v1/playback/status` on its port answers. Slow the clock, or close
-  other heavy programs, if the machine is overloaded.
+- **Constant failures** mean DSTNS is not answering. Check that it is still running:
+  `./launcher apps logs terminus` and `./launcher logs`.
 - The portal gives up on a slow Terminus after 1.5 seconds per request and tries
   again on its next 2-second cycle.
 
