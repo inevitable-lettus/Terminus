@@ -339,7 +339,7 @@ public final class Main {
             case NETWORK -> header + "\n" + Report.network(world, network, budget);
             case STOPS -> header + "\n" + Report.stops(world, network, options.top);
             case JOURNEY -> header + "\n" + Report.journey(world, network, options.from, options.to, run.time(),
-                    options.boardWaitMinutes);
+                    options.boardWaitMinutes, budget.accessWalkM());
             case EXPORT -> header + "\n" + Report.exported(written) + "\n" + Report.network(world, network, budget);
             case SERVE, HELP -> Options.usage();
         };

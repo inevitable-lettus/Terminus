@@ -154,6 +154,16 @@ public record RouteBudget(
         return farthest;
     }
 
+    /**
+     * How far a passenger walks to board and to change line: the 400 m access
+     * walk, or the coverage radius if {@code --walk} set that higher. Journeys
+     * must walk at least as far as the builder counts a stop as covered, or a
+     * stop it calls covered could be one the planner will not walk to.
+     */
+    public double accessWalkM() {
+        return Math.max(MAX_WALKING_RADIUS_M, walkingRadiusM);
+    }
+
     public RouteBudget withWalkingRadius(double metres) {
         return new RouteBudget(maxRouteMillis, maxRoutes, targetCoverage, metres);
     }

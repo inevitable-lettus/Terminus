@@ -163,6 +163,15 @@ class RouteBudgetTest {
                 RouteBudget.MAX_WALKING_RADIUS_M);
     }
 
+    @Test
+    void journeysWalkAtLeastAsFarAsTheBuilderCountsAStopAsCovered() {
+        RouteBudget budget = RouteBudget.defaults();
+
+        org.junit.jupiter.api.Assertions.assertEquals(400.0, budget.accessWalkM());
+        org.junit.jupiter.api.Assertions.assertEquals(400.0, budget.withWalkingRadius(100.0).accessWalkM());
+        org.junit.jupiter.api.Assertions.assertEquals(650.0, budget.withWalkingRadius(650.0).accessWalkM());
+    }
+
     /** Stops flagged at {@code stopXs}, then plain junctions at {@code junctionXs}; ids run in that order. */
     private static csc210.algorithm.graph.Graph mapOf(double[] stopXs, double[] junctionXs) {
         java.util.List<csc210.algorithm.model.Node> nodes = new java.util.ArrayList<>();

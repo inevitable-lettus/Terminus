@@ -152,7 +152,7 @@ public final class Report {
                 : String.format(Locale.ROOT, "  interchanges: %d stop%s served by more than one line (%s)%n",
                         interchanges.size(), interchanges.size() == 1 ? "" : "s", join(interchanges, 8)));
 
-        TransitGraph transit = TransitGraph.of(world.graph(), network, world.costModel());
+        TransitGraph transit = TransitGraph.of(world.graph(), network, world.costModel(), budget.accessWalkM());
         int pieces = pieces(transit);
         text.append(pieces <= 1
                 ? "  passenger network: connected — a rider can reach any served stop from any other\n"
@@ -304,11 +304,17 @@ public final class Report {
     /** As above, with {@code boardWaitMinutes} of waiting for the first bus. */
     public static String journey(World world, RouteNetwork network, int from, int to, String time,
                                  double boardWaitMinutes) {
+        return journey(world, network, from, to, time, boardWaitMinutes, world.budget().accessWalkM());
+    }
+
+    /** As above, walking up to {@code accessWalkM} to board and to change line. */
+    public static String journey(World world, RouteNetwork network, int from, int to, String time,
+                                 double boardWaitMinutes, double accessWalkM) {
         Graph roads = world.graph();
         requireJunction(roads, from, "FROM");
         requireJunction(roads, to, "TO");
 
-        TransitGraph transit = TransitGraph.of(roads, network, world.costModel());
+        TransitGraph transit = TransitGraph.of(roads, network, world.costModel(), accessWalkM);
         Itinerary itinerary = JourneyPlanner.of(roads, transit)
                 .withBoardWait(Math.round(boardWaitMinutes * 60_000.0)).plan(from, to);
 
