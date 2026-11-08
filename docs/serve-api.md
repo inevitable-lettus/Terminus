@@ -1,6 +1,6 @@
 # `./bus serve` — the local API
 
-`./bus serve` reads the running simulator once, plans the city, and answers over
+`./bus serve` reads the running sandbox once, plans the city, and answers over
 HTTP from memory: the dashboard's data source, and the ticketing portal's
 integration point. It is built on the JDK's own `HttpServer`, so there is nothing
 extra to install.
@@ -12,9 +12,9 @@ extra to install.
 ```
 
 Every answer comes from one immutable planned city, swapped in whole, so a request
-never sees half of each. Every 2 seconds the server re-reads the simulator's speeds
+never sees half of each. Every 2 seconds the server re-reads the sandbox's speeds
 and re-prices the same lines (route and trip ids do not change); it re-runs
-Algorithm 1 only when the simulator's `run_id` changes. `POST /api/reload` forces a
+Algorithm 1 only when the sandbox's `run_id` changes. `POST /api/reload` forces a
 re-plan. Responses
 are gzipped when the client accepts it; CORS allows any origin, so the dashboard
 and the portal's dev servers can call it directly.
@@ -29,13 +29,15 @@ and the portal's dev servers can call it directly.
 | `GET /api/journey?from=&to=&board_wait=` | `legs[{kind, line, from_node, to_node, stops_ridden, ms, path, text}]`, `total_ms`, `transfers`, `walk_ms`, and `a_star_expanded` / `dijkstra_expanded` for the same question |
 | `GET /api/trace/search?from=&to=&algo=astar\|dijkstra` | the junctions the search settled, in order, with their costs (capped at 20,000) |
 | `GET /api/trace/build` | the greedy builder's decisions: `hub`, `extend` (with the path driven and the demand gained), `accept`, `exclude` |
-| `POST /api/reload` `{"time":"HH:MM:SS","seek":true}` | re-reads the simulator and re-plans; moves the shared clock to `time` only when `seek` is `true` |
+| `POST /api/reload` `{"time":"HH:MM:SS","seek":true}` | re-reads the sandbox and re-plans; moves the shared clock to `time` only when `seek` is `true` |
 
 A ride leg's `path` is drawn through the stops the search actually rode through,
 along the cheapest road slice for each hop, so its road costs sum to exactly the
 leg's `ms`. A test holds that on every ride in a sample of the 2.0 city.
 
 ## The ticketing portal's contract (camelCase, frozen by the portal team)
+
+This part of the API exists for one consumer, the [ticketing portal](integrations/portal/index.md). Another program can use it too.
 
 `POST /api/v1/routes/query`
 
@@ -55,12 +57,12 @@ leg's `ms`. A test holds that on every ride in a sample of the 2.0 city.
   representative. `GET /api/v1/stops` lists them with position, `name` (from DSTNS
   `/view/stops`, matched through the place's anchor junction; `null` for the many
   stops DSTNS does not name), whether a line serves them and which (`route_<n>`),
-  for the portal to map onto its own `stop` table. Any junction the simulator
+  for the portal to map onto its own `stop` table. Any junction the sandbox
   flagged as a stop is accepted and resolved.
 - **`cost` is in minutes.** The contract names no unit; minutes are what every
   other figure here is printed in.
 - **`departureTime`** is simulated time: seconds of the day (`25620`) or
-  `HH:MM:SS`. Left out, it is the simulator's current time. A real-world
+  `HH:MM:SS`. Left out, it is the sandbox's current time. A real-world
   date-time (the contract's first form, `2026-09-10T09:00:00Z`) also means "now".
   Anything else is a 400.
 - **`tripId` and `busId`** (the same id) name the first timetabled trip on that
@@ -83,7 +85,7 @@ Route and trip ids stay the same for a whole run (the network is planned once pe
 simulated minutes from 06:00 to 21:45, 40 seats; trip id = bus id =
 `route_<n>-out-HHMM` or `route_<n>-back-HHMM`.
 
-Errors use the simulator's own envelope, `{"ok": false, "error": {"code", "message"}}`:
+Errors use the same envelope as the sandbox API they read, `{"ok": false, "error": {"code", "message"}}`:
 
 | Status | Code | When |
 |---|---|---|
@@ -91,11 +93,11 @@ Errors use the simulator's own envelope, `{"ok": false, "error": {"code", "messa
 | 404 | `STOP_NOT_FOUND` | the id names no stop on this map |
 | 422 | `NO_ROUTE` | both stops exist, and nothing joins them |
 | 409 | `RUN_STATE` | a reload on a server holding a saved bundle |
-| 502 | `SIMULATOR_UNAVAILABLE` | a reload could not read the simulator |
+| 502 | `SIMULATOR_UNAVAILABLE` | a reload could not read the sandbox |
 
 ## The offline bundle
 
 `./bus export --bundle` writes `out/bundle/{world,network,build,journeys}.json`,
 the same JSON the server sends (a test compares them), plus eight worked
 journeys with both searches' traces. With `--out dashboard/public` it lands in
-`dashboard/public/bundle/`, where the dashboard finds it with no simulator and no server.
+`dashboard/public/bundle/`, where the dashboard finds it with no sandbox and no server.

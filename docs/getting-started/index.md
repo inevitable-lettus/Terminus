@@ -1,22 +1,17 @@
 # Getting started
 
-Running the whole system means starting three programs. The order matters, because
-each one reads from the one before it.
+Terminus is a Java program run through the `./bus` command. Installing it takes a JDK
+and one command. **Using** it needs a running sandbox, because every command reads a
+road map and live speeds from one.
 
-1. **DSTNS** starts first, through its launcher. The launcher also starts Terminus
-   and waits until it is ready, then starts the simulation.
-2. **Terminus** runs as a Fabric application under that launcher. You do not start
-   it by hand in this setup.
-3. **The portal** (database, API and web app) starts last and talks to Terminus.
+1. [Requirements](requirements.md): JDK 21, and Node.js if you want the dashboard.
+2. [Installation](installation.md): get the code and check it with the offline tests.
+3. [Quick start](quick-start.md): the first commands against a sandbox.
 
-Then:
+The only sandbox supported today is DSTNS. To run the whole system with it, including
+the ticketing portal, follow the
+[DSTNS quick start](../integrations/dstns/quick-start.md).
 
-1. [Requirements](requirements.md): what to install first.
-2. [Installation](installation.md): get and build each part once.
-3. [Quick start](quick-start.md): the commands to run all three together and
-   what you should see.
-
-!!! tip "No internet?"
-    DSTNS ships a recorded real district (a part of Berlin, about 1,200 junctions).
-    The quick start uses it, so nothing is downloaded and the first start does not
-    depend on the map servers.
+!!! tip "Nothing running?"
+    `./gradlew test` runs 313 tests against saved sandbox responses and needs no
+    sandbox, no network and no simulator.

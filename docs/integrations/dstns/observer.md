@@ -1,6 +1,6 @@
 # Drawing in the DSTNS observer
 
-When Terminus runs [under the DSTNS launcher](../fabric.md) it draws on the DSTNS
+When Terminus runs [under the DSTNS launcher](../../fabric.md) it draws on the DSTNS
 observer, the browser map at <http://127.0.0.1:8090>. Nothing needs switching on:
 once Terminus reports itself ready, its elements appear.
 
@@ -35,7 +35,7 @@ The names of the layers and toggles that DSTNS lists these under were not checke
 If Terminus cannot re-read DSTNS (for example because the simulator is busy), the
 status line changes to **road speeds out of date: cannot re-read DSTNS**. The
 drawing carries on with the last speeds it had and recovers by itself on the next
-successful read. See [Troubleshooting](../troubleshooting.md#refresh-timeouts-and-closed-mid-read).
+successful read. See [Troubleshooting](troubleshooting.md#speeds-out-of-date-in-the-observer).
 
 ## What Terminus is allowed to do
 
