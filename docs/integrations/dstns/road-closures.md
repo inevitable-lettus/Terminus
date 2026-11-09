@@ -47,7 +47,7 @@ of a two-way street changed nothing in testing.
     The lines are planned once per run. A road that closes later is priced as
     gridlock (0.1 m/s) for the bus that uses it, and the bus cannot go another
     way. A new run re-plans the lines. See
-    [Known limitations](../known-limitations.md).
+    [Known limitations](../../known-limitations.md).
 
 ## Check it from the command line
 

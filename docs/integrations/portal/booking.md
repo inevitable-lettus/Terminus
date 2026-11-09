@@ -1,7 +1,7 @@
 # Booking a ticket
 
 The portal web app is at <http://localhost:5173>. It needs Terminus running (see the
-[Quick start](../getting-started/quick-start.md)), because the stops and trips it
+[Quick start](../dstns/quick-start.md)), because the stops and trips it
 shows come from Terminus.
 
 ## The flow
@@ -56,4 +56,4 @@ The web app uses these portal API calls, at `http://localhost:3000`:
 
 Search asks Terminus for the journey at the simulator's current time. If Terminus is
 not running, or the portal has not yet copied its trips, the search fails; see
-[Troubleshooting](../troubleshooting.md#portal-search-fails).
+[Troubleshooting](troubleshooting.md#portal-search-fails).

@@ -1,111 +1,45 @@
 # Quick start
 
-Run the simulator, Terminus and the portal together, then book a ticket. This uses
-the recorded district that ships with DSTNS, so it works offline and does not wait
-on a map download.
+The first commands, against a sandbox that is already running. Start one first: with
+DSTNS, see the [DSTNS quick start](../integrations/dstns/quick-start.md).
 
-Finish [Installation](installation.md) first.
+The examples assume the sandbox is at `http://127.0.0.1:8090`, which is the default. Add
+`--sandbox URL` to any command if it is somewhere else.
 
-## 1. Add Terminus to the DSTNS launcher (once)
-
-The DSTNS launcher starts programs alongside a run. Register Terminus with it. Run
-this from the DSTNS folder and replace the `--cwd` path with where you cloned
-Terminus:
+## Look at the network
 
 ```bash
-cd ~/bus-planner/DSTNS
-./launcher apps add terminus \
-    --name "Terminus" \
-    --cwd ~/bus-planner/Terminus \
-    --command "./bus serve --fabric --sandbox {url} --port 8080" \
-    --ready fabric --timeout 180
-./launcher apps doctor terminus
+./bus network        # the bus lines and how well they cover demand
+./bus stops          # the busiest stops, and which lines serve them
 ```
 
-`apps doctor` should report that nothing is in the way. `{url}` is filled in by the
-launcher. The entry is stored in `config/apps.json` on your machine only. Details
-and the options are in [Running under the DSTNS launcher](../fabric.md).
+The first lines of every report say what it stands on: the run and seed, the map, the
+stops, where demand came from, and the budget. Read them before the numbers.
 
-## 2. Start the simulation and Terminus
+## Plan a journey
 
 ```bash
-cd ~/bus-planner/DSTNS
-./launcher start --seed 0x2026 \
-    --osm-file data/fixtures/real_network.osm.xml \
-    --apps terminus
+./bus journey 5 217      # between two junction ids
 ```
 
-The launcher builds DSTNS the first time (a few minutes), starts Terminus, waits
-until it reports itself ready, then starts the simulation. You should see, in order:
+Choose junction ids from `./bus stops` that are far enough apart, or the answer is
+"Walk the whole way". Add `--time 18:00:00` to read the run at a chosen time. That
+pauses the sandbox's clock.
 
-1. `Starting applications Terminus`
-2. `Terminus ready`
-3. `Simulation running`
-4. `Observer ready http://127.0.0.1:8090/`
-
-Open **<http://127.0.0.1:8090>**. The observer shows the district, and Terminus draws
-the bus lines, stops and buses on top of it. See
-[Drawing in the DSTNS observer](../guide/observer.md).
-
-!!! tip "Another port"
-    If 8090 is taken, start with `DSTNS_API_PORT=8190 ./launcher start ...`. Terminus
-    finds the simulator through the address the launcher passes to it.
-
-Terminus's own output is in `logs/apps/terminus.log` in the DSTNS folder, and
-`./launcher apps logs terminus` prints it.
-
-## 3. Check Terminus
+## Export and serve
 
 ```bash
+./bus export                    # out/routes.json and out/routes.geojson
+./bus serve                     # the API and the dashboard on http://127.0.0.1:8080
 curl -s http://127.0.0.1:8080/api/health
 ```
 
-The answer names the run (`run_id`) and the simulator's virtual time. Then:
+The health answer names the run and the sandbox's simulated time. Open
+<http://127.0.0.1:8080> for the dashboard if you built it.
 
-```bash
-cd ~/bus-planner/Terminus
-./bus network        # the bus lines and how well they cover demand
-./bus stops          # the busiest stops
-```
+## Next
 
-The dashboard, if you built it, is at <http://127.0.0.1:8080>. See
-[The dashboard](../guide/dashboard.md).
-
-## 4. Start the portal
-
-In two more terminals:
-
-```bash
-# Terminal A: the API on port 3000
-cd ~/bus-planner/portal
-npm start
-
-# Terminal B: the web app on port 5173
-cd ~/bus-planner/portal/frontend
-npm run dev
-```
-
-Within a few seconds the portal API copies Terminus's stops, routes, trips and seats
-into PostgreSQL. Open **<http://localhost:5173>**.
-
-## 5. Book a ticket
-
-1. On the home page pick a **From** and a **To** stop and search.
-2. On **Your journey**, choose **Choose Seats** on a bus.
-3. Pick a seat, then **Confirm booking**. You get a digital ticket with a QR code.
-
-The full walk-through, including the conductor page, is in
-[Booking a ticket](../guide/portal-booking.md).
-
-## 6. Close a road and watch it
-
-In the DSTNS observer close a road that a bus line uses. Within about 2 seconds
-Terminus re-prices the lines, and journey times through that road rise. See
-[Road closures](../guide/road-closures.md).
-
-## Stopping everything
-
-- Stop the portal with `Ctrl+C` in each terminal.
-- Stop DSTNS and Terminus with `./launcher stop` from the DSTNS folder. Terminus
-  unloads itself on exit, so the next start registers cleanly.
-- Stop PostgreSQL the way you started it.
+- [The ./bus commands](../guide/bus-cli.md): every command and option.
+- [Configuration](../guide/configuration.md): the budget, the stop gap and the ports.
+- [The local API](../serve-api.md): every endpoint.
+- [Concepts](../concepts/index.md): what the reports mean.

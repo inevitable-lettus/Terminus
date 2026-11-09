@@ -1,86 +1,87 @@
 # Terminus
 
-A public bus route planner built as three programs that work together. A traffic
-simulator provides a city and its live road conditions. A route builder and journey
-planner designs a bus network on that city and answers passenger questions. A
-ticketing portal lets passengers search, pick a seat, pay a fare and hold a digital
-ticket, and lets a conductor board them.
+Terminus designs a bus network on a road map and plans passenger journeys on it. It
+is built to take its road map, its live road speeds and its demand from a **sandbox**:
+any simulation or data source that can describe a city's roads and how fast traffic
+moves on them. The [DSTNS](integrations/dstns/index.md) traffic simulator is the sandbox
+supported today, and the ticketing portal is one program that consumes Terminus's
+output.
 
-This site is the user guide for running and using all three together.
+## What Terminus does
 
-## The three parts
+| Part | What it does | Run it with |
+|---|---|---|
+| **Route builder** (Algorithm 1) | Chooses where bus lines should run so that every reachable junction is near a served stop. A greedy, demand-covering heuristic that uses Dijkstra's algorithm as a subroutine | `./bus network`, `./bus export` |
+| **Journey planner** (Algorithm 2) | Finds the best way for one passenger to get from one junction to another, using A\* search on the transit graph the builder produced. Walks, rides and transfers are priced as real time | `./bus journey FROM TO` |
+| **Serve API** | Plans once, then answers over HTTP from memory: the network, journeys, search traces, a timetable and the positions of buses. Keeps road speeds and closures current while it runs | `./bus serve` |
+| **Dashboard** | A browser view of the lines, buses, journeys and how the algorithms worked | `./bus serve`, then open it |
 
-| Part | What it does | Repository | Language | Default port |
-|---|---|---|---|---|
-| **DSTNS** | Deterministic traffic simulator. Compiles an OpenStreetMap district into a road graph and advances traffic, weather and signals on a virtual 24-hour clock. Has a browser observer. | [`varunkarthic/DSTNS`](https://github.com/varunkarthic/DSTNS) ([docs](https://dstns.readthedocs.io/v3)) | C++20, Rust launcher | 8090 |
-| **Terminus** | Route builder (Algorithm 1) and journey planner (Algorithm 2). Reads the simulator, plans bus lines, serves a JSON API and a dashboard, and draws its lines and buses inside the DSTNS observer. | [`inevitable-lettus/Terminus`](https://github.com/inevitable-lettus/Terminus) | Java 21 | 8080 |
-| **Ticketing portal** | Passenger search, seat locking, booking, QR tickets, booking history and the conductor page. | [`CSC210-Monsoon2026/group-08-public-bus-route-planner`](https://github.com/CSC210-Monsoon2026/group-08-public-bus-route-planner) | Node, Express, PostgreSQL, React | API 3000, UI 5173 |
+Every command reads a sandbox that is already running and leaves its clock alone. The
+reports state what they stand on: the run, the map, the stops, where the demand came
+from, and the budget in force. A coverage figure means little without them.
 
-## How they connect
+## What it needs from a sandbox
 
-```mermaid
-flowchart LR
-    D["DSTNS<br/>simulator + observer<br/>:8090"]
-    T["Terminus<br/>route builder + journey planner<br/>:8080"]
-    P["Portal API<br/>Express + PostgreSQL<br/>:3000"]
-    U["Portal UI<br/>React<br/>:5173"]
-    D -- "roads, speeds, closures,<br/>every 2 s" --> T
-    T -- "draws lines, buses,<br/>arrivals (Fabric)" --> D
-    T -- "stops, routes, trips,<br/>live buses, journey queries" --> P
-    U -- "search, seats, booking" --> P
-```
+A directed road graph with positions, each road's length and free speed, the current
+speed and closed flag of every road, and a run identity. Demand points and named stops
+are optional. The full list is in [The sandbox interface](sandbox/index.md).
 
-- **DSTNS to Terminus.** Terminus reads the simulator's roads and speeds and
-  re-reads them every 2 seconds. Terminus never changes the simulation. A person
-  closes a road in the DSTNS observer and Terminus reacts.
-- **Terminus to DSTNS.** Terminus joins DSTNS as a Fabric application, so the
-  observer can show its bus lines, buses and next arrivals on the map.
-- **Terminus to the portal.** The portal copies Terminus's stops, routes and trips
-  into its own database every 2 seconds, and asks Terminus for a journey on every
-  search.
-- **Portal UI to portal API.** The React app talks only to the portal API.
+!!! warning "Today the code talks to DSTNS directly"
+    Terminus does not yet have a sandbox-neutral input layer. Its core still uses
+    DSTNS's data types, so a different sandbox needs an adapter that does not exist
+    yet. The decoupling is planned work: epic
+    [#17](https://github.com/inevitable-lettus/Terminus/issues/17) and issues
+    [#28](https://github.com/inevitable-lettus/Terminus/issues/28) to
+    [#31](https://github.com/inevitable-lettus/Terminus/issues/31). This site describes
+    the interface as it is. See [Connect your own sandbox](sandbox/connect-your-own.md).
 
 ## Where to start
 
 <div class="grid cards" markdown>
 
--   **Run everything**
+-   **Understand it**
 
     ---
 
-    Start the simulator, Terminus and the portal and book a ticket.
+    The road network, demand, stops, lines, journeys and live refresh.
 
-    [Quick start](getting-started/quick-start.md)
+    [Concepts](concepts/index.md)
 
--   **Check your machine**
-
-    ---
-
-    What each part needs installed.
-
-    [Requirements](getting-started/requirements.md)
-
--   **Use Terminus**
+-   **What a sandbox provides**
 
     ---
 
-    The `./bus` commands, the local API and the dashboard.
+    Exactly what Terminus reads, and what is required or optional.
 
-    [User guide](guide/index.md)
+    [The sandbox interface](sandbox/index.md)
 
--   **Something broke**
+-   **Install and try it**
 
     ---
 
-    Port clashes, 409 errors, a stalled map download.
+    JDK 21 and `./bus`; tests need no sandbox.
 
-    [Troubleshooting](troubleshooting.md)
+    [Getting started](getting-started/index.md)
+
+-   **Use it with DSTNS**
+
+    ---
+
+    Run the simulator, Terminus and the portal together.
+
+    [DSTNS integration](integrations/dstns/index.md)
 
 </div>
 
+## Integrations
+
+| Integration | What it is |
+|---|---|
+| [DSTNS](integrations/dstns/index.md) | The sandbox supported today: a deterministic, seeded traffic simulator with a browser observer. Covers the launcher, the Fabric link, the observer drawing, road closures and the offline fixture |
+| [Ticketing portal](integrations/portal/index.md) | One consumer of the serve API: passenger search, seat booking, tickets and a conductor page |
+
 ## Status
 
-The algorithm module is built and tested against DSTNS. The portal supports search,
-booking of single-bus journeys, tickets and the conductor page. Known gaps, such as
-a live arrival countdown in the portal and booking journeys with a change of bus,
-are listed in [Known limitations](known-limitations.md).
+The route builder, the journey planner and the serve API are built and tested against
+DSTNS. The research deliverable (a weighted A\* sweep across network sizes) is not
+built. See [Known limitations](known-limitations.md).

@@ -7,9 +7,8 @@
 
 site_name: Terminus
 site_description: >-
-  User guide for the Group 8 public bus route planner: the DSTNS traffic
-  simulator, the Terminus route builder and journey planner, and the ticketing
-  portal.
+  Terminus: a bus route builder, journey planner and serve API that reads a road
+  network and live road speeds from a sandbox such as the DSTNS traffic simulator.
 site_author: CSC210 Group 8
 # Read the Docs sets the canonical URL of each version; the fallback is used
 # for local builds.
@@ -128,25 +127,40 @@ validation:
 
 nav:
   - Home: index.md
+  - Concepts:
+      - concepts/index.md
+      - The road network: concepts/road-network.md
+      - Demand and stops: concepts/demand-and-stops.md
+      - Lines and journeys: concepts/lines-and-journeys.md
+      - Live refresh: concepts/live-refresh.md
+  - Sandbox interface:
+      - sandbox/index.md
+      - Connect your own sandbox: sandbox/connect-your-own.md
   - Getting started:
       - getting-started/index.md
-      - Before you begin:
-          - Requirements: getting-started/requirements.md
-      - Install and run:
-          - Installation: getting-started/installation.md
-          - Quick start: getting-started/quick-start.md
+      - Requirements: getting-started/requirements.md
+      - Installation: getting-started/installation.md
+      - Quick start: getting-started/quick-start.md
   - User guide:
       - guide/index.md
-      - Terminus:
-          - The ./bus commands: guide/bus-cli.md
-          - The local API: serve-api.md
-          - The dashboard: guide/dashboard.md
-          - Running under the DSTNS launcher: fabric.md
-          - Drawing in the DSTNS observer: guide/observer.md
-          - Road closures: guide/road-closures.md
+      - The ./bus commands: guide/bus-cli.md
+      - Configuration: guide/configuration.md
+      - The local API: serve-api.md
+      - The dashboard: guide/dashboard.md
+  - Integrations:
+      - integrations/index.md
+      - DSTNS:
+          - integrations/dstns/index.md
+          - Quick start: integrations/dstns/quick-start.md
+          - Running under the launcher: fabric.md
+          - Drawing in the observer: integrations/dstns/observer.md
+          - Road closures: integrations/dstns/road-closures.md
+          - DSTNS troubleshooting: integrations/dstns/troubleshooting.md
       - Ticketing portal:
-          - Booking a ticket: guide/portal-booking.md
-          - The conductor page: guide/portal-conductor.md
+          - integrations/portal/index.md
+          - Booking a ticket: integrations/portal/booking.md
+          - The conductor page: integrations/portal/conductor.md
+          - Portal troubleshooting: integrations/portal/troubleshooting.md
   - Help:
       - troubleshooting.md
       - FAQ: faq.md
